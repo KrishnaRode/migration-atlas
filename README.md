@@ -1,188 +1,100 @@
 <div align="center">
 
-<img src="apps/web/public/favicon.svg" width="64" alt="Migration Atlas logo" />
+<img src="apps/web/public/favicon.svg" width="72" alt="Migration Atlas" />
 
 # Migration Atlas
 
 ### Your legacy estate in. Your future architecture out.
 
-A local AI-powered migration architecture studio for modernizing legacy estates.
-Explore, design, compare and validate legacy-to-cloud architectures on a canvas that
-**understands what the boxes mean** — powered by Ollama on your own machine.
+A local AI-powered migration architecture studio. Describe your legacy estate — Oracle,
+Informatica, Control-M, Teradata, mainframe — and get **several target architectures** on a
+canvas that understands what every box means, scored against your priorities, validated,
+and planned into migration waves.
 
-**No OpenAI. No Claude. No Gemini. No API keys. Architecture data stays local.**
+**No OpenAI. No Claude. No Gemini. No cloud API. No API key.**
+Ollama on your machine. Architecture data never leaves it.
 
-[![Local AI](https://img.shields.io/badge/AI-100%25%20local%20(Ollama)-0fa68f?style=flat-square)](#local-ai)
-[![Ontology](https://img.shields.io/badge/ontology-243%20technologies-2f6bff?style=flat-square)](#technology-ontology)
-[![Tests](https://img.shields.io/badge/tests-75%20API%20%2B%209%20UI%20%2B%2020--case%20AI%20eval-3ddc97?style=flat-square)](#tests)
-[![Stack](https://img.shields.io/badge/Next.js%2015%20·%20React%20Flow%20·%20FastAPI-555?style=flat-square)](#architecture)
+[![Local AI](https://img.shields.io/badge/AI-100%25%20local%20(Ollama)-00a07d?style=flat-square)](#local-ai)
+[![Ontology](https://img.shields.io/badge/ontology-243%20technologies-0071e3?style=flat-square)](#the-technology-ontology)
+[![Playbooks](https://img.shields.io/badge/expert%20playbooks-19-a855f7?style=flat-square)](#how-the-ai-works)
+[![Tests](https://img.shields.io/badge/tests-75%20API%20%C2%B7%2011%20UI%20%C2%B7%2020--case%20AI%20eval-1fa95b?style=flat-square)](#tests)
+[![Stack](https://img.shields.io/badge/Next.js%2015%20%C2%B7%20React%20Flow%20%C2%B7%20FastAPI-1d1d1f?style=flat-square)](#architecture)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 
-*The Sunday Builds #14 · Built to explore what local AI can do.*
+*The Sunday Builds #14*
 
 </div>
 
 ---
 
-<img src="docs/screenshots/studio.png" alt="Migration Atlas studio: component library, architecture canvas and inspector" width="100%" />
+<div align="center">
+<img src="docs/screenshots/studio.png" alt="Migration Atlas studio: three architecture options as tabs with fit scores, a domain-aware canvas with swimlanes, component library and inspector" width="100%">
+<p><em>Three options for one estate — each scored against your priorities. Option C carries the best-fit badge.</em></p>
+</div>
 
-## What is Migration Atlas?
+---
+
+## The idea
 
 > **Don't start your migration with a blank canvas.**
-> Describe your legacy estate. Migration Atlas maps it, modernizes it, and helps you design what comes next.
-> **Locally. Visually. Explainably.**
 
-Migration Atlas is an interactive architecture studio for modernization work. You describe the estate
-(*"Oracle, Informatica PowerCenter, Control-M, Tableau, ~300 TB, moving to GCP and Databricks, minimal
-downtime"*), and it generates a target architecture you then refine on a canvas: drag components in,
-connect them, swap technologies, ask questions, validate, branch what-ifs, compare options, plan
-migration waves and export the result.
+Diagramming tools understand boxes. Migration Atlas understands **what the boxes mean**:
+Oracle is an OLTP database full of PL/SQL; Informatica is an ETL platform whose mappings hide
+business logic; Control-M schedules work but doesn't move data; Unity Catalog governs a lakehouse.
 
-The canvas is the product — not a chatbot. AI helps where it adds value, and never changes the
-canvas without showing you a proposal first.
+So you describe the estate in a sentence —
 
-## Why it exists
+> *"Oracle, Informatica PowerCenter, Control-M and Tableau, ~300 TB. Move to GCP and Databricks
+> with minimal downtime."*
 
-Traditional diagramming tools understand boxes. Migration Atlas understands what the boxes mean:
+— and it lays out real alternatives, tells you which fits your priorities best and **why**, warns
+you about connections that don't make sense, and plans the migration in waves.
 
-- **Oracle** is an OLTP database with PL/SQL, and commonly migrates to Databricks, AlloyDB or Aurora.
-- **Informatica** is an ETL platform whose mappings hide business logic.
-- **Control-M** orchestrates workloads — it is *not* a data transport, so `Control-M → GCS` earns a warning.
-- **Kafka** provides streaming; **Databricks** provides a lakehouse; **Unity Catalog** provides governance.
+```
+ your estate ─► rules ─► ontology ─► knowledge graph ─► docs (RAG) ─► local LLM ─► validator ─► canvas
+                (243 technologies · 169 connection rules · 55 migration mappings · 19 playbooks)
+```
 
-That knowledge lives in a **technology ontology** (YAML, 243 technologies, 169 connection rules,
-55 migration mappings, 11 architecture patterns, 25 risks) plus **19 expert playbooks** and drives every feature: suggestions,
-connection intelligence, generation, validation, roadmap and the AI's context.
+The model never draws the diagram and never edits it silently. Rules build it, AI reviews and
+explains it, the validator checks it, and you decide.
 
-## Screenshots
+---
+
+## What it does
 
 | | |
 |---|---|
-| <img src="docs/screenshots/landing.png" alt="Landing page" /> | <img src="docs/screenshots/canvas.png" alt="Canvas with swimlanes" /> |
-| **Landing** — the hero animation modernizes a legacy estate | **Canvas** with swimlanes, medallion stack and cross-cutting rows |
-| <img src="docs/screenshots/validation.png" alt="Validation and health" /> | <img src="docs/screenshots/leader.png" alt="Leader view" /> |
-| **Validation & health** — explainable dimensions, no single score | **Leader view** — estate → target, themes, waves, risks, skills |
-| <img src="docs/screenshots/compare.png" alt="Compare options" /> | <img src="docs/screenshots/roadmap.png" alt="Roadmap" /> |
-| **Compare** — descriptive, side by side, no "winner" | **Roadmap** — 12 waves ordered by the dependency graph |
+| 🧭 **Several architectures, every time** | The target you asked for, an alternative data platform and a low-rewrite coexistence path — side by side as tabs. Never one opinion dressed up as the answer. |
+| ⭐ **Best fit, with evidence** | Each option scored 0–3 per priority (downtime, rewrite, managed ops, lock-in, licensing, governance…). Every score shows the evidence. Local AI recommends one — and says when each alternative wins instead. |
+| 🎨 **A canvas that knows things** | Drag from 243 technologies. Drop Oracle and it suggests Lakeflow Connect, Datastream, GoldenGate. Drop GCP and it offers GCS, Pub/Sub, BigQuery. |
+| 🔗 **Connection intelligence** | Every edge is `VALID`, `VALID_WITH_WARNING`, `UNUSUAL`, `INVALID` or `UNKNOWN`, with the reason. *Control-M → GCS?* "A scheduler, not a data transport." |
+| 💬 **Ask anything** | Questions get cited answers. *"Replace Informatica with dbt"* returns an **Apply** card. *"What if we avoid Kafka?"* offers a branch. *"Which option is best?"* returns the fit analysis. |
+| 🎓 **Expert playbooks** | 19 senior-architect playbooks (warehouse, Oracle, CDC & cutover, mainframe, platform choice, cost, governance…) picked per question and named under each answer. |
+| 🛡️ **Deterministic validator** | Missing reconciliation, no rollback plan, no catalog, orphan components, wrong-cloud services — each finding with evidence and a one-click fix. Seven health dimensions, no vanity score. |
+| 🗺️ **Roadmap & dependencies** | Twelve waves from Discovery to Decommissioning, ordered by a real dependency graph: *Oracle → Informatica → Tableau*, Control-M last. |
+| 👥 **Three lenses** | Developer (mappings, protocols, validation steps), Architect (security, governance, DR, ADRs), Leader (themes, waves, risks, skills). |
+| 📦 **Exports that travel** | PNG, SVG, Markdown, re-importable JSON and a PDF report with the diagram, mappings, decisions, risks, roadmap and references. |
 
-## Features
+---
 
-**Describe → Generate → Drag → Connect → Validate → Improve → Compare → Plan → Export**
+## A tour
 
-- **Estate intake** — natural language *and* visual pickers, kept in sync. Rules extract technologies,
-  constraints, volumes and industry instantly; local AI refines.
-- **Multiple architecture options, every time** — the requested target, an alternative data platform
-  and a low-rewrite coexistence path (or an open & portable variant), shown as tabs. Each is scored
-  against your weighted priorities with the evidence behind every score, and local AI recommends the
-  best fit — with when to choose each alternative. You decide.
-- **AI architecture generation** — a hybrid pipeline (below). Structured JSON first; layout is computed
-  with **ELK**, never by the model.
-- **Architecture canvas** (React Flow) — drag & drop, zoom/pan, minimap, multi-select, grouping (⌘G),
-  snapping, auto-layout (L), swimlanes, editable connections, undo/redo, duplicate (⌘D), delete,
-  fit (F), full screen, component search and category filtering, right-click menus, ⌘K command palette.
-- **Connection intelligence** — every edge is `VALID`, `VALID_WITH_WARNING`, `UNUSUAL`, `INVALID` or
-  `UNKNOWN`, with the reason and the rule that matched. Experiments are allowed; nonsense is explained.
-- **Smart suggestions** — drop Oracle and get Lakeflow Connect, Datastream, GoldenGate…; drop GCP and get
-  GCS, Pub/Sub, BigQuery, Dataflow, Composer, Secret Manager, Monitoring.
-- **Replace with…** — ontology-ranked alternatives; compatible connections are preserved, the operational
-  change is described, and the copilot explains it for your persona. One click records an **ADR**.
-- **Ask anything** — free text is routed by intent: questions get cited answers; "replace Informatica
-  with dbt" or "add DR" returns Apply-able proposals; "what if we avoid Kafka?" offers a one-click
-  branch; "which option fits best?" returns the fit analysis. Expert playbooks are selected per
-  question and shown with the answer. See [docs/ai.md](docs/ai.md).
-- **AI copilot** — persona-aware (Developer / Architect / Leader), grounded in the architecture JSON,
-  ontology facts, knowledge-graph neighbourhood, validation findings and retrieved documentation,
-  with **citations**. Answers use *Recommendation · Why · Evidence · Assumptions · Alternatives · Risks*.
-- **AI actions** — "Add missing governance", "Add reconciliation", "Add a streaming layer",
-  "Reduce infrastructure complexity"… Proposals come from the rule engine and the local model, and
-  are only applied when you click **Apply**.
-- **Deterministic validator** — data, governance, security, reliability, observability, migration and
-  architecture rules with Critical → Info severities, shown on the graph, each with evidence and (where
-  mechanical) a ready-made fix.
-- **Health panel** — completeness, operability, security, governance, migration readiness,
-  observability and resilience, each explainable check by check. Deliberately no overall score.
-- **What-if branches** — *"What if we use BigQuery instead?"*, *"…avoid Kafka?"*, *"…downtime under 30
-  minutes?"*. Every scenario is a new option; the original is never touched.
-- **Compare** options on components, rewrite areas, operating model, governance, skills, complexity,
-  dependencies and risks.
-- **Migration strategies** (the 8 R's) per system — suggested, but always your call.
-- **Source-to-target mappings**, **migration dependency graph** and a **12-wave roadmap**
-  (Discovery → Decommissioning) ordered by dependencies.
-- **Persona views** — Leader, Developer and Architect lenses on the same architecture.
-- **Exports** — PNG, SVG, re-importable JSON, Markdown and a PDF report (title, executive summary,
-  estate, target architecture + diagram, mappings, decisions, assumptions, risks, strategy, roadmap,
-  validation, documentation references). ADRs export as Markdown.
-- **Technology pages** for every component, a **pattern library** with diagram templates, and
-  **global search** (*"Oracle to Databricks"* → mappings, patterns, docs, risks, graph path).
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/options.png" alt="Options view: best-fit recommendation and fit matrix with evidence"/><br/><sub><b>Which architecture fits best?</b> A recommendation from local AI plus rules, and the evidence behind every score.</sub></td>
+<td width="50%"><img src="docs/screenshots/copilot.png" alt="Copilot turning a free-text change request into an Apply card"/><br/><sub><b>Ask anything.</b> "Replace Informatica with dbt" becomes a proposal you can apply, dismiss or have explained.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/validation.png" alt="Validation findings and architecture health dimensions"/><br/><sub><b>Validation & health.</b> Deterministic findings, explainable dimensions, one-click fixes.</sub></td>
+<td width="50%"><img src="docs/screenshots/roadmap.png" alt="Migration roadmap waves and dependency graph"/><br/><sub><b>Roadmap.</b> Waves ordered by the dependency graph, legacy → target.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/leader.png" alt="Leader view"/><br/><sub><b>Leader view.</b> Estate → target, themes, waves, risks and skills — no jargon.</sub></td>
+<td width="50%"><img src="docs/screenshots/landing.png" alt="Landing page"/><br/><sub><b>Home.</b> The hero animation modernizes a legacy estate in place.</sub></td>
+</tr>
+</table>
 
-## Architecture
-
-```
-migration-atlas/
-├── apps/
-│   ├── web/                 Next.js 15 · React 19 · TypeScript · Tailwind v4 · React Flow · ELK · zustand
-│   └── backend/atlas/       FastAPI · Pydantic
-│       ├── ontology/        YAML loader, integrity checks, search, alias matching
-│       ├── rules/           connection intelligence + deterministic validator & health
-│       ├── architecture/    generator, graph ops, replacement, what-if, compare, patterns
-│       ├── migration/       dependency graph + roadmap
-│       ├── ai/              Ollama client, prompts, estate parser, AI review/proposals, copilot
-│       ├── knowledge/       source registry, controlled ingestion, BM25(+dense) store, NetworkX graph
-│       ├── export/          Markdown + PDF (ReportLab)
-│       └── api/             routers
-├── ontology/                technologies/*.yaml, connection_rules, platforms, mappings, risks, strategies
-├── patterns/                11 architecture patterns with diagram templates
-├── knowledge/               sources.yaml (registry) + 41 curated seed notes
-├── sample-estates/          5 demo estates
-├── scripts/smoke_test.py    the full demo journey, end to end
-└── docs/
-```
-
-### The hybrid reasoning pipeline
-
-```
- Estate ─▶ 1 Deterministic rules ─▶ 2 Ontology ─▶ 3 Knowledge graph ─▶ 4 RAG ─▶ 5 Ollama review ─▶ 6 Validation ─▶ ELK layout ─▶ Canvas
-           (platform building        (legacy →    (MIGRATES_TO,         (cited     (JSON only; every id     (rule engine,
-            blocks per cloud &        modern        REPLACES…)            passages)  checked against the       findings + fixes)
-            data platform)            mappings)                                      ontology; rejected
-                                                                                     suggestions reported)
-```
-
-The LLM is never the source of truth. It reviews a rules-based draft, can add at most a few
-components that pass ontology checks, and contributes notes, assumptions and risks that are marked
-as AI-authored in the UI. If Ollama is down or the output is unusable, you get the rules-based
-architecture and a clear note — never a crash, never a stack trace.
-
-See [docs/architecture.md](docs/architecture.md) for the full design.
-
-## Local AI
-
-Ollama is the only AI runtime. Installed models are discovered automatically; pick one in
-**Settings**. Anything that handles structured output well works — Qwen, Llama, Mistral, Gemma, Phi.
-
-Measured on an M4 MacBook (24 GB) with `qwen3:4b`:
-
-| Step | Time |
-|---|---|
-| Architecture generation, rules only | < 0.5 s |
-| Generation with local AI review | ~15–20 s |
-| Copilot answer (streamed, with citations) | ~15–20 s |
-| AI change proposals | ~15 s |
-| Estate extraction (rules, live while typing) | instant |
-
-> **qwen3 2507 note:** the current `qwen3:4b` tag is a thinking-only model that ignores
-> `think: false` and narrates its reasoning. Migration Atlas detects the `thinking` capability via
-> `/api/show` and streams the answer out of a JSON envelope instead, so you only see the answer.
-
-Optional: `ollama pull nomic-embed-text` and select it in Settings to blend dense embeddings with
-BM25 retrieval.
-
-## Prerequisites
-
-- **Python 3.10–3.14** (3.12 recommended)
-- **Node.js 18.18+**
-- **Ollama** — <https://ollama.com/download> (the app runs without it; AI features then show setup steps)
-- ~700 MB disk for dependencies, plus your model (qwen3:4b ≈ 2.5 GB)
+---
 
 ## Quick start
 
@@ -192,112 +104,148 @@ cd migration-atlas
 ./start.sh
 ```
 
-`start.sh` checks prerequisites, starts Ollama if needed, creates the Python venv, installs
-dependencies on first run, starts the API (`:8014`) and web app (`:3014`) and opens your browser.
+That's it. `start.sh` checks prerequisites, starts Ollama, creates the Python venv and installs
+dependencies on first run, then starts the API (`:8014`) and the app (`:3014`) and opens your browser.
+If Migration Atlas is already running it reuses it.
 
 ```bash
-ATLAS_PULL_MODEL=1 ./start.sh          # also pull qwen3:4b if no model is installed
-API_PORT=8020 WEB_PORT=3020 ./start.sh # different ports
-make dev | make test | make smoke      # see `make help`
+ATLAS_PULL_MODEL=1 ./start.sh            # also pull qwen3:4b if you have no model yet
+API_PORT=8020 WEB_PORT=3020 ./start.sh   # different ports
+make help                                # dev, test, smoke, typecheck, build
 ```
 
-**Windows:** run `start.bat` (opens two server windows and your browser).
+**Windows:** `start.bat`. **Docker (optional):** `docker compose up --build` (Ollama stays on the host).
 
-**Docker (optional):** `docker compose up --build` — Ollama stays on the host and is reached via
-`host.docker.internal`.
+### Requirements
 
-**Manual:**
+- **Python 3.10–3.14** (3.12 recommended) and **Node.js 18.18+**
+- **[Ollama](https://ollama.com/download)** with any capable model — `qwen3:4b`, `llama3.1:8b`, `mistral`, `gemma3`.
+  The app runs without it; AI features then show setup steps and everything rule-based keeps working.
 
-```bash
-ollama serve & ollama pull qwen3:4b
-cd apps/backend && python -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m uvicorn atlas.main:app --port 8014
-cd apps/web && npm install && npm run dev        # http://localhost:3014
-```
+### Two-minute demo
 
-## The sample estate (demo in 2 minutes)
+Click **Explore Sample Estate** (*Oracle + Informatica + Control-M + Tableau → GCP + Databricks, minimal downtime*):
 
-Click **Explore Sample Estate** on the home page — *Oracle + Informatica + Control-M + Tableau →
-GCP + Databricks, minimum downtime*. Then:
-
-1. Watch the target architecture generate (rules → ontology → graph → RAG → local AI → validation).
-2. Drag **Pub/Sub** onto the canvas and connect Lakeflow Connect → Pub/Sub — the inspector shows `VALID` and why.
+1. Three options appear as tabs; open **Options** to see which fits best and why.
+2. Drag **Pub/Sub** onto the canvas and connect Lakeflow Connect → Pub/Sub — the inspector says `VALID` and why.
 3. **Ask AI to explain** the connection — a streamed, cited answer.
-4. Right-click **Control-M → Replace with… → Databricks Workflows**; the copilot explains what changes.
-5. **Validate** — *No reconciliation* is flagged (high).
-6. **Apply** the proposal — the reconciliation component appears; migration readiness improves.
-7. Switch to the **Leader** view.
-8. **Generate migration roadmap** — 12 waves, Oracle → Informatica → Tableau dependency order.
-9. **Export** a PDF report and a PNG diagram.
+4. Type *"Replace Control-M with Databricks Workflows"* — apply the proposal.
+5. **Validate** — *No reconciliation* is flagged; **Apply** the fix.
+6. Switch to **Leader**, **Generate migration roadmap**, then **Export → PDF**.
 
-The same journey runs headless: `python scripts/smoke_test.py` (11 steps, real local AI).
-Four more samples ship in [sample-estates/](sample-estates): Teradata → Azure Databricks,
+Four more sample estates ship in [`sample-estates/`](sample-estates): Teradata → Azure Databricks,
 Oracle/SSIS/SQL Server → Azure, DB2/COBOL/CICS → AWS, Netezza → BigQuery.
 
-## Documentation ingestion
+---
 
-The knowledge base starts with **41 curated notes** (original summaries, each linking to the official
-page it summarises) so answers carry citations offline. You can add more:
+## How the AI works
 
-- **Official docs** — [knowledge/sources.yaml](knowledge/sources.yaml) registers 19 sources (Google
-  Cloud, AWS, Azure, Databricks, Snowflake, Oracle, Teradata, Informatica, IBM, SAP, PostgreSQL,
-  Kafka, Airflow, Spark, Kubernetes, dbt, plus GitHub docs repos). **Every source ships disabled.**
-  Ingestion only fetches registered seed pages or URLs under a source's `allowed_prefixes`, honours
-  `robots.txt`, rate-limits per host, and refuses redirects outside the prefixes. There is no crawler.
-- **Your documents** — drop PDF, HTML, Markdown or text files on the Knowledge page.
+Everything is detailed in **[docs/ai.md](docs/ai.md)**. In short:
 
-Each document stores vendor, product, URL, title, type, retrieval time, detected version, content
-hash and extracted text. Retrieval is BM25 over SQLite (zero downloads), blended with cosine
-similarity when an Ollama embedding model is selected. A NetworkX knowledge graph (Technology,
-Capability, Vendor, MigrationPattern, Risk, ArchitecturePattern, Documentation; PROVIDES, REPLACES,
-CONNECTS_TO, MIGRATES_TO, ALTERNATIVE_TO, DOCUMENTED_BY, REQUIRES…) is persisted as JSON behind a
-`GraphStore` interface, ready for a Neo4j implementation.
+- **Hybrid pipeline.** Rules and the ontology build each option; the local model reviews it (every
+  component it suggests is checked against the ontology), writes notes, assumptions and risks, and
+  recommends a best fit over a deterministic fit table. Coordinates always come from ELK, never the model.
+- **Intent routing.** Free text is classified as a question, a change, a what-if or a recommendation
+  and handled by the capability built for it — so "add DR" produces an applyable change, not an essay.
+- **Grounding.** Each answer gets the architecture, validation findings, estate, ontology facts,
+  knowledge-graph context, the most relevant playbook and cited documentation passages.
+- **Small-model robustness.** Thinking-only models (qwen3 2507) are run in JSON mode and streamed;
+  narration and question-echoes are stripped; weak answers are retried differently; every call has
+  a hard deadline.
+- **Measured.** [`scripts/eval_ai.py`](scripts/eval_ai.py) runs 20 representative questions against
+  your local model and checks routing, actions, playbook choice, concepts, leakage, length and latency.
+  The iteration history is in [docs/ai.md](docs/ai.md#6-evaluation).
 
-## Technology ontology
+### Local AI
 
-Everything the app knows is editable YAML — see [docs/ontology.md](docs/ontology.md). Add a
-technology, restart the API, and the library, suggestions, rules, generator, validator and graph pick
-it up. The loader validates every cross-reference; the test suite fails on dangling ids.
+| Step (qwen3:4b, M4 MacBook) | Time |
+|---|---|
+| Options without AI · validation · roadmap · exports | under a second |
+| Three options with AI review + best-fit recommendation | ~35 s |
+| Change requests (rule-backed proposals) | instant – ~45 s |
+| Questions and what-ifs (streamed, cited) | ~25–55 s |
+
+Pick any installed model in **Settings**. Optional: `ollama pull nomic-embed-text` for semantic search.
+
+---
+
+## The technology ontology
+
+Everything the app knows is plain YAML you can read and extend — [docs/ontology.md](docs/ontology.md):
+
+| | |
+|---|---|
+| [`ontology/technologies/`](ontology/technologies) | 243 technologies — legacy and modern, data and application, AWS/Azure/GCP, NoSQL, query engines, ELT SaaS, iPaaS, serverless, governance |
+| [`ontology/connection_rules.yaml`](ontology/connection_rules.yaml) | 169 rules behind connection intelligence |
+| [`ontology/mappings*.yaml`](ontology) | 55 source → target migration mappings with approaches, effort and risks |
+| [`patterns/`](patterns) | 11 architecture patterns with diagram templates |
+| [`knowledge/skills/`](knowledge/skills) | 19 expert playbooks |
+| [`knowledge/seed/`](knowledge/seed) + [`sources.yaml`](knowledge/sources.yaml) | 41 curated notes + a registry of official docs (all disabled until you enable them; robots.txt and rate limits respected; no crawler) |
+
+Add a technology, restart the API, and the library, suggestions, rules, generator, validator,
+playbook selection and knowledge graph all pick it up.
+
+---
+
+## Architecture
+
+```
+migration-atlas/
+├── apps/
+│   ├── web/                  Next.js 15 · React 19 · TypeScript · Tailwind v4 · React Flow · ELK · zustand
+│   └── backend/atlas/        FastAPI · Pydantic
+│       ├── ontology/         YAML loader, integrity checks, search, typo-tolerant matching
+│       ├── rules/            connection intelligence · validator · health dimensions
+│       ├── architecture/     generator · options & fit · ops · replace · what-if · compare
+│       ├── migration/        dependency graph · roadmap
+│       ├── ai/               Ollama client · intent router · copilot · prompts · estate parser
+│       ├── knowledge/        source registry · controlled ingestion · BM25(+dense) store · graph · playbooks
+│       └── export/           Markdown · PDF
+├── ontology/  patterns/  knowledge/  sample-estates/
+├── scripts/                  smoke_test.py · eval_ai.py
+└── docs/                     ai.md · architecture.md · ontology.md
+```
+
+More in [docs/architecture.md](docs/architecture.md).
+
+---
 
 ## Tests
 
 ```bash
-make test     # 75 backend tests (pytest) + 9 UI component tests (vitest)
-make smoke    # 11-step end-to-end demo journey against a running API
-python scripts/eval_ai.py   # 20-case copilot evaluation against your local model
-make typecheck
+make test                      # 75 backend (pytest) + 11 UI component (vitest)
+make smoke                     # the full demo journey end to end, against a running API
+python scripts/eval_ai.py      # 20-case copilot evaluation against your local model
 ```
 
-Backend tests cover ontology loading and integrity, search, connection rules, generation for every
-sample estate, validation and proposals, replacement, what-if, structured-output parsing, estate
-extraction, project persistence, roadmap/dependencies, knowledge store and ingestion controls, exports
-and every API endpoint — with Ollama deliberately unreachable, so all AI paths are proven to degrade.
+Backend tests run with Ollama deliberately unreachable, so every AI path is proven to degrade
+gracefully.
+
+---
 
 ## Privacy
 
-- Architecture data stays on your machine: projects live in `data/atlas.db` (SQLite), the knowledge
-  base in the same file, the graph in `data/knowledge_graph.json`.
-- The only outbound requests are to your local Ollama, and — only if you enable a documentation
-  source — to that vendor's official docs.
-- No telemetry, no accounts, no cloud AI. Optional cloud providers are a possible future adapter,
-  not part of this build.
+- Projects, the knowledge base and the graph live in `data/` on your machine (SQLite + JSON).
+- The only outbound calls go to your local Ollama — and, only if you enable a documentation source,
+  to that vendor's official docs.
+- No telemetry, no accounts, no cloud AI.
+
+---
 
 ## Roadmap
 
-- Cost modelling per option (with explicit, editable assumptions)
-- Neo4j `GraphStore` and Qdrant/Chroma vector adapters
-- Import from existing diagrams (draw.io, Mermaid) and CMDB exports
-- Multi-user review with comments on components and ADRs
-- More ontology coverage: SAP, Hadoop ecosystems, iPaaS
+- Cost modelling per option, with explicit and editable assumptions
+- Import from draw.io / Mermaid diagrams and CMDB exports
+- Neo4j and Qdrant/Chroma adapters behind the existing interfaces
+- Comments and review workflow on components and ADRs
 
 ## Contributing
 
-Issues and PRs welcome. The highest-leverage contributions are ontology improvements — better
-technologies, connection rules, mappings and patterns — because every feature reads from them.
-Please run `make test` and keep YAML references valid.
+Issues and PRs are welcome. The highest-leverage contributions are to the ontology and playbooks —
+every feature reads from them. Please run `make test` (and `scripts/eval_ai.py` for prompt changes).
 
 ## License
 
 [MIT](LICENSE) © Krishna Rode
 
-<div align="center"><sub>The Sunday Builds #14 · Built to explore what local AI can do.</sub></div>
+<div align="center"><sub><b>The Sunday Builds #14</b> · Built to explore what local AI can do.</sub></div>

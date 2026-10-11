@@ -45,7 +45,9 @@ describe("Library", () => {
 
 describe("Markdown", () => {
   it("renders headings, lists, bold and citation chips without HTML injection", () => {
-    const { container } = render(<Markdown text={"**Why**\n\n- one [S1]\n- two\n\n<img src=x onerror=alert(1)>"} />);
+    const { container } = render(<Markdown text={"**Why**\n\n- one [S1]\n- two _(rule engine)_ snake_case_name\n\n<img src=x onerror=alert(1)>"} />);
+    expect(container.querySelector("em")?.textContent).toBe("(rule engine)");
+    expect(container.textContent).toContain("snake_case_name");
     expect(container.querySelector("strong")?.textContent).toBe("Why");
     expect(container.querySelectorAll("li")).toHaveLength(2);
     expect(container.querySelector(".cite")?.textContent).toBe("S1");

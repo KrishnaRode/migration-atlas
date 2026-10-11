@@ -91,8 +91,9 @@ export function OptionsFit() {
             </div>
           </div>
           {analysis.caveats.length > 0 && (
-            <div className="relative mt-4 flex gap-2 rounded-xl bg-surface-2 px-3 py-2 text-[12px] text-muted">
-              <Info size={13} className="mt-0.5 shrink-0" /> <span>{analysis.caveats.join(" ")}</span>
+            <div className="relative mt-4 flex gap-2 rounded-xl bg-surface-2 px-3 py-2.5 text-[12px] text-muted">
+              <Info size={13} className="mt-0.5 shrink-0" />
+              <ul className="space-y-1">{analysis.caveats.map((c, i) => <li key={i}>{c.trim().replace(/([^.!?])$/, "$1.")}</li>)}</ul>
             </div>
           )}
         </div>
