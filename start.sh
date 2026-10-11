@@ -66,23 +66,50 @@ ok "Web dependencies ready"
 
 # ---------------------------------------------------------------- run
 port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
-port_busy "$API_PORT" && die "Port $API_PORT is in use. Try: API_PORT=8020 ./start.sh"
-port_busy "$WEB_PORT" && die "Port $WEB_PORT is in use. Try: WEB_PORT=3020 ./start.sh"
+holder() { lsof -nP -iTCP:"$1" -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $1" (pid "$2")"}'; }
+REUSE_API=0; REUSE_WEB=0
+if port_busy "$API_PORT"; then
+  # Already running Migration Atlas? Reuse it instead of failing.
+  if curl -fsS "http://127.0.0.1:$API_PORT/health" 2>/dev/null | grep -q '"ontology"'; then
+    REUSE_API=1; ok "Migration Atlas API is already running on :$API_PORT — reusing it"
+  else
+    die "Port $API_PORT is used by $(holder "$API_PORT"). Stop it, or run: API_PORT=8020 ./start.sh"
+  fi
+fi
+if port_busy "$WEB_PORT"; then
+  if curl -fsS "http://127.0.0.1:$WEB_PORT/" 2>/dev/null | grep -q "Migration Atlas"; then
+    REUSE_WEB=1; ok "Migration Atlas web app is already running on :$WEB_PORT — reusing it"
+  else
+    die "Port $WEB_PORT is used by $(holder "$WEB_PORT"). Stop it, or run: WEB_PORT=3020 ./start.sh"
+  fi
+fi
 
 PIDS=()
-cleanup() { printf "\n"; say "Stopping"; for p in "${PIDS[@]:-}"; do kill "$p" 2>/dev/null || true; done; }
+cleanup() { printf "\n"; say "Stopping"; for p in "${PIDS[@]:-}"; do [ -n "$p" ] && kill "$p" 2>/dev/null || true; done; }
 trap cleanup EXIT INT TERM
 
-say "Starting API on :$API_PORT"
-cd "$ROOT/apps/backend"
-ATLAS_CORS_ORIGINS="http://localhost:$WEB_PORT,http://127.0.0.1:$WEB_PORT" \
-  .venv/bin/python -m uvicorn atlas.main:app --host 127.0.0.1 --port "$API_PORT" --log-level warning &
-PIDS+=($!)
+if [ "$REUSE_API" = "0" ]; then
+  say "Starting API on :$API_PORT"
+  cd "$ROOT/apps/backend"
+  ATLAS_CORS_ORIGINS="http://localhost:$WEB_PORT,http://127.0.0.1:$WEB_PORT" \
+    .venv/bin/python -m uvicorn atlas.main:app --host 127.0.0.1 --port "$API_PORT" --log-level warning &
+  PIDS+=($!)
+fi
 
-say "Starting web on :$WEB_PORT"
-cd "$ROOT/apps/web"
-NEXT_PUBLIC_API_URL="http://127.0.0.1:$API_PORT" WEB_PORT="$WEB_PORT" npm run dev --silent &
-PIDS+=($!)
+if [ "$REUSE_WEB" = "0" ]; then
+  say "Starting web on :$WEB_PORT"
+  cd "$ROOT/apps/web"
+  NEXT_PUBLIC_API_URL="http://127.0.0.1:$API_PORT" WEB_PORT="$WEB_PORT" npm run dev --silent &
+  PIDS+=($!)
+fi
+
+if [ "$REUSE_API" = "1" ] && [ "$REUSE_WEB" = "1" ]; then
+  trap - EXIT INT TERM
+  URL="http://localhost:$WEB_PORT"
+  printf "\n  %sMigration Atlas is already running →%s %s\n\n" "$GREEN" "$RESET" "$URL"
+  [ "${ATLAS_NO_BROWSER:-0}" != "1" ] && (command -v open >/dev/null && open "$URL" || xdg-open "$URL") >/dev/null 2>&1
+  exit 0
+fi
 
 for _ in $(seq 1 60); do curl -fsS "http://127.0.0.1:$API_PORT/health" >/dev/null 2>&1 && break; sleep 1; done
 URL="http://localhost:$WEB_PORT"
