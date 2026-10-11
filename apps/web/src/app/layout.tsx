@@ -8,7 +8,8 @@ export const metadata: Metadata = {
 };
 
 // Applies the saved theme before paint so there is no flash.
-const themeScript = `try{var t=localStorage.getItem('atlas-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`;
+// Bright by default; dark only when the user picked it with the toggle.
+const themeScript = `try{if(localStorage.getItem('atlas-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

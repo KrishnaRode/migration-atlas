@@ -63,7 +63,7 @@ function Detail({ tech, byId }: { tech: TechnologyDetail; byId: (id: string) => 
               <LegacyBadge legacy={tech.legacy} />
               {tech.layer && <Badge>{LAYER_NAMES[tech.layer] ?? humanize(tech.layer)} layer</Badge>}
             </div>
-            <h1 className="mt-2 text-[30px] font-semibold leading-tight tracking-[-0.025em]">{tech.name}</h1>
+            <h1 className="mt-2 text-[34px] font-semibold leading-[1.08] tracking-[-0.035em] sm:text-[44px]">{tech.name}</h1>
             <div className="mt-0.5 text-[14px] text-muted">{tech.vendor}</div>
             <p className="mt-4 max-w-3xl text-[14px] leading-relaxed text-muted">{tech.description}</p>
             <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-muted">

@@ -153,7 +153,7 @@ export default function NewProjectPage() {
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div className="animate-rise">
           <Link href="/projects" className="mb-3 inline-flex items-center gap-1 text-[12px] font-medium text-faint hover:text-text"><ArrowLeft size={13} /> Projects</Link>
-          <h1 className="font-[family-name:var(--font-display)] text-[30px] font-semibold tracking-[-0.03em]">New migration</h1>
+          <h1 className="font-[family-name:var(--font-display)] text-[34px] font-semibold leading-[1.08] tracking-[-0.035em] sm:text-[44px]">New migration</h1>
           <p className="mt-1 text-[13.5px] text-muted">Tell us where you are and where you&apos;re heading. Write it, pick it — or both.</p>
         </div>
         <button onClick={() => create("blank")} disabled={!!busy}

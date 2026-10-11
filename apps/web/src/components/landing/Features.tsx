@@ -1,5 +1,6 @@
 import { BookOpen, Brain, Download, GitBranch, Layers, Map, Route, ShieldCheck, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { Reveal } from "@/components/reveal";
 import { STATUS_META } from "@/lib/utils";
 
 type Feature = { icon: LucideIcon; title: string; body: string; extra?: ReactNode; wide?: boolean };
@@ -58,26 +59,32 @@ const FEATURES: Feature[] = [
   { icon: Download, title: "Exports that travel", body: "Diagrams, decision records and the full project — ready for the steering committee or Git.", extra: <ExportRow /> },
 ];
 
+const TINTS = ["#0071e3", "#00a07d", "#a855f7", "#e08600", "#4f46e5", "#e5333a", "#0891b2", "#1d1d1f"];
+
 export function Features() {
   return (
-    <section className="mx-auto max-w-[1180px] px-6 py-24">
-      <div className="max-w-[620px]">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-accent">Capabilities</div>
-        <h2 className="mt-3 font-[family-name:var(--font-display)] text-[30px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[40px]">
-          Everything an architecture review needs, in one studio.
-        </h2>
-      </div>
-      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {FEATURES.map((f) => (
-          <div key={f.title} className="group rounded-2xl border border-border bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-accent-soft text-accent transition-transform group-hover:scale-105">
-              <f.icon size={17} strokeWidth={1.9} />
-            </div>
-            <div className="mt-4 text-[14.5px] font-semibold tracking-[-0.015em]">{f.title}</div>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{f.body}</p>
-            {f.extra}
-          </div>
-        ))}
+    <section className="bg-surface-2">
+      <div className="mx-auto max-w-[1180px] px-6 py-28 sm:py-36">
+        <Reveal className="mx-auto max-w-[760px] text-center">
+          <div className="text-[17px] font-semibold tracking-[-0.01em] text-accent">Capabilities</div>
+          <h2 className="mt-2 text-[36px] font-semibold leading-[1.06] tracking-[-0.04em] sm:text-[56px]">
+            Everything an architecture review needs. In one studio.
+          </h2>
+        </Reveal>
+        <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map((f, i) => (
+            <Reveal key={f.title} delay={(i % 4) * 90}
+              className={`group rounded-[28px] bg-surface p-7 shadow-soft transition-all duration-700 ease-[var(--ease-apple)] hover:-translate-y-1 hover:shadow-lift ${i === 0 || i === FEATURES.length - 1 ? "lg:col-span-2" : ""}`}>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl transition-transform duration-700 ease-[var(--ease-apple)] group-hover:scale-110"
+                style={{ background: `color-mix(in srgb, ${TINTS[i]} 10%, transparent)`, color: TINTS[i] }}>
+                <f.icon size={20} strokeWidth={1.9} />
+              </div>
+              <div className="mt-6 text-[20px] font-semibold leading-tight tracking-[-0.025em]">{f.title}</div>
+              <p className="mt-2 text-[15px] leading-[1.5] tracking-[-0.01em] text-muted">{f.body}</p>
+              {f.extra}
+            </Reveal>
+          ))}
+        </div>
       </div>
     </section>
   );

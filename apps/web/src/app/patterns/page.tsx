@@ -37,7 +37,7 @@ export default function PatternsPage() {
   return (
     <PageShell>
       <div className="mb-8 max-w-3xl animate-rise">
-        <h1 className="text-[30px] font-semibold tracking-[-0.025em]">Architecture patterns</h1>
+        <h1 className="text-[34px] font-semibold leading-[1.08] tracking-[-0.035em] sm:text-[44px]">Architecture patterns</h1>
         <p className="mt-2 text-[14px] leading-relaxed text-muted">
           Proven reference architectures for modernization. Each pattern is a template you can open in the studio as a starting point,
           then adapt, validate and compare against alternatives.

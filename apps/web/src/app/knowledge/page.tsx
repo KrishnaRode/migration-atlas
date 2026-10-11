@@ -38,7 +38,7 @@ export default function KnowledgePage() {
   return (
     <PageShell>
       <div className="mb-8 animate-rise">
-        <h1 className="text-[30px] font-semibold tracking-[-0.025em]">Knowledge base</h1>
+        <h1 className="text-[34px] font-semibold leading-[1.08] tracking-[-0.035em] sm:text-[44px]">Knowledge base</h1>
         <p className="mt-2 max-w-3xl text-[14px] leading-relaxed text-muted">
           Retrieval-augmented answers grounded in your local documents and curated notes. Nothing leaves the machine except
           fetching official documentation from sources you have enabled.

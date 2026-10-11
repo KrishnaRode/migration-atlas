@@ -76,7 +76,7 @@ function Catalogue() {
   return (
     <div>
       <div className="mx-auto max-w-3xl animate-rise pb-8 pt-4 text-center">
-        <h1 className="text-[30px] font-semibold tracking-[-0.025em]">Technology catalogue</h1>
+        <h1 className="text-[34px] font-semibold leading-[1.08] tracking-[-0.035em] sm:text-[44px]">Technology catalogue</h1>
         <p className="mt-2 text-[14px] text-muted">
           {techs.length ? `${techs.length} technologies` : "Technologies"} across legacy and modern estates — with migration mappings, patterns, risks and local documentation.
         </p>

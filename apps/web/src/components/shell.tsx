@@ -85,16 +85,16 @@ const NAV = [
 export function TopNav({ transparent }: { transparent?: boolean }) {
   const path = usePathname();
   return (
-    <header className={cn("sticky top-0 z-40 border-b", transparent ? "border-transparent bg-bg/60" : "border-border bg-bg/80", "backdrop-blur-xl")}>
-      <div className="mx-auto flex h-14 max-w-[1280px] items-center gap-6 px-6">
+    <header className={cn("glass sticky top-0 z-40 border-b", transparent ? "border-transparent" : "border-border/70")}>
+      <div className="mx-auto flex h-[52px] max-w-[1180px] items-center gap-6 px-6">
         <Link href="/" className="flex items-center gap-2.5">
           <Logo />
-          <span className="text-[15px] font-semibold tracking-[-0.01em]">Migration Atlas</span>
+          <span className="text-[15px] font-semibold tracking-[-0.02em]">Migration Atlas</span>
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href}
-              className={cn("rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors",
+              className={cn("rounded-full px-3 py-1.5 text-[12.5px] transition-colors duration-300",
                 path?.startsWith(n.href) ? "text-text" : "text-muted hover:text-text")}>
               {n.label}
             </Link>
@@ -111,8 +111,8 @@ export function TopNav({ transparent }: { transparent?: boolean }) {
 
 export function Footer() {
   return (
-    <footer className="border-t border-border">
-      <div className="mx-auto flex max-w-[1280px] flex-col items-start justify-between gap-2 px-6 py-6 text-[12px] text-faint sm:flex-row sm:items-center">
+    <footer className="border-t border-border bg-surface-2">
+      <div className="mx-auto flex max-w-[1180px] flex-col items-start justify-between gap-2 px-6 py-7 text-[12px] text-muted sm:flex-row sm:items-center">
         <div className="flex items-center gap-2"><Logo size={18} /> Migration Atlas · Architecture data stays local by default.</div>
         <div>The Sunday Builds #14 · Built to explore what local AI can do.</div>
       </div>

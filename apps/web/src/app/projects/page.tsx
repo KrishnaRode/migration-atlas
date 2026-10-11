@@ -44,7 +44,7 @@ export default function ProjectsPage() {
     <PageShell>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div className="animate-rise">
-          <h1 className="font-[family-name:var(--font-display)] text-[28px] font-semibold tracking-[-0.03em]">Projects</h1>
+          <h1 className="font-[family-name:var(--font-display)] text-[34px] font-semibold leading-[1.08] tracking-[-0.035em] sm:text-[44px]">Projects</h1>
           <p className="mt-1 text-[13.5px] text-muted">Every migration you are exploring — estates, target options and roadmaps, stored locally.</p>
         </div>
         <div className="flex animate-rise items-center gap-2" style={{ animationDelay: "60ms" }}>

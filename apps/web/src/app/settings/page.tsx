@@ -27,7 +27,7 @@ export default function SettingsPage() {
     <PageShell>
       <div className="mx-auto max-w-4xl">
         <div className="mb-8 animate-rise">
-          <h1 className="text-[30px] font-semibold tracking-[-0.025em]">Local AI</h1>
+          <h1 className="text-[34px] font-semibold leading-[1.08] tracking-[-0.035em] sm:text-[44px]">Local AI</h1>
           <p className="mt-2 text-[14px] leading-relaxed text-muted">
             Migration Atlas uses <a href="https://ollama.com" target="_blank" rel="noreferrer" className="font-medium text-text hover:text-accent">Ollama</a> on your machine for
             the copilot, estate parsing and narratives. Choose models and check the connection here.

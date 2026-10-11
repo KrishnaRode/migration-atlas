@@ -26,8 +26,8 @@ export function TechIcon({ icon, color, size = 36, className, muted }: { icon?: 
 
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "modern";
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-accent text-white hover:bg-accent-strong shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_6px_18px_-6px_var(--accent)]",
-  secondary: "bg-surface text-text border border-border hover:border-border-strong hover:bg-surface-2",
+  primary: "bg-accent text-white hover:bg-accent-strong shadow-[0_1px_2px_rgb(0_0_0/0.06),0_4px_14px_-4px_color-mix(in_srgb,var(--accent)_55%,transparent)]",
+  secondary: "bg-surface text-text border border-border shadow-[0_1px_2px_rgb(0_0_0/0.04)] hover:border-border-strong hover:bg-surface-2",
   ghost: "text-muted hover:text-text hover:bg-surface-2",
   danger: "bg-surface text-bad border border-border hover:bg-surface-2",
   modern: "bg-modern text-white hover:opacity-90",
@@ -35,10 +35,10 @@ const VARIANTS: Record<Variant, string> = {
 
 export function Button({ variant = "secondary", size = "md", loading, icon: Icon, children, className, ...rest }:
   ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" | "lg"; loading?: boolean; icon?: LucideIcon }) {
-  const sizes = { sm: "h-7 px-2.5 text-[12px] gap-1.5 rounded-lg", md: "h-9 px-3.5 text-[13px] gap-2 rounded-[10px]", lg: "h-11 px-5 text-[14px] gap-2 rounded-xl" };
+  const sizes = { sm: "h-7 px-3 text-[12px] gap-1.5 rounded-full", md: "h-9 px-4 text-[13px] gap-2 rounded-full", lg: "h-12 px-6 text-[15px] gap-2 rounded-full" };
   return (
     <button
-      className={cn("inline-flex select-none items-center justify-center font-medium whitespace-nowrap transition-all duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50",
+      className={cn("inline-flex select-none items-center justify-center font-medium whitespace-nowrap transition-all duration-300 ease-[var(--ease-apple)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
         VARIANTS[variant], sizes[size], className)}
       disabled={loading || rest.disabled}
       {...rest}
@@ -51,9 +51,9 @@ export function Button({ variant = "secondary", size = "md", loading, icon: Icon
 
 export function LinkButton({ href, variant = "secondary", size = "md", icon: Icon, children, className }:
   { href: string; variant?: Variant; size?: "md" | "lg"; icon?: LucideIcon; children: ReactNode; className?: string }) {
-  const sizes = { md: "h-9 px-3.5 text-[13px] gap-2 rounded-[10px]", lg: "h-12 px-6 text-[15px] gap-2 rounded-xl" };
+  const sizes = { md: "h-9 px-4 text-[13px] gap-2 rounded-full", lg: "h-[52px] px-8 text-[17px] gap-2 rounded-full" };
   return (
-    <Link href={href} className={cn("inline-flex items-center justify-center font-medium transition-all duration-150 active:scale-[0.98]", VARIANTS[variant], sizes[size], className)}>
+    <Link href={href} className={cn("inline-flex items-center justify-center font-medium tracking-[-0.01em] transition-all duration-300 ease-[var(--ease-apple)] active:scale-[0.97]", VARIANTS[variant], sizes[size], className)}>
       {Icon && <Icon size={16} strokeWidth={2} />}
       {children}
     </Link>
@@ -72,7 +72,7 @@ export function Badge({ children, color, className, title }: { children: ReactNo
 
 export function Card({ children, className, onClick }: { children: ReactNode; className?: string; onClick?: () => void }) {
   return (
-    <div onClick={onClick} className={cn("rounded-2xl border border-border bg-surface shadow-soft", onClick && "cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lift", className)}>
+    <div onClick={onClick} className={cn("rounded-[20px] border border-border bg-surface shadow-soft", onClick && "cursor-pointer transition-all duration-500 ease-[var(--ease-apple)] hover:-translate-y-1 hover:shadow-lift", className)}>
       {children}
     </div>
   );

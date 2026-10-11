@@ -5,30 +5,32 @@
 
 /* Design tokens. Light is default; .dark on <html> swaps the palette. */
 :root {
-  --bg: #f7f8fb;
+  /* Bright, Apple-inspired palette: near-white canvas, true-white surfaces, graphite ink. */
+  --bg: #fbfbfd;
   --surface: #ffffff;
-  --surface-2: #f2f4f8;
-  --surface-3: #e9edf4;
-  --border: #e3e7ef;
-  --border-strong: #cfd6e3;
-  --text: #0b1220;
-  --muted: #4a5568;
-  --faint: #8a94a6;
-  --accent: #2f6bff;
-  --accent-strong: #1f54db;
-  --accent-soft: #e8efff;
-  --modern: #0fa68f;
-  --modern-soft: #e2f7f3;
-  --legacy: #8a94a6;
-  --ok: #10a37f;
-  --warn: #d97706;
-  --unusual: #ea580c;
-  --bad: #dc2626;
-  --info: #2563eb;
-  --canvas: #f4f6fa;
-  --dot: #d5dbe6;
-  --shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.06);
-  --shadow-lg: 0 2px 6px rgb(15 23 42 / 0.05), 0 18px 48px rgb(15 23 42 / 0.12);
+  --surface-2: #f5f5f7;
+  --surface-3: #ebebef;
+  --border: #e6e6eb;
+  --border-strong: #d2d2d7;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --faint: #86868b;
+  --accent: #0071e3;
+  --accent-strong: #0062c4;
+  --accent-soft: #eaf3fe;
+  --modern: #00a07d;
+  --modern-soft: #e5f6f1;
+  --legacy: #98989d;
+  --ok: #1fa95b;
+  --warn: #e08600;
+  --unusual: #e8590c;
+  --bad: #e5333a;
+  --info: #0071e3;
+  --canvas: #f5f5f7;
+  --dot: #d6d6dc;
+  --glass: rgb(251 251 253 / 0.72);
+  --shadow: 0 1px 1px rgb(0 0 0 / 0.02), 0 2px 6px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 0.03), 0 12px 32px rgb(0 0 0 / 0.08), 0 30px 80px rgb(0 0 0 / 0.08);
 }
 
 .dark {
@@ -56,6 +58,7 @@
   --dot: #1c2230;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 20px rgb(0 0 0 / 0.35);
   --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.35), 0 24px 60px rgb(0 0 0 / 0.5);
+  --glass: rgb(14 18 27 / 0.72);
 }
 
 @theme inline {
@@ -80,23 +83,32 @@
   --color-bad: var(--bad);
   --color-info: var(--info);
   --color-canvas: var(--canvas);
-  --font-sans: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Inter Display", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI Variable Text", "Segoe UI", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter Display", "Inter", "Segoe UI Variable Display", "Segoe UI", "Helvetica Neue", ui-sans-serif, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
   --shadow-soft: var(--shadow);
   --shadow-lift: var(--shadow-lg);
-  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  --animate-pop: pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-  --animate-fade: fade 0.4s ease both;
+  --ease-apple: cubic-bezier(0.28, 0.11, 0.32, 1);
+  --animate-rise: rise 0.9s cubic-bezier(0.28, 0.11, 0.32, 1) both;
+  --animate-pop: pop 0.55s cubic-bezier(0.25, 1, 0.35, 1) both;
+  --animate-fade: fade 0.6s cubic-bezier(0.28, 0.11, 0.32, 1) both;
 }
 
 @keyframes rise {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateY(18px); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
 }
 @keyframes pop {
-  from { opacity: 0; transform: scale(0.86) translateY(6px); }
+  from { opacity: 0; transform: scale(0.92) translateY(6px); }
   to { opacity: 1; transform: none; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes sheen {
+  from { background-position: 200% center; }
+  to { background-position: -200% center; }
 }
 @keyframes fade {
   from { opacity: 0; }
@@ -118,8 +130,31 @@ html, body { background: var(--bg); color: var(--text); }
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "cv11", "ss01", "ss03";
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.003em;
   text-rendering: optimizeLegibility;
+}
+h1, h2, h3 { font-family: var(--font-display); }
+
+/* Frosted glass, as on apple.com's nav bar. */
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* Scroll-reveal: elements fade up the first time they enter the viewport (see components/reveal.tsx). */
+.reveal { opacity: 0; transform: translateY(32px); transition: opacity 1.1s var(--ease-apple), transform 1.1s var(--ease-apple); }
+.reveal.is-visible { opacity: 1; transform: none; }
+
+/* Apple-style gradient headline text. */
+.text-gradient {
+  background-image: linear-gradient(90deg, #0071e3 0%, #4f46e5 35%, #a855f7 60%, #00a07d 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sheen 8s linear infinite;
 }
 ::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 
@@ -149,7 +184,8 @@ body {
 .react-flow__connectionline path { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; }
 .edge-flow { stroke-dasharray: 6 6; animation: dash 1.1s linear infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .edge-flow, .shimmer { animation: none; }
+  .edge-flow, .shimmer, .text-gradient { animation: none; }
+  .reveal { opacity: 1; transform: none; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 

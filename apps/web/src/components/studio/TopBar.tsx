@@ -32,7 +32,7 @@ export function TopBar({ onGenerate, generating, onExport }: { onGenerate: () =>
   if (!project) return null;
   const high = (counts?.critical || 0) + (counts?.high || 0);
   return (
-    <div className="border-b border-border bg-surface">
+    <div className="glass relative z-30 border-b border-border/80">
       <div className="flex h-12 items-center gap-3 px-3">
         <Link href="/projects" className="flex items-center gap-2" title="All projects"><Logo size={24} /></Link>
         <div className="min-w-0">
