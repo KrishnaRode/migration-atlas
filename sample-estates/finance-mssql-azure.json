@@ -1,0 +1,40 @@
+{
+  "id": "finance-mssql-azure",
+  "title": "Finance Platform to Azure",
+  "subtitle": "Oracle + SSIS + SQL Server + Power BI \u2192 Azure",
+  "industry": "Financial Services",
+  "featured": false,
+  "description": "Finance runs SQL Server and an Oracle ledger, integrated with SSIS packages, with Power BI reporting. Target is Azure with maximum use of managed services and retained SQL skills.",
+  "project": {
+    "name": "Finance Platform to Azure",
+    "description": "Oracle + SSIS + SQL Server + Power BI \u2192 Azure",
+    "industry": "Financial Services",
+    "estate": {
+      "description": "Finance runs SQL Server and an Oracle ledger, integrated with SSIS packages, with Power BI reporting. Target is Azure with maximum use of managed services and retained SQL skills.",
+      "industry": "Financial Services",
+      "current_technologies": [
+        "oracle-database",
+        "ssis",
+        "sql-server",
+        "power-bi"
+      ],
+      "target_cloud": "azure",
+      "target_platforms": [],
+      "constraints": [
+        {
+          "id": "maximize-managed",
+          "priority": "high"
+        },
+        {
+          "id": "retain-skills",
+          "priority": "high"
+        },
+        {
+          "id": "disaster-recovery",
+          "priority": "medium"
+        }
+      ],
+      "data_volume_tb": 40
+    }
+  }
+}

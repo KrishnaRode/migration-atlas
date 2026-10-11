@@ -1,0 +1,414 @@
+# Security technologies: secrets, keys, identity and network security boundaries.
+
+- id: google-secret-manager
+  name: Google Secret Manager
+  aliases: [secret manager, google secret manager, gcp secret manager]
+  vendor: Google Cloud
+  category: security
+  role: security
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: key-round
+  color: "#4285F4"
+  description: Google Cloud service for storing, versioning, rotating and auditing API keys, passwords, certificates and other secrets with IAM-based access.
+  typical_legacy_use: Replaces credentials embedded in ETL job configs, property files and scheduler scripts with centrally managed, IAM-controlled secrets.
+  capabilities: [secrets-management, secret-rotation, encryption, auditing, access-control]
+  possible_targets: []
+  alternatives: [hashicorp-vault, aws-secrets-manager, azure-key-vault]
+  replaces: []
+  suggested_next: [google-iam, google-cloud-kms, google-cloud-logging, vpc-service-controls]
+  migration_considerations:
+    - Inventory hard-coded credentials in legacy jobs, connection files and scripts before migration.
+    - Grant secret accessor roles to workload service accounts at the secret level, not the project level.
+    - Use customer-managed encryption keys (CMEK) via Cloud KMS where regulation requires key control.
+    - Configure rotation schedules with Pub/Sub notifications and rotation functions.
+  known_challenges:
+    - Legacy tools that only read credentials from local files need wrapper scripts or sidecars.
+    - Rotation requires coordinated updates in source systems to avoid outages.
+  risks: [security-gap, operational-readiness]
+  strategies: [refactor, replatform]
+  skills: [Google Cloud IAM, Secret management, Cloud security]
+  tags: [security, secrets, gcp]
+  docs:
+    - title: Secret Manager documentation
+      url: https://cloud.google.com/secret-manager/docs
+
+- id: aws-secrets-manager
+  name: AWS Secrets Manager
+  aliases: [aws secrets manager, secrets manager]
+  vendor: Amazon Web Services
+  category: security
+  role: security
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: key-round
+  color: "#DD344C"
+  description: AWS service for storing and automatically rotating database credentials, API keys and other secrets, encrypted with AWS KMS and governed by IAM.
+  typical_legacy_use: Holds credentials for RDS, Redshift and third-party sources used by Glue, Lambda, EMR and containerised workloads, with Lambda-based rotation.
+  capabilities: [secrets-management, secret-rotation, encryption, auditing, access-control]
+  possible_targets: []
+  alternatives: [hashicorp-vault, google-secret-manager, azure-key-vault]
+  replaces: []
+  suggested_next: [aws-iam, aws-kms, amazon-cloudwatch, aws-vpc]
+  migration_considerations:
+    - Move embedded credentials into secrets and grant access via IAM roles attached to workloads.
+    - Enable managed rotation for RDS, Aurora and Redshift; custom rotation Lambdas for other sources.
+    - Use VPC interface endpoints so private workloads reach Secrets Manager without internet egress.
+  known_challenges:
+    - Per-secret and per-API-call pricing can grow with chatty applications without client-side caching.
+    - Cross-account secret sharing requires resource policies and KMS key policy alignment.
+  risks: [security-gap, cost-overrun]
+  strategies: [refactor, replatform]
+  skills: [AWS IAM, AWS KMS, Secret management]
+  tags: [security, secrets, aws]
+  docs:
+    - title: AWS Secrets Manager documentation
+      url: https://docs.aws.amazon.com/secretsmanager/
+
+- id: azure-key-vault
+  name: Azure Key Vault
+  aliases: [key vault, azure key vault, akv]
+  vendor: Microsoft
+  category: security
+  role: security
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: key-round
+  color: "#0078D4"
+  description: Azure service for securely storing secrets, encryption keys and certificates, with HSM-backed options, Entra ID authorisation and audit logging.
+  typical_legacy_use: Stores connection strings and keys used by Azure Data Factory, Databricks secret scopes, App Service and AKS, and customer-managed keys for storage encryption.
+  capabilities: [secrets-management, key-management, encryption, certificate-management, auditing, access-control]
+  possible_targets: []
+  alternatives: [hashicorp-vault, aws-secrets-manager, google-secret-manager]
+  replaces: []
+  suggested_next: [microsoft-entra-id, azure-monitor, private-connectivity, azure-vnet]
+  migration_considerations:
+    - Use Azure RBAC for data-plane access instead of legacy access policies.
+    - Enable soft delete and purge protection before storing production keys.
+    - Expose vaults via private endpoints and disable public network access for regulated workloads.
+    - Separate vaults per environment and application to limit blast radius.
+  known_challenges:
+    - Service throttling limits can affect high-frequency secret reads without caching.
+    - Migrating from access policies to RBAC requires careful permission mapping.
+  risks: [security-gap, operational-readiness]
+  strategies: [refactor, replatform]
+  skills: [Azure security, Entra ID, Key management]
+  tags: [security, secrets, keys, azure]
+  docs:
+    - title: Azure Key Vault documentation
+      url: https://learn.microsoft.com/en-us/azure/key-vault/
+
+- id: hashicorp-vault
+  name: HashiCorp Vault
+  aliases: [vault, hashicorp vault]
+  vendor: HashiCorp
+  category: security
+  role: security
+  layer: security
+  environment: any
+  legacy: false
+  clouds: [aws, azure, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: lock
+  color: "#FFCF25"
+  description: Identity-based secrets and encryption management system providing static and dynamic secrets, encryption as a service, PKI and leasing across clouds and data centres.
+  typical_legacy_use: Run as the enterprise secrets platform for on-prem and multicloud workloads, issuing short-lived database credentials and certificates to applications and pipelines.
+  capabilities: [secrets-management, dynamic-secrets, encryption, key-management, pki, auditing, access-control]
+  possible_targets: [google-secret-manager, aws-secrets-manager, azure-key-vault]
+  alternatives: [google-secret-manager, aws-secrets-manager, azure-key-vault]
+  replaces: []
+  suggested_next: [kubernetes, terraform, private-connectivity]
+  migration_considerations:
+    - Decide whether Vault remains the cross-cloud secrets broker or secrets move to cloud-native services.
+    - Configure cloud auth methods (AWS IAM, GCP, Azure) so workloads authenticate without static tokens.
+    - Plan high availability, replication and unseal (auto-unseal with cloud KMS) for production clusters.
+  known_challenges:
+    - Self-managed clusters require specialist operational skills for upgrades, backups and unseal.
+    - Enterprise features (replication, namespaces) carry licensing considerations.
+  risks: [skills-gap, operational-readiness, licensing-overlap]
+  strategies: [retain, rehost, repurchase]
+  skills: [HashiCorp Vault, PKI, Cloud IAM]
+  tags: [security, secrets, multicloud]
+  docs:
+    - title: Vault documentation
+      url: https://developer.hashicorp.com/vault/docs
+
+- id: google-iam
+  name: Google Cloud IAM
+  aliases: [google iam, gcp iam, cloud iam]
+  vendor: Google Cloud
+  category: security
+  role: security
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: fingerprint
+  color: "#4285F4"
+  description: Google Cloud's identity and access management service for granting roles to users, groups and service accounts on the resource hierarchy, with conditions and workload identity federation.
+  typical_legacy_use: Replaces database-level users and shared service logins with role-based access to BigQuery, Cloud Storage and pipelines via groups and service accounts.
+  capabilities: [iam, identity, access-control, workload-identity, auditing]
+  possible_targets: []
+  alternatives: [aws-iam, microsoft-entra-id]
+  replaces: []
+  suggested_next: [google-secret-manager, vpc-service-controls, google-cloud-kms, google-cloud-logging]
+  migration_considerations:
+    - Design the organisation, folder and project hierarchy before assigning roles.
+    - Grant predefined or custom roles to groups, not individuals; avoid basic Owner/Editor roles.
+    - Use workload identity federation instead of service account keys for external and CI/CD workloads.
+    - Map legacy database roles to BigQuery dataset and table-level IAM or policy tags.
+  known_challenges:
+    - Inherited permissions across the hierarchy make effective access hard to reason about without Policy Analyzer.
+    - Service account key sprawl is a common audit finding in migrated estates.
+  risks: [security-gap, governance-gap]
+  strategies: [refactor, rearchitect]
+  skills: [Google Cloud IAM, Cloud security architecture]
+  tags: [security, identity, iam, gcp]
+  docs:
+    - title: IAM documentation
+      url: https://cloud.google.com/iam/docs
+
+- id: aws-iam
+  name: AWS IAM
+  aliases: [aws iam, aws identity and access management]
+  vendor: Amazon Web Services
+  category: security
+  role: security
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: fingerprint
+  color: "#DD344C"
+  description: AWS identity and access management service controlling authentication and authorisation for users, roles and services through JSON policies, with IAM Identity Center for workforce SSO.
+  typical_legacy_use: Governs access for data pipelines, analysts and applications to S3, Glue, Redshift and EMR using roles, policies and federated identities.
+  capabilities: [iam, identity, access-control, federation, auditing]
+  possible_targets: []
+  alternatives: [google-iam, microsoft-entra-id]
+  replaces: []
+  suggested_next: [aws-secrets-manager, aws-kms, aws-lake-formation, amazon-cloudwatch]
+  migration_considerations:
+    - Use AWS Organizations with service control policies to set guardrails across accounts.
+    - Federate workforce identity through IAM Identity Center rather than creating IAM users.
+    - Apply least-privilege role policies per workload and validate with IAM Access Analyzer.
+  known_challenges:
+    - Policy evaluation across SCPs, permission boundaries, resource and session policies is complex to debug.
+    - Over-broad policies copied from examples are a frequent security finding.
+  risks: [security-gap, governance-gap]
+  strategies: [refactor, rearchitect]
+  skills: [AWS IAM, Cloud security architecture]
+  tags: [security, identity, iam, aws]
+  docs:
+    - title: AWS Identity and Access Management documentation
+      url: https://docs.aws.amazon.com/iam/
+
+- id: microsoft-entra-id
+  name: Microsoft Entra ID
+  aliases: [entra, entra id, azure ad, azure active directory, aad]
+  vendor: Microsoft
+  category: security
+  role: security
+  layer: security
+  environment: saas
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: fingerprint
+  color: "#0078D4"
+  description: Microsoft's cloud identity and access management service (formerly Azure Active Directory) providing SSO, conditional access, MFA, managed identities and SCIM provisioning.
+  typical_legacy_use: Acts as the enterprise identity provider synced from on-prem Active Directory, federating access to Azure, Microsoft 365, Databricks, Snowflake and SaaS applications.
+  capabilities: [identity, iam, access-control, single-sign-on, mfa, managed-identity, scim-provisioning]
+  possible_targets: []
+  alternatives: [google-iam, aws-iam]
+  replaces: []
+  suggested_next: [azure-key-vault, microsoft-purview, azure-monitor, unity-catalog]
+  migration_considerations:
+    - Sync on-prem Active Directory via Entra Connect or Cloud Sync and rationalise groups before use in data access.
+    - Use managed identities for Azure workloads instead of service principal secrets.
+    - Provision users and groups to data platforms (Databricks, Snowflake) via SCIM to keep access consistent.
+    - Apply conditional access policies for privileged and data-admin roles.
+  known_challenges:
+    - Nested and legacy AD groups do not always map cleanly to platform-level permissions.
+    - Group-count and token-size limits can affect SSO for users in many groups.
+  risks: [security-gap, governance-gap, integration-breakage]
+  strategies: [replatform, refactor]
+  skills: [Entra ID administration, Active Directory, Identity architecture]
+  tags: [security, identity, azure, sso]
+  docs:
+    - title: Microsoft Entra ID documentation
+      url: https://learn.microsoft.com/en-us/entra/identity/
+
+- id: google-cloud-kms
+  name: Google Cloud KMS
+  aliases: [cloud kms, google kms, gcp kms]
+  vendor: Google Cloud
+  category: security
+  role: security
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: key-round
+  color: "#4285F4"
+  description: Google Cloud's managed key management service for creating and controlling symmetric and asymmetric keys, with Cloud HSM and Cloud External Key Manager options.
+  typical_legacy_use: Provides customer-managed encryption keys (CMEK) for BigQuery, Cloud Storage, Dataflow and Dataproc to satisfy regulatory key-control requirements.
+  capabilities: [key-management, encryption, cmek, hsm, auditing]
+  possible_targets: []
+  alternatives: [aws-kms, azure-key-vault, hashicorp-vault]
+  replaces: []
+  suggested_next: [google-iam, google-secret-manager, google-cloud-logging]
+  migration_considerations:
+    - Decide which datasets require CMEK versus Google default encryption based on compliance.
+    - Create key rings in the same location as the protected resources; locations cannot be changed later.
+    - Define rotation periods and separation of duties between key administrators and data users.
+  known_challenges:
+    - Disabling or destroying a key renders dependent data inaccessible, so key lifecycle needs strict change control.
+    - Some services require CMEK to be set at resource creation, forcing re-creation of existing resources.
+  risks: [security-gap, regulatory-compliance]
+  strategies: [replatform, refactor]
+  skills: [Google Cloud security, Key management]
+  tags: [security, encryption, kms, gcp]
+  docs:
+    - title: Cloud Key Management Service documentation
+      url: https://cloud.google.com/kms/docs
+
+- id: aws-kms
+  name: AWS KMS
+  aliases: [aws kms, aws key management service]
+  vendor: Amazon Web Services
+  category: security
+  role: security
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: key-round
+  color: "#DD344C"
+  description: AWS managed service for creating and controlling cryptographic keys used to encrypt data across AWS services, backed by FIPS-validated HSMs.
+  typical_legacy_use: Supplies customer-managed keys for S3, Redshift, EBS, RDS and Secrets Manager encryption, with key policies enforcing separation of duties.
+  capabilities: [key-management, encryption, cmek, auditing, access-control]
+  possible_targets: []
+  alternatives: [google-cloud-kms, azure-key-vault, hashicorp-vault]
+  replaces: []
+  suggested_next: [aws-iam, aws-secrets-manager, amazon-s3, amazon-cloudwatch]
+  migration_considerations:
+    - Choose between AWS-managed and customer-managed keys per data classification.
+    - Design key policies and grants for cross-account access before sharing encrypted data.
+    - Consider multi-Region keys for disaster recovery of encrypted datasets.
+  known_challenges:
+    - High-volume encryption calls can hit request quotas; S3 Bucket Keys reduce KMS cost and throttling.
+    - Misconfigured key policies can lock out administrators or break cross-account pipelines.
+  risks: [security-gap, regulatory-compliance, cost-overrun]
+  strategies: [replatform, refactor]
+  skills: [AWS KMS, AWS IAM, Encryption]
+  tags: [security, encryption, kms, aws]
+  docs:
+    - title: AWS Key Management Service documentation
+      url: https://docs.aws.amazon.com/kms/
+
+- id: vpc-service-controls
+  name: VPC Service Controls
+  aliases: [vpc service controls, vpc-sc, service perimeter]
+  vendor: Google Cloud
+  category: security
+  role: security
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: shield
+  color: "#4285F4"
+  description: Google Cloud feature that defines service perimeters around projects to mitigate data exfiltration from managed services such as BigQuery and Cloud Storage.
+  typical_legacy_use: Used by regulated enterprises to keep analytics data inside approved projects and networks, complementing IAM with context-aware network boundaries.
+  capabilities: [network-boundary, data-exfiltration-protection, access-control, private-connectivity]
+  possible_targets: []
+  alternatives: [private-connectivity]
+  replaces: []
+  suggested_next: [google-iam, google-vpc, google-cloud-interconnect, google-cloud-logging]
+  migration_considerations:
+    - Start perimeters in dry-run mode and review violation logs before enforcing.
+    - Define ingress and egress rules for CI/CD, BI tools and cross-project pipelines.
+    - Use access levels to allow on-prem networks connected via Interconnect or VPN.
+  known_challenges:
+    - Enforced perimeters frequently break third-party SaaS integrations and cross-project service accounts.
+    - Not every Google Cloud service is supported inside a perimeter.
+  risks: [integration-breakage, security-gap, operational-readiness]
+  strategies: [refactor]
+  skills: [Google Cloud networking, Cloud security architecture]
+  tags: [security, network, exfiltration, gcp]
+  docs:
+    - title: VPC Service Controls documentation
+      url: https://cloud.google.com/vpc-service-controls/docs
+
+- id: private-connectivity
+  name: Private Connectivity (Private Endpoints)
+  aliases: [private endpoint, private link, privatelink, private service connect]
+  vendor: Generic
+  category: security
+  role: security
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: lock
+  color: "#DC2626"
+  description: Generic private-endpoint pattern (AWS PrivateLink, Azure Private Link, Google Private Service Connect) exposing managed services on private IPs inside a virtual network without public internet exposure.
+  typical_legacy_use: Used to reach managed data platforms, storage, secret stores and SaaS endpoints privately from VPCs/VNets and on-prem networks over hybrid links.
+  capabilities: [private-connectivity, network-boundary, data-exfiltration-protection, dns-integration]
+  possible_targets: []
+  alternatives: [vpc-service-controls]
+  replaces: []
+  suggested_next: [aws-vpc, azure-vnet, google-vpc, aws-direct-connect, azure-expressroute, google-cloud-interconnect]
+  migration_considerations:
+    - Plan private DNS zones and on-prem DNS forwarding so service hostnames resolve to private IPs.
+    - Disable public network access on target services once private endpoints are validated.
+    - Size IP address space for endpoints across hub-and-spoke networks.
+  known_challenges:
+    - DNS misconfiguration is the most common cause of connectivity failures.
+    - Per-endpoint and data-processing charges add up across many services and environments.
+  risks: [security-gap, integration-breakage, cost-overrun]
+  strategies: [refactor, replatform]
+  skills: [Cloud networking, DNS, Network security]
+  tags: [security, network, private-endpoint]
+  docs:
+    - title: What is AWS PrivateLink?
+      url: https://docs.aws.amazon.com/vpc/latest/privatelink/what-is-privatelink.html
+    - title: What is Azure Private Link?
+      url: https://learn.microsoft.com/en-us/azure/private-link/private-link-overview

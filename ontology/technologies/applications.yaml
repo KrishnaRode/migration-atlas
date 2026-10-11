@@ -1,0 +1,186 @@
+# Application runtimes, frameworks and application servers.
+- id: java
+  name: Java
+  aliases: [java, jvm, java ee, j2ee, jakarta ee, java application]
+  vendor: Oracle / OpenJDK community
+  category: applications
+  role: application
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: coffee
+  color: "#E76F00"
+  description: General-purpose JVM language and platform underpinning a large share of enterprise applications.
+  typical_legacy_use: Custom line-of-business applications, often Java EE on WebLogic or WebSphere, reading and writing Oracle, Db2 or SQL Server via JDBC and integrating over MQ or SOAP.
+  capabilities: [application-runtime, jdbc, messaging-integration, web-services]
+  possible_targets: [kubernetes, gke, amazon-eks, aks, docker]
+  alternatives: [dotnet]
+  replaces: [cobol]
+  suggested_next: [spring, docker, kubernetes, apache-kafka, apigee]
+  migration_considerations:
+    - Upgrade old JDK levels (6/7/8) to a supported LTS before or during containerisation.
+    - Identify app-server-specific APIs (JNDI, JMS, EJB, server-managed datasources) that tie the app to WebLogic/WebSphere.
+    - Externalise configuration and secrets for cloud deployment.
+    - Database changes (e.g. Oracle to PostgreSQL) require reviewing embedded SQL and ORM mappings.
+  known_challenges:
+    - Stateful sessions and local file-system dependencies hinder horizontal scaling.
+    - Vendor-specific SQL embedded in DAO layers complicates database migration.
+  risks: [integration-breakage, sql-dialect-conversion, security-gap]
+  strategies: [retain, rehost, replatform, refactor, rearchitect, retire]
+  skills: [Java, JVM tuning, containerisation]
+  tags: [application, runtime, jvm]
+  docs:
+    - title: Java documentation (Oracle)
+      url: https://docs.oracle.com/en/java/
+
+- id: dotnet
+  name: .NET
+  aliases: [.net, dotnet, .net framework, .net core, asp.net, "c#", csharp]
+  vendor: Microsoft
+  category: applications
+  role: application
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: app-window
+  color: "#512BD4"
+  description: Microsoft's application development platform, spanning the Windows-only .NET Framework and cross-platform modern .NET.
+  typical_legacy_use: Internal web applications (ASP.NET Web Forms/MVC), Windows services and WCF services on IIS, typically backed by SQL Server.
+  capabilities: [application-runtime, web-services, ado-net, windows-integration]
+  possible_targets: [aks, kubernetes, docker, amazon-eks, gke]
+  alternatives: [java]
+  replaces: []
+  suggested_next: [azure-sql-database, docker, aks, azure-api-management, azure-key-vault]
+  migration_considerations:
+    - Distinguish .NET Framework apps (Windows-bound) from modern .NET apps that can run in Linux containers.
+    - Inventory dependencies on IIS, Windows authentication, COM components, WCF and the GAC.
+    - Plan secrets, configuration and identity migration to Entra ID or equivalent.
+  known_challenges:
+    - Web Forms and WCF have no direct equivalent in modern .NET and need rework.
+    - Windows containers carry larger images and fewer hosting options.
+  risks: [integration-breakage, skills-gap, security-gap]
+  strategies: [retain, rehost, replatform, refactor, rearchitect, retire]
+  skills: [C#, .NET, IIS, Azure]
+  tags: [application, runtime, microsoft]
+  docs:
+    - title: .NET documentation
+      url: https://learn.microsoft.com/en-us/dotnet/
+
+- id: spring
+  name: Spring Framework / Spring Boot
+  aliases: [spring, spring boot, spring framework, springboot, spring batch]
+  vendor: Broadcom (VMware Tanzu)
+  category: applications
+  role: application
+  layer: sources
+  environment: any
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: box
+  color: "#6DB33F"
+  description: Java application framework; Spring Boot provides opinionated, self-contained services and Spring Batch provides batch processing.
+  typical_legacy_use: Java services and batch jobs in enterprise estates, often the modernisation target for Java EE and COBOL batch rewrites.
+  capabilities: [application-runtime, dependency-injection, batch-processing, rest-apis, messaging-integration]
+  possible_targets: [kubernetes, gke, amazon-eks, aks, docker]
+  alternatives: [dotnet]
+  replaces: [weblogic, websphere, cobol]
+  suggested_next: [docker, kubernetes, apache-kafka, apigee, opentelemetry]
+  migration_considerations:
+    - Upgrade older Spring versions (4.x/5.x) to supported releases; Spring Boot 3 requires Java 17 and the jakarta namespace.
+    - Spring Batch jobs can replace mainframe or ETL batch, but job repository and restartability need design.
+    - Use externalised configuration and health endpoints for container platforms.
+  known_challenges:
+    - The javax-to-jakarta namespace change ripples through dependencies.
+    - Legacy XML configuration hides wiring that tests do not cover.
+  risks: [integration-breakage, operational-readiness]
+  strategies: [retain, rehost, replatform, refactor]
+  skills: [Java, Spring Boot, Spring Batch]
+  tags: [application, framework, jvm]
+  docs:
+    - title: Spring Framework reference
+      url: https://docs.spring.io/spring-framework/reference/
+
+- id: weblogic
+  name: Oracle WebLogic Server
+  aliases: [weblogic, oracle weblogic, wls, weblogic server]
+  vendor: Oracle
+  category: applications
+  role: application
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: server
+  color: "#C74634"
+  description: Oracle's Java EE / Jakarta EE application server.
+  typical_legacy_use: Hosts mission-critical Java EE applications and Oracle Fusion Middleware components, clustered for HA with JMS, JDBC data sources and JTA.
+  capabilities: [application-server, clustering, jms, jta, jdbc-datasources]
+  possible_targets: [spring, kubernetes, gke, amazon-eks, aks, docker]
+  alternatives: [websphere]
+  replaces: []
+  suggested_next: [java, spring, docker, kubernetes, oracle-database]
+  migration_considerations:
+    - Catalogue deployed EARs/WARs, JMS modules, data sources, security realms and server-specific deployment descriptors.
+    - Assess Oracle licensing exposure; WebLogic is often licensed with Oracle Database or Fusion Middleware.
+    - Choose between containerised WebLogic (WebLogic Kubernetes Operator) and refactoring to Spring Boot or another lightweight runtime.
+  known_challenges:
+    - Use of EJBs, server JMS and proprietary APIs ties applications to the server.
+    - Session replication and clustering semantics change on container platforms.
+  risks: [licensing-overlap, integration-breakage, vendor-lock-in]
+  strategies: [retain, rehost, replatform, refactor, retire]
+  skills: [WebLogic administration, Java EE, Kubernetes]
+  tags: [application-server, oracle, legacy]
+  docs:
+    - title: Oracle WebLogic Server documentation
+      url: https://docs.oracle.com/en/middleware/standalone/weblogic-server/
+
+- id: websphere
+  name: IBM WebSphere Application Server
+  aliases: [websphere, ibm websphere, websphere application server, websphere liberty]
+  vendor: IBM
+  category: applications
+  role: application
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: server
+  color: "#1F70C1"
+  description: IBM's Java EE application server (traditional WAS and the lighter Liberty profile).
+  typical_legacy_use: Hosts enterprise Java applications in IBM-centric estates, frequently integrated with Db2, IBM MQ and mainframe CICS.
+  capabilities: [application-server, clustering, jms, jta, jdbc-datasources]
+  possible_targets: [spring, kubernetes, gke, amazon-eks, aks, docker]
+  alternatives: [weblogic]
+  replaces: []
+  suggested_next: [java, spring, docker, kubernetes, ibm-mq]
+  migration_considerations:
+    - Traditional WAS applications may move to WebSphere Liberty or Open Liberty in containers as an intermediate step.
+    - Inventory JNDI resources, security configuration, shared libraries and IBM-specific APIs.
+    - Coordinate with IBM MQ and Db2 connectivity changes when moving to cloud networks.
+  known_challenges:
+    - Older applications on Java EE 5/6 require code changes for modern runtimes.
+    - Deployment Manager-based operations do not translate to CI/CD pipelines directly.
+  risks: [integration-breakage, licensing-overlap, vendor-lock-in]
+  strategies: [retain, rehost, replatform, refactor, retire]
+  skills: [WebSphere administration, Java EE, Kubernetes]
+  tags: [application-server, ibm, legacy]
+  docs:
+    - title: IBM WebSphere Application Server documentation
+      url: https://www.ibm.com/docs/en/was

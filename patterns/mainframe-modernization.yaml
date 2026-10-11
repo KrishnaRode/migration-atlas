@@ -1,0 +1,65 @@
+id: mainframe-modernization
+name: Mainframe Modernization
+summary: Incrementally refactor COBOL/CICS/Db2 workloads to Java services on AWS while CDC keeps data in sync during coexistence.
+description: >-
+  Strangler-style modernization of a z/OS estate. Representative implementation on AWS - CICS transactions
+  are first exposed through an API layer, then replaced by refactored Java services backed by Amazon Aurora;
+  Db2 for z/OS changes replicate to Aurora via log-based CDC, VSAM files are converted from EBCDIC using
+  copybooks, and JCL batch is re-expressed as AWS Step Functions workflows.
+suitable_scenarios:
+  - Reducing MIPS cost and dependency on scarce COBOL skills
+  - Phased exit where online and batch workloads move in waves
+  - Exposing mainframe functions to digital channels before full migration
+components:
+  - cics
+  - cobol
+  - vsam
+  - ibm-db2-zos
+  - jcl
+  - qlik-replicate
+  - amazon-aurora
+  - amazon-s3
+  - java
+  - amazon-api-gateway
+  - aws-step-functions
+  - aws-secrets-manager
+  - amazon-cloudwatch
+benefits:
+  - Incremental risk reduction with coexistence instead of big-bang cutover
+  - Modern languages, CI/CD and elastic scaling for migrated functions
+  - API layer decouples channels from the mainframe early
+limitations:
+  - Coexistence requires bidirectional data consistency planning
+  - Exact decimal arithmetic and EBCDIC handling must be proven by equivalence testing
+  - CDC on z/OS consumes MIPS and may require additional licensing
+tags: [aws, mainframe, cobol, refactor, strangler]
+template:
+  nodes:
+    - {key: cics, tech: cics, label: "CICS online transactions"}
+    - {key: cobol, tech: cobol, label: "COBOL batch programs"}
+    - {key: vsam, tech: vsam}
+    - {key: db2z, tech: ibm-db2-zos}
+    - {key: jcl, tech: jcl}
+    - {key: cdc, tech: qlik-replicate, label: "Db2 z/OS log CDC"}
+    - {key: aurora, tech: amazon-aurora, label: "Aurora PostgreSQL"}
+    - {key: s3, tech: amazon-s3, label: "Converted file staging"}
+    - {key: java, tech: java, label: "Refactored Java services (EKS)"}
+    - {key: apigw, tech: amazon-api-gateway}
+    - {key: sfn, tech: aws-step-functions, label: "Batch workflows"}
+    - {key: secrets, tech: aws-secrets-manager}
+    - {key: cw, tech: amazon-cloudwatch}
+  edges:
+    - {from: jcl, to: cobol, label: "Execute batch steps", mode: control, kind: control}
+    - {from: cobol, to: vsam, label: "Sequential and keyed I/O", mode: file}
+    - {from: cics, to: db2z, mode: query}
+    - {from: db2z, to: cdc, mode: cdc, frequency: continuous, latency: near-real-time}
+    - {from: cdc, to: aurora, label: "Replicated tables", mode: cdc, frequency: continuous, latency: near-real-time}
+    - {from: vsam, to: s3, label: "Binary EBCDIC unload", mode: file, frequency: daily}
+    - {from: s3, to: aurora, label: "Copybook-driven conversion and load", mode: batch, frequency: daily}
+    - {from: apigw, to: cics, label: "Interim API (z/OS Connect)", mode: api, latency: real-time}
+    - {from: apigw, to: java, label: "Migrated routes", mode: api, latency: real-time}
+    - {from: java, to: aurora, mode: query}
+    - {from: sfn, to: java, label: "Run refactored batch", mode: control, kind: control}
+    - {from: secrets, to: java, label: "Database credentials", kind: security}
+    - {from: java, to: cw, kind: monitoring}
+    - {from: sfn, to: cw, kind: monitoring}

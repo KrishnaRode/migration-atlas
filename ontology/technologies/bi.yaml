@@ -1,0 +1,299 @@
+# BI, reporting and dashboarding tools (legacy and modern).
+- id: tableau
+  name: Tableau
+  aliases: [tableau, tableau server, tableau cloud, tableau desktop]
+  vendor: Salesforce
+  category: bi
+  role: bi
+  layer: consumption
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: chart-column
+  color: "#E97627"
+  description: Visual analytics platform for interactive dashboards and self-service exploration, deployed as Tableau Server (self-managed) or Tableau Cloud (SaaS).
+  typical_legacy_use: Departmental and enterprise dashboards on top of EDWs, often relying on extracts (Hyper) refreshed from Teradata, Oracle or SQL Server.
+  capabilities: [dashboards, self-service-analytics, data-extracts, live-connections, embedded-analytics]
+  possible_targets: [power-bi, looker]
+  alternatives: [power-bi, looker, qlik, amazon-quicksight]
+  replaces: [cognos, business-objects, microstrategy]
+  suggested_next: [databricks-sql, snowflake, bigquery]
+  migration_considerations:
+    - Commonly retained during platform modernisation; repoint data sources from legacy EDW to the new warehouse/lakehouse.
+    - Review extract versus live connection strategy against new platform performance and cost.
+    - Replace custom SQL in workbooks with governed gold/curated tables or published data sources.
+    - Consider Tableau Server to Tableau Cloud migration separately from the data-platform migration.
+  known_challenges:
+    - Workbook-level calculated fields and custom SQL embed business logic outside governed layers.
+    - Large estates contain many unused or duplicate workbooks.
+  risks: [report-parity, hidden-business-logic, performance-regression]
+  strategies: [retain, relocate, replatform, repurchase]
+  skills: [Tableau, SQL, Data visualisation]
+  tags: [bi, dashboards, self-service]
+  docs:
+    - title: Tableau Help
+      url: https://help.tableau.com/
+
+- id: power-bi
+  name: Microsoft Power BI
+  aliases: [power bi, powerbi, pbi, power bi service]
+  vendor: Microsoft
+  category: bi
+  role: bi
+  layer: consumption
+  environment: any
+  legacy: false
+  clouds: [azure, on-prem]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: chart-pie
+  color: "#F2C811"
+  description: Microsoft BI platform with semantic models, DAX, interactive reports and paginated reports, delivered as the Power BI service and integrated with Microsoft Fabric.
+  typical_legacy_use: Enterprise and self-service reporting on SQL Server, Synapse and other warehouses, frequently replacing SSRS, Cognos and BusinessObjects.
+  capabilities: [dashboards, semantic-models, dax, paginated-reports, direct-lake, row-level-security]
+  possible_targets: []
+  alternatives: [tableau, looker, qlik, amazon-quicksight]
+  replaces: [cognos, business-objects, microstrategy, qlik]
+  suggested_next: [databricks-sql, microsoft-fabric, azure-synapse, microsoft-purview]
+  migration_considerations:
+    - Choose Import, DirectQuery or Direct Lake storage modes per semantic model based on latency and volume.
+    - Repoint semantic models to the new platform and validate DAX measures against legacy report outputs.
+    - Use paginated reports for pixel-perfect migrations from SSRS, Cognos or BusinessObjects.
+    - Plan capacity (Premium/Fabric) and workspace governance before mass migration.
+  known_challenges:
+    - Business logic in Power Query (M) and DAX duplicates warehouse logic.
+    - Large import models hit capacity memory and refresh limits.
+  risks: [report-parity, hidden-business-logic, licensing-overlap]
+  strategies: [retain, replatform, repurchase]
+  skills: [Power BI, DAX, Power Query, Data modelling]
+  tags: [bi, dashboards, microsoft, saas]
+  docs:
+    - title: Power BI documentation
+      url: https://learn.microsoft.com/power-bi/
+
+- id: cognos
+  name: IBM Cognos Analytics
+  aliases: [cognos, ibm cognos, cognos bi, cognos analytics]
+  vendor: IBM
+  category: bi
+  role: bi
+  layer: consumption
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: chart-column
+  color: "#054ADA"
+  description: IBM enterprise reporting and BI suite with Framework Manager metadata models, Report Studio/Authoring and scheduled report bursting.
+  typical_legacy_use: Governed operational and regulatory reporting on Teradata, DB2 and Oracle warehouses, with Framework Manager packages encoding business logic.
+  capabilities: [enterprise-reporting, metadata-modelling, report-bursting, scheduled-distribution]
+  possible_targets: [power-bi, tableau, looker, amazon-quicksight]
+  alternatives: [business-objects, microstrategy]
+  replaces: []
+  suggested_next: [power-bi, tableau, looker]
+  migration_considerations:
+    - Inventory reports with usage audit data; retire unused reports before conversion.
+    - Rebuild Framework Manager model logic in a governed semantic layer (gold tables, metric views, LookML, Power BI models).
+    - Map bursting and scheduled distribution to equivalent subscription features.
+  known_challenges:
+    - Framework Manager joins, filters and calculations contain undocumented business rules.
+    - Pixel-perfect regulatory reports are difficult to reproduce exactly.
+  risks: [report-parity, hidden-business-logic, licensing-overlap, skills-gap]
+  strategies: [retain, retire, repurchase]
+  skills: [Cognos Framework Manager, Cognos Report Authoring, SQL]
+  tags: [bi, reporting, legacy, ibm]
+  docs:
+    - title: IBM Cognos Analytics documentation
+      url: https://www.ibm.com/docs/en/cognos-analytics
+
+- id: microstrategy
+  name: MicroStrategy (Strategy)
+  aliases: [microstrategy, mstr, strategy one]
+  vendor: Strategy (formerly MicroStrategy)
+  category: bi
+  role: bi
+  layer: consumption
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: chart-column
+  color: "#D9232E"
+  description: Enterprise BI platform built on a centralised semantic metadata layer (schema objects, attributes, metrics) with dossiers, documents and Intelligent Cubes.
+  typical_legacy_use: Large-scale governed reporting on Teradata and Oracle EDWs, with complex metric definitions and VLDB settings tuned to the warehouse.
+  capabilities: [enterprise-reporting, semantic-layer, olap-cubes, dossiers, mobile-bi]
+  possible_targets: [power-bi, tableau, looker]
+  alternatives: [cognos, business-objects]
+  replaces: []
+  suggested_next: [power-bi, tableau, looker, databricks-sql]
+  migration_considerations:
+    - If retained, repoint the warehouse catalog and VLDB settings to the new platform and regression-test generated SQL.
+    - If replaced, export schema objects and metric definitions to rebuild in the target semantic layer.
+    - Use usage statistics to prioritise reports and retire unused objects.
+  known_challenges:
+    - Generated multi-pass SQL relies on warehouse-specific VLDB tuning.
+    - Metric and attribute definitions embed significant business logic.
+  risks: [report-parity, hidden-business-logic, performance-regression, licensing-overlap]
+  strategies: [retain, replatform, retire, repurchase]
+  skills: [MicroStrategy architecture, SQL, Semantic modelling]
+  tags: [bi, reporting, legacy, semantic-layer]
+  docs:
+    - title: MicroStrategy product documentation
+      url: https://www2.microstrategy.com/producthelp/Current/
+
+- id: qlik
+  name: Qlik Sense / QlikView
+  aliases: [qlik, qlik sense, qlikview, qlik cloud]
+  vendor: Qlik
+  category: bi
+  role: bi
+  layer: consumption
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: chart-column
+  color: "#009845"
+  description: Associative-engine BI platform (QlikView legacy, Qlik Sense client-managed or Qlik Cloud) for in-memory dashboards and guided analytics.
+  typical_legacy_use: Departmental analytics where load scripts extract and transform data into in-memory QVD files, effectively acting as a shadow ETL layer.
+  capabilities: [dashboards, associative-engine, in-memory-analytics, load-scripts]
+  possible_targets: [power-bi, tableau, looker]
+  alternatives: [tableau, power-bi]
+  replaces: []
+  suggested_next: [power-bi, tableau, databricks-sql]
+  migration_considerations:
+    - Treat Qlik load scripts and QVD layers as ETL to be migrated into governed silver/gold or curated layers.
+    - QlikView to Qlik Sense/Cloud is a separate modernisation path if the tool is retained.
+    - Validate associative-selection behaviour against target tool filtering semantics.
+  known_challenges:
+    - Load scripts contain substantial transformation logic outside the data platform.
+    - Set analysis expressions are hard to translate to DAX or SQL.
+  risks: [hidden-business-logic, report-parity, lineage-loss]
+  strategies: [retain, replatform, repurchase, retire]
+  skills: [Qlik scripting, Set analysis, SQL]
+  tags: [bi, dashboards, legacy, in-memory]
+  docs:
+    - title: Qlik Help
+      url: https://help.qlik.com/
+
+- id: looker
+  name: Looker
+  aliases: [looker, google looker, lookml]
+  vendor: Google Cloud
+  category: bi
+  role: bi
+  layer: consumption
+  environment: saas
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: chart-line
+  color: "#4285F4"
+  description: Google Cloud BI and semantic-modelling platform using LookML to define governed metrics that query the database directly, with embedded analytics support.
+  typical_legacy_use: Governed BI on BigQuery, Snowflake and Databricks, often replacing Cognos, BusinessObjects and MicroStrategy semantic layers.
+  capabilities: [semantic-layer, lookml, dashboards, embedded-analytics, in-database-querying]
+  possible_targets: []
+  alternatives: [power-bi, tableau, amazon-quicksight]
+  replaces: [cognos, business-objects, microstrategy]
+  suggested_next: [bigquery, databricks-sql, snowflake, google-dataplex]
+  migration_considerations:
+    - Rebuild legacy universe/Framework Manager/MicroStrategy schema logic as LookML views, explores and measures.
+    - Use persistent derived tables sparingly; push heavy transformations into Dataform/dbt models.
+    - Version-control LookML in Git with CI validation.
+  known_challenges:
+    - LookML development requires specialist skills not common in legacy BI teams.
+    - Pixel-perfect reporting is weaker than in dedicated reporting tools.
+  risks: [skills-gap, report-parity, licensing-overlap]
+  strategies: [repurchase, rearchitect]
+  skills: [LookML, SQL, Git]
+  tags: [bi, semantic-layer, gcp, saas]
+  docs:
+    - title: Looker documentation
+      url: https://cloud.google.com/looker/docs
+
+- id: amazon-quicksight
+  name: Amazon QuickSight
+  aliases: [quicksight, amazon quicksight, aws quicksight]
+  vendor: Amazon Web Services
+  category: bi
+  role: bi
+  layer: consumption
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: chart-line
+  color: "#8C4FFF"
+  description: Serverless, pay-per-session BI service on AWS with the SPICE in-memory engine, paginated reports, embedded analytics and generative BI features.
+  typical_legacy_use: AWS-native dashboards on Redshift, Athena and S3 data lakes, and embedded analytics in SaaS applications.
+  capabilities: [dashboards, spice-engine, embedded-analytics, paginated-reports, natural-language-query]
+  possible_targets: []
+  alternatives: [power-bi, tableau, looker]
+  replaces: [cognos, business-objects]
+  suggested_next: [amazon-redshift, databricks-sql, aws-lake-formation]
+  migration_considerations:
+    - Decide between SPICE import and direct query based on data freshness and volume.
+    - Map legacy security to QuickSight row-level and column-level security with IAM Identity Center.
+    - Validate visual and calculation parity for migrated reports.
+  known_challenges:
+    - Fewer advanced authoring features than Tableau or Power BI for complex reports.
+    - SPICE capacity limits per dataset require modelling for large datasets.
+  risks: [report-parity, skills-gap]
+  strategies: [repurchase, replatform]
+  skills: [Amazon QuickSight, SQL, AWS IAM]
+  tags: [bi, dashboards, aws, serverless]
+  docs:
+    - title: Amazon QuickSight documentation
+      url: https://docs.aws.amazon.com/quicksight/
+
+- id: business-objects
+  name: SAP BusinessObjects
+  aliases: [business objects, businessobjects, sap bo, bobj, webi]
+  vendor: SAP
+  category: bi
+  role: bi
+  layer: consumption
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: chart-column
+  color: "#0FAAFF"
+  description: SAP BusinessObjects BI platform with universes (UNV/UNX) as a semantic layer, Web Intelligence ad hoc reporting and Crystal Reports pixel-perfect reporting.
+  typical_legacy_use: Enterprise and regulatory reporting on SAP BW, Teradata, Oracle and SQL Server, with heavy use of scheduled Web Intelligence and Crystal reports.
+  capabilities: [enterprise-reporting, semantic-universes, ad-hoc-reporting, pixel-perfect-reports, scheduling]
+  possible_targets: [power-bi, tableau, looker, amazon-quicksight]
+  alternatives: [cognos, microstrategy]
+  replaces: []
+  suggested_next: [power-bi, tableau, looker]
+  migration_considerations:
+    - Extract universe definitions and report metadata to inventory joins, contexts, derived tables and calculated objects.
+    - Use audit/usage data to retire unused reports before migration.
+    - Map Crystal and paginated Webi reports to Power BI paginated reports or equivalent.
+    - Consider SAP mainstream maintenance timelines when planning the migration window.
+  known_challenges:
+    - Universe contexts and aggregate awareness encode complex join logic.
+    - Report-level variables and formulas embed business rules.
+  risks: [report-parity, hidden-business-logic, licensing-overlap]
+  strategies: [retain, retire, repurchase]
+  skills: [BusinessObjects universe design, Web Intelligence, SQL]
+  tags: [bi, reporting, legacy, sap]
+  docs:
+    - title: SAP BusinessObjects BI Platform documentation
+      url: https://help.sap.com/docs/SAP_BUSINESSOBJECTS_BUSINESS_INTELLIGENCE_PLATFORM

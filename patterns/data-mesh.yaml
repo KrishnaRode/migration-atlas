@@ -1,0 +1,63 @@
+id: data-mesh
+name: Data Mesh
+summary: Domain-owned data products on a self-serve Google Cloud platform with federated governance through Dataplex.
+description: >-
+  Shifts ownership of analytical data to business domains that publish discoverable, governed data
+  products, while a central platform team provides self-serve infrastructure and global policies.
+  Representative implementation on Google Cloud - each domain ingests into its own BigQuery project,
+  Terraform provisions domain infrastructure, and Dataplex and IAM apply federated governance across domains.
+suitable_scenarios:
+  - Large organisations where a central data team is a delivery bottleneck
+  - Domains with strong ownership and engineering capacity
+  - Post-migration operating models for consolidated platforms
+components:
+  - sap-erp
+  - salesforce
+  - google-cloud-data-fusion
+  - bigquery
+  - looker
+  - vertex-ai
+  - google-dataplex
+  - google-iam
+  - terraform
+  - google-cloud-monitoring
+benefits:
+  - Scales delivery by distributing ownership to domains
+  - Data products have explicit owners, contracts and SLAs
+  - Federated governance balances autonomy with global standards
+limitations:
+  - Requires organisational change and domain engineering maturity
+  - Risk of duplicated effort and inconsistent standards without a strong platform team
+  - Cross-domain joins and shared master data need explicit design
+tags: [gcp, data-mesh, domains, governance, operating-model]
+template:
+  nodes:
+    - {key: sap, tech: sap-erp, label: "Finance domain source (SAP)"}
+    - {key: sfdc, tech: salesforce, label: "Sales domain source"}
+    - {key: fin_ingest, tech: google-cloud-data-fusion, label: "Finance ingestion"}
+    - {key: sales_ingest, tech: google-cloud-data-fusion, label: "Sales ingestion"}
+    - {key: bq_fin, tech: bigquery, label: "Finance data products"}
+    - {key: bq_sales, tech: bigquery, label: "Sales data products"}
+    - {key: looker, tech: looker}
+    - {key: vertex, tech: vertex-ai}
+    - {key: dataplex, tech: google-dataplex, label: "Dataplex (federated governance)"}
+    - {key: iam, tech: google-iam}
+    - {key: terraform, tech: terraform, label: "Self-serve platform (IaC)"}
+    - {key: mon, tech: google-cloud-monitoring}
+  edges:
+    - {from: sap, to: fin_ingest, mode: batch, frequency: daily}
+    - {from: sfdc, to: sales_ingest, mode: api, frequency: hourly}
+    - {from: fin_ingest, to: bq_fin, mode: batch, frequency: daily}
+    - {from: sales_ingest, to: bq_sales, mode: batch, frequency: hourly}
+    - {from: bq_fin, to: bq_sales, label: "Cross-domain product (authorized view)", mode: query}
+    - {from: bq_fin, to: looker, mode: query, latency: interactive}
+    - {from: bq_sales, to: looker, mode: query, latency: interactive}
+    - {from: bq_sales, to: vertex, label: "Training data", mode: query, frequency: daily}
+    - {from: dataplex, to: bq_fin, label: "Catalog, quality, policies", mode: governance, kind: governance}
+    - {from: dataplex, to: bq_sales, label: "Catalog, quality, policies", mode: governance, kind: governance}
+    - {from: iam, to: bq_fin, label: "Domain access", kind: security}
+    - {from: iam, to: bq_sales, label: "Domain access", kind: security}
+    - {from: terraform, to: bq_fin, label: "Provision domain project", mode: control, kind: control}
+    - {from: terraform, to: bq_sales, label: "Provision domain project", mode: control, kind: control}
+    - {from: fin_ingest, to: mon, kind: monitoring}
+    - {from: sales_ingest, to: mon, kind: monitoring}

@@ -1,0 +1,755 @@
+# Source -> target migration mappings for systems and artefacts.
+# ---------------------------------------------------------------- Databases
+- id: oracle-to-databricks
+  title: Oracle Database to Databricks Lakehouse
+  source: oracle-database
+  source_artifact: null
+  targets: [databricks, delta-lake, databricks-sql, lakeflow-connect]
+  approaches:
+    - Initial snapshot and ongoing CDC with Lakeflow Connect (or GoldenGate/Datastream to cloud storage) into Delta bronze tables
+    - Bulk historical extract via parallel JDBC reads partitioned on numeric or date keys, landed as Parquet then converted to Delta
+    - Rebuild reporting schemas as silver/gold Delta tables served through Databricks SQL warehouses
+    - Rearchitect Oracle-hosted marts into a medallion design rather than replicating the source schema one-to-one
+  conversion_considerations:
+    - Map Oracle NUMBER without precision explicitly to DECIMAL(p,s) or BIGINT after profiling; Oracle DATE carries a time component and maps to TIMESTAMP
+    - Oracle treats empty strings as NULL; downstream logic relying on this behaviour must be made explicit
+    - Sequences, triggers and constraints are not enforced the same way in Delta; replace with identity columns, pipeline logic and expectations
+    - Supplemental logging and archive log retention must be enabled for CDC; LOB columns need special handling in most CDC tools
+    - Partitioning and indexes do not carry over; design liquid clustering or partitioning around query predicates
+  risks: [data-type-mismatch, sql-dialect-conversion, cdc-lag, data-volume-transfer, performance-regression, cutover-downtime]
+  automation_potential: high
+  manual_effort_areas:
+    - Type mapping decisions for unconstrained NUMBER, LOB and spatial columns
+    - Redesign of index-dependent query patterns for the lakehouse
+    - CDC configuration, supplemental logging and source DBA coordination
+    - Reconciliation design and sign-off for high-value tables
+
+- id: oracle-plsql-to-databricks
+  title: PL/SQL stored procedures to Databricks SQL and Spark
+  source: oracle-database
+  source_artifact: "PL/SQL stored procedures"
+  targets: [databricks-sql, apache-spark]
+  approaches:
+    - Classify procedures by pattern (set-based DML, cursor loops, orchestration, utility) and select a target idiom per class
+    - Convert set-based procedures to Databricks SQL (SQL scripting, MERGE INTO, temporary views) with assisted conversion tooling
+    - Refactor cursor-driven and complex procedural logic into PySpark jobs with DataFrame operations
+    - Move procedure orchestration (calls between procedures, control tables) into Databricks Workflows tasks
+    - Retire procedures with no callers identified from AWR, audit or dependency analysis
+  conversion_considerations:
+    - Row-by-row cursor loops must be rewritten as set-based operations to perform on a distributed engine
+    - Packages, package state, autonomous transactions and global temporary tables have no direct equivalent
+    - DBMS_* and UTL_* package calls (UTL_FILE, DBMS_SCHEDULER, DBMS_LOB) need functional replacements
+    - Exception handling and transactional semantics differ; Delta provides table-level ACID, not multi-statement transactions across tables
+    - Dynamic SQL must be reviewed for injection risk and rewritten with parameterised constructs
+  risks: [stored-procedure-rewrite, hidden-business-logic, sql-dialect-conversion, data-quality-regression, skills-gap]
+  automation_potential: medium
+  manual_effort_areas:
+    - Rewriting cursor-based and dynamic-SQL procedures
+    - Replacing package state, global temporary tables and autonomous transactions
+    - Unit test creation with golden datasets per procedure
+    - Performance tuning of converted set-based logic
+
+- id: oracle-oltp-replatform
+  title: Oracle OLTP to AlloyDB or Amazon Aurora PostgreSQL
+  source: oracle-database
+  source_artifact: null
+  targets: [alloydb, amazon-aurora]
+  approaches:
+    - Assess compatibility with Database Migration Service / AWS SCT and size the PL/pgSQL conversion backlog
+    - Convert schema and code with automated tooling (DMS conversion workspace, AWS SCT, ora2pg) followed by manual remediation
+    - Initial load and CDC replication via Database Migration Service or AWS DMS to minimise cutover downtime
+    - Remediate application SQL, drivers and connection pooling; run functional and performance regression tests
+  conversion_considerations:
+    - PL/SQL packages become PostgreSQL schemas plus functions/procedures; package variables need redesign
+    - Oracle-specific features (CONNECT BY, ROWNUM, outer join (+) syntax, DECODE) must be rewritten in ANSI/PostgreSQL SQL
+    - Empty string versus NULL semantics and case-folding of identifiers differ in PostgreSQL
+    - Sequence, synonym, database link and materialised view behaviour needs functional review
+    - Application-level transaction isolation and locking behaviour should be retested under load
+  risks: [stored-procedure-rewrite, sql-dialect-conversion, data-type-mismatch, cutover-downtime, integration-breakage, performance-regression]
+  automation_potential: medium
+  manual_effort_areas:
+    - PL/SQL package and trigger remediation
+    - Application SQL and ORM changes
+    - Performance tuning of indexes and query plans on PostgreSQL
+    - Cutover rehearsal and rollback planning
+
+- id: sql-server-to-cloud
+  title: SQL Server to Azure SQL, Databricks or Synapse
+  source: sql-server
+  source_artifact: null
+  targets: [azure-sql-database, databricks, azure-synapse]
+  approaches:
+    - Replatform OLTP databases to Azure SQL Database or Managed Instance using Azure DMS with online migration
+    - Move analytical workloads to Databricks via Lakeflow Connect or CDC into Delta tables
+    - Migrate dimensional data warehouses to Azure Synapse dedicated SQL pools with distribution redesign
+    - Use Data Migration Assistant to identify compatibility blockers before choosing the target
+  conversion_considerations:
+    - T-SQL is largely compatible with Azure SQL but not with Spark SQL; procedures targeting Databricks need rewrite
+    - SQL Agent jobs, linked servers, CLR assemblies and cross-database queries need alternatives on PaaS targets
+    - Synapse dedicated pools require hash/round-robin distribution and lack some T-SQL features
+    - Collation and case sensitivity defaults differ across targets
+  risks: [sql-dialect-conversion, stored-procedure-rewrite, cutover-downtime, integration-breakage, performance-regression]
+  automation_potential: high
+  manual_effort_areas:
+    - Rewriting T-SQL procedures for Databricks targets
+    - Replacing SQL Agent jobs, linked servers and CLR code
+    - Distribution and indexing design for Synapse
+    - Application connection string and authentication changes
+
+- id: sql-server-tsql-to-databricks
+  title: T-SQL stored procedures to Databricks SQL and dbt
+  source: sql-server
+  source_artifact: "T-SQL stored procedures"
+  targets: [databricks-sql, dbt, apache-spark]
+  approaches:
+    - Translate set-based procedures to Databricks SQL or dbt models using assisted SQL converters
+    - Refactor ELT-style procedure chains into dbt models with tests and documentation
+    - Rewrite procedural logic (WHILE loops, cursors, temp tables) as PySpark jobs where set-based rewrite is impractical
+  conversion_considerations:
+    - Temp tables and table variables map to temporary views or staging Delta tables
+    - TRY/CATCH, @@ROWCOUNT and transaction control need alternate patterns
+    - IDENTITY, MERGE output clauses and OUTPUT INTO semantics differ
+  risks: [stored-procedure-rewrite, sql-dialect-conversion, hidden-business-logic]
+  automation_potential: medium
+  manual_effort_areas:
+    - Procedural loop and cursor refactoring
+    - Error handling and transactional redesign
+    - Unit and regression test creation
+
+- id: ibm-db2-to-cloud
+  title: IBM Db2 (LUW) to cloud platforms
+  source: ibm-db2
+  source_artifact: null
+  targets: [databricks, bigquery, alloydb, amazon-aurora]
+  approaches:
+    - Move analytical schemas to Databricks or BigQuery via CDC (Qlik Replicate, Debezium, Striim) plus bulk export
+    - Replatform OLTP Db2 databases to PostgreSQL-compatible AlloyDB or Aurora with schema and SQL PL conversion
+    - Use Db2 EXPORT/HPU utilities for high-volume history extracts landed in cloud storage
+  conversion_considerations:
+    - SQL PL procedures and triggers need conversion to PL/pgSQL or Spark SQL
+    - DECFLOAT, GRAPHIC/VARGRAPHIC and timestamp precision need explicit mapping
+    - Db2 isolation levels and locking semantics differ from PostgreSQL MVCC
+  risks: [sql-dialect-conversion, stored-procedure-rewrite, data-type-mismatch, cutover-downtime]
+  automation_potential: medium
+  manual_effort_areas:
+    - SQL PL procedure conversion
+    - CDC tool licensing and configuration
+    - Application data-access layer changes
+
+- id: sybase-ase-migration
+  title: Sybase ASE to cloud databases
+  source: sybase-ase
+  source_artifact: null
+  targets: [azure-sql-database, amazon-aurora, alloydb, databricks]
+  approaches:
+    - Use SQL Server Migration Assistant for Sybase to convert schema and T-SQL to Azure SQL Database
+    - Convert to PostgreSQL-compatible targets with ora2pg-style tooling and manual T-SQL remediation
+    - Offload reporting and history to Databricks via bulk export and CDC (Qlik Replicate, SAP Replication Server)
+  conversion_considerations:
+    - Sybase T-SQL dialect differs from Microsoft T-SQL in chained transaction mode, identity gaps and some functions
+    - Character set and sort order settings affect comparisons and must be matched
+    - Replication Server topologies and warm standbys need replacement
+  risks: [sql-dialect-conversion, stored-procedure-rewrite, skills-gap, cutover-downtime]
+  automation_potential: medium
+  manual_effort_areas:
+    - Stored procedure and trigger remediation
+    - Replacement of Replication Server topology
+    - Application testing for chained-mode and locking behaviour
+
+# ---------------------------------------------------------------- Warehouses
+- id: teradata-to-cloud-warehouse
+  title: Teradata to BigQuery, Databricks or Snowflake
+  source: teradata
+  source_artifact: null
+  targets: [bigquery, databricks, snowflake]
+  approaches:
+    - Schema and DDL conversion with automated translators (BigQuery Migration Service, Databricks/BladeBridge converters, SnowConvert)
+    - Historical data extract with Teradata Parallel Transporter (TPT) to cloud storage, then bulk load
+    - Incremental sync during parallel run using timestamp-based extracts or CDC
+    - Wave-based migration by subject area with automated reconciliation against Teradata
+  conversion_considerations:
+    - Primary index and partitioned primary index designs map to clustering/partitioning, not one-to-one
+    - SET tables silently deduplicate rows; target tables are MULTISET by default and need explicit dedupe logic
+    - Teradata-specific constructs (QUALIFY, PERIOD types, macros, volatile tables, case-insensitive comparisons) need translation
+    - Workload management (TASM) rules must be re-expressed as warehouse sizing, reservations or slot policies
+    - BTEQ, FastLoad, MultiLoad and TPump jobs require separate conversion
+  risks: [sql-dialect-conversion, data-volume-transfer, performance-regression, data-type-mismatch, licensing-overlap, parallel-run-cost]
+  automation_potential: high
+  manual_effort_areas:
+    - SET table and case-sensitivity semantic review
+    - Workload management and concurrency redesign
+    - Performance tuning of large joins and aggregations
+    - Reconciliation and parallel-run sign-off
+
+- id: teradata-bteq-conversion
+  title: Teradata BTEQ scripts to cloud SQL and orchestration
+  source: teradata
+  source_artifact: "BTEQ scripts"
+  targets: [bigquery, databricks-sql, snowflake, dbt, databricks-workflows, apache-airflow]
+  approaches:
+    - Translate embedded SQL with BigQuery SQL translator, SnowConvert or Databricks converters
+    - Replace BTEQ control flow (.IF ERRORCODE, .GOTO, .LABEL) with orchestrator task logic or SQL scripting blocks
+    - Refactor multi-step BTEQ ETL into dbt models or Databricks SQL tasks with dependencies in the orchestrator
+    - Replace FastLoad/MultiLoad steps with native bulk load or Auto Loader ingestion
+  conversion_considerations:
+    - BTEQ dot-commands and exit codes drive scheduler behaviour; the error semantics must be reproduced
+    - Shell wrappers often perform parameter substitution and file handling around BTEQ
+    - Volatile tables map to temporary tables or views with different scoping rules
+    - Export formatting (.EXPORT REPORT/DATA) needs a replacement for downstream file consumers
+  risks: [sql-dialect-conversion, hidden-business-logic, scheduling-dependency-loss, integration-breakage]
+  automation_potential: medium
+  manual_effort_areas:
+    - Control-flow and error-handling redesign
+    - Shell wrapper and parameter logic review
+    - File export replacements for downstream consumers
+
+- id: netezza-to-cloud
+  title: Netezza to BigQuery, Snowflake or Databricks
+  source: netezza
+  source_artifact: null
+  targets: [bigquery, snowflake, databricks]
+  approaches:
+    - Convert DDL, views and NZPLSQL with automated translators (BigQuery Migration Service, SnowConvert, Databricks converters)
+    - Extract history with external tables / nzsql unload to compressed files in cloud storage, then bulk load
+    - Rebuild NZPLSQL procedures as SQL scripting, dbt models or Spark jobs
+    - Migrate by subject area with automated reconciliation against Netezza
+  conversion_considerations:
+    - Distribution keys and zone maps translate to clustering/partitioning strategies on the target
+    - NZPLSQL procedures and UDX functions need rewrite
+    - Netezza-specific SQL extensions and implicit casts need translation
+    - Appliance end-of-support often fixes the timeline
+  risks: [sql-dialect-conversion, stored-procedure-rewrite, data-volume-transfer, performance-regression, licensing-overlap]
+  automation_potential: high
+  manual_effort_areas:
+    - NZPLSQL and UDX rewrite
+    - Physical design and performance tuning
+    - Reconciliation and parallel run
+
+- id: oracle-exadata-migration
+  title: Oracle Exadata to cloud data platforms
+  source: oracle-exadata
+  source_artifact: null
+  targets: [databricks, bigquery, snowflake, alloydb]
+  approaches:
+    - Relocate to Oracle Database@Google Cloud or Exadata Database Service where time-to-exit dominates
+    - Replatform analytical workloads to Databricks, BigQuery or Snowflake with SQL and PL/SQL conversion
+    - Use CDC (GoldenGate, Lakeflow Connect, Datastream) plus bulk export for large-volume history
+    - Replatform OLTP schemas to AlloyDB where Oracle compatibility features suffice
+  conversion_considerations:
+    - Exadata smart scan, storage indexes and HCC compression mask inefficient SQL that will be slow elsewhere
+    - Partitioning, parallel hints and result caches need target-native redesign
+    - PL/SQL-heavy ETL inside the database is usually the largest conversion item
+  risks: [performance-regression, stored-procedure-rewrite, data-volume-transfer, licensing-overlap, sql-dialect-conversion]
+  automation_potential: medium
+  manual_effort_areas:
+    - Performance re-engineering for workloads relying on Exadata offload
+    - PL/SQL ETL rewrite
+    - Licence and hardware decommission planning
+
+- id: greenplum-migration
+  title: Greenplum to cloud warehouse or lakehouse
+  source: greenplum
+  source_artifact: null
+  targets: [databricks, bigquery, snowflake, amazon-redshift]
+  approaches:
+    - Convert PostgreSQL-derived DDL and PL/pgSQL functions with SQL translators
+    - Unload history with gpfdist/external tables to object storage and bulk load
+    - Replace external table ingestion with Auto Loader, Snowpipe or BigQuery load jobs
+  conversion_considerations:
+    - Distribution keys and append-optimised tables translate to target clustering choices
+    - PL/pgSQL, PL/Python and MADlib functions need redesign
+    - Resource queues and groups map to warehouse sizing or workload management
+  risks: [sql-dialect-conversion, stored-procedure-rewrite, data-volume-transfer, performance-regression]
+  automation_potential: medium
+  manual_effort_areas:
+    - Function and MADlib replacement
+    - Physical design and tuning
+    - Reconciliation
+
+- id: cloudera-hadoop-migration
+  title: Cloudera Hadoop to Databricks, Dataproc or EMR
+  source: cloudera-hadoop
+  source_artifact: null
+  targets: [databricks, google-dataproc, amazon-emr]
+  approaches:
+    - Replatform Spark jobs to Dataproc or EMR with minimal code change, decoupling storage to object storage
+    - Rearchitect to Databricks with Delta Lake, converting Hive tables to Delta and Hive SQL to Spark SQL
+    - Migrate Hive metastore to Unity Catalog, Dataproc Metastore or AWS Glue Data Catalog
+    - Replace Oozie workflows with Databricks Workflows, Cloud Composer or MWAA
+  conversion_considerations:
+    - HDFS paths hard-coded in jobs must be parameterised to object-storage URIs
+    - MapReduce, Pig and older Hive UDFs typically need rewrite in Spark
+    - Ranger/Sentry policies must be mapped to target governance controls
+    - Impala and HBase workloads need separate target decisions
+  risks: [data-volume-transfer, skills-gap, governance-gap, lineage-loss, performance-regression, security-gap]
+  automation_potential: medium
+  manual_effort_areas:
+    - MapReduce, Pig and UDF rewrite
+    - Ranger/Sentry policy translation
+    - Oozie workflow conversion
+    - Small-file compaction and table-format conversion
+
+- id: hdfs-to-object-storage
+  title: HDFS to cloud object storage
+  source: hdfs
+  source_artifact: null
+  targets: [google-cloud-storage, amazon-s3, adls-gen2]
+  approaches:
+    - Bulk copy with DistCp over dedicated interconnect, partitioned by directory and validated by checksum
+    - Use offline transfer appliances for multi-petabyte datasets
+    - Convert Hive/Parquet tables to Delta Lake or Apache Iceberg during or after copy
+  conversion_considerations:
+    - HDFS block checksums differ from object-store checksums; use composite CRC or file-level validation
+    - Object storage has no atomic directory rename; jobs relying on rename-based commits need committers or table formats
+    - Small-file proliferation raises request costs and should be compacted
+    - HDFS ACLs and Ranger policies map to IAM and catalog permissions
+  risks: [data-volume-transfer, network-bandwidth, security-gap, cost-overrun]
+  automation_potential: high
+  manual_effort_areas:
+    - Transfer wave planning and bandwidth scheduling
+    - Permission model translation
+    - Small-file compaction strategy
+
+# ---------------------------------------------------------------- ETL
+- id: informatica-powercenter-modernization
+  title: Informatica PowerCenter to cloud-native pipelines
+  source: informatica-powercenter
+  source_artifact: null
+  targets: [lakeflow-declarative-pipelines, dbt, apache-airflow, google-dataflow, azure-data-factory]
+  approaches:
+    - Export repository metadata (XML) and inventory mappings, mapplets, sessions and workflows by complexity
+    - Convert mappings to PySpark/Lakeflow Declarative Pipelines or dbt models using automated converters, then remediate
+    - Convert workflow and worklet orchestration to Airflow DAGs, Databricks Workflows or ADF pipelines
+    - Repurchase path to Informatica IDMC for teams wishing to keep the Informatica paradigm
+  conversion_considerations:
+    - Reusable transformations, mapplets and parameter files hide logic and must be resolved during conversion
+    - Lookup caching, update strategy and router transformations need target-idiomatic patterns (MERGE, joins, filters)
+    - Pre/post-session SQL, stored procedure transformations and Java transformations need manual rewrite
+    - Session-level error handling and recovery semantics differ from target frameworks
+  risks: [hidden-business-logic, lineage-loss, skills-gap, licensing-overlap, data-quality-regression]
+  automation_potential: medium
+  manual_effort_areas:
+    - Java and custom transformation rewrite
+    - Pre/post-session SQL and stored-procedure calls
+    - Parameter file and connection management redesign
+    - Reconciliation of complex mappings
+
+- id: datastage-modernization
+  title: IBM DataStage to cloud-native pipelines
+  source: ibm-datastage
+  source_artifact: null
+  targets: [lakeflow-declarative-pipelines, dbt, apache-spark, azure-data-factory, google-dataflow]
+  approaches:
+    - Export DSX/ISX job definitions and inventory parallel and server jobs by stage usage
+    - Convert parallel jobs to PySpark or Lakeflow Declarative Pipelines with automated converters
+    - Convert sequence jobs to orchestrator DAGs (Databricks Workflows, Airflow, ADF)
+    - Rewrite BASIC transformer routines and server jobs manually
+  conversion_considerations:
+    - Partitioning and sort stages in parallel jobs are often unnecessary on Spark and should be removed
+    - Transformer stage expressions and stage variables carry state across rows that needs window functions
+    - Shared containers and job parameters must be resolved before conversion
+    - BASIC routines and before/after subroutines have no automated equivalent
+  risks: [hidden-business-logic, skills-gap, lineage-loss, licensing-overlap]
+  automation_potential: medium
+  manual_effort_areas:
+    - BASIC routine and server job rewrite
+    - Stage-variable state logic redesign
+    - Sequence job orchestration conversion
+    - Reconciliation
+
+- id: ssis-modernization
+  title: SSIS packages to Azure Data Factory, Fabric or dbt
+  source: ssis
+  source_artifact: null
+  targets: [azure-data-factory, microsoft-fabric, dbt]
+  approaches:
+    - Rehost packages in the Azure-SSIS Integration Runtime in ADF for fastest exit
+    - Rebuild control flow as ADF or Fabric Data Factory pipelines and data flows
+    - Refactor transformation logic into dbt models running on Fabric, Synapse or Databricks
+  conversion_considerations:
+    - Script tasks and script components in C#/VB.NET require manual rewrite
+    - Package configurations, environments and project parameters map to pipeline parameters and Key Vault
+    - Third-party SSIS components may not be supported in the Azure-SSIS IR
+    - SQL Agent schedules must be migrated to pipeline triggers
+  risks: [hidden-business-logic, scheduling-dependency-loss, skills-gap]
+  automation_potential: medium
+  manual_effort_areas:
+    - Script task and component rewrite
+    - Third-party component replacement
+    - Configuration and secret management migration
+
+- id: talend-modernization
+  title: Talend to cloud-native pipelines
+  source: talend
+  source_artifact: null
+  targets: [lakeflow-declarative-pipelines, dbt, aws-glue, google-dataflow, apache-airflow]
+  approaches:
+    - Inventory jobs and joblets from the Talend repository; classify by component usage
+    - Convert tMap-centric jobs to Spark/Lakeflow pipelines or dbt models
+    - Move job orchestration from Talend Administration Center to Airflow or platform-native orchestrators
+  conversion_considerations:
+    - Talend generates Java; custom tJava/tJavaRow code embeds business logic
+    - Context variables and routines must be externalised into configuration
+    - Talend Big Data jobs on Spark may be closer to a direct port than standard jobs
+  risks: [hidden-business-logic, skills-gap, licensing-overlap]
+  automation_potential: medium
+  manual_effort_areas:
+    - Custom Java component rewrite
+    - Context and routine externalisation
+    - Orchestration migration
+
+- id: ab-initio-modernization
+  title: Ab Initio to Spark-based pipelines
+  source: ab-initio
+  source_artifact: null
+  targets: [apache-spark, lakeflow-declarative-pipelines, dbt, databricks-workflows]
+  approaches:
+    - Extract graph and plan metadata (with client cooperation, as tooling access is restricted) and inventory components
+    - Convert graphs to PySpark or Lakeflow Declarative Pipelines; translate DML record formats to schemas
+    - Replace Conduct>It plans with Databricks Workflows or Airflow DAGs
+  conversion_considerations:
+    - DML transform functions and record formats encode business logic and data layouts
+    - Partition/departition components and MFS parallelism are usually replaced by Spark's native distribution
+    - Metadata Hub lineage must be re-established in the target catalog
+    - Limited third-party converter maturity increases manual effort
+  risks: [hidden-business-logic, skills-gap, lineage-loss, licensing-overlap]
+  automation_potential: low
+  manual_effort_areas:
+    - DML transform translation
+    - Record format and multifile handling
+    - Plan orchestration conversion
+    - Extensive reconciliation
+
+# ---------------------------------------------------------------- Orchestration
+- id: control-m-to-cloud-orchestration
+  title: Control-M to cloud orchestration
+  source: control-m
+  source_artifact: null
+  targets: [databricks-workflows, apache-airflow, cloud-composer, google-cloud-scheduler]
+  approaches:
+    - Export job definitions (XML/JSON) and build a dependency graph across folders and applications
+    - Generate Airflow/Cloud Composer DAGs or Databricks Workflows jobs from definitions using converters
+    - Use Google Cloud Scheduler only for simple time-based triggers without dependencies
+    - Run Control-M and target orchestrator in hybrid mode with cross-system triggers during coexistence
+  conversion_considerations:
+    - In/out conditions, quantitative resources and cyclic jobs need explicit DAG patterns
+    - Business calendars and holiday rules require custom timetables
+    - File watchers map to sensors, Auto Loader file-arrival triggers or event-driven triggers
+    - Agents executing scripts on on-prem hosts need a replacement execution model
+  risks: [scheduling-dependency-loss, operational-readiness, licensing-overlap]
+  automation_potential: high
+  manual_effort_areas:
+    - Calendar and cyclic job translation
+    - Cross-application dependency redesign
+    - Script execution and agent replacement
+    - Shadow-run validation of execution order
+
+- id: autosys-to-cloud-orchestration
+  title: AutoSys to cloud orchestration
+  source: autosys
+  source_artifact: null
+  targets: [apache-airflow, cloud-composer, amazon-mwaa, databricks-workflows, aws-step-functions]
+  approaches:
+    - Parse JIL definitions into a job dependency graph (boxes, conditions, global variables)
+    - Generate Airflow DAGs or Databricks Workflows from JIL with converters; map box jobs to task groups
+    - Use AWS Step Functions for state-machine-style workflows on AWS
+  conversion_considerations:
+    - Box job semantics and success/failure/done conditions need explicit trigger rules
+    - Calendars and run windows require custom timetables
+    - File watcher jobs map to sensors or event triggers
+  risks: [scheduling-dependency-loss, operational-readiness, licensing-overlap]
+  automation_potential: high
+  manual_effort_areas:
+    - Calendar and run-window translation
+    - Global variable and condition logic
+    - Shadow-run validation
+
+- id: cron-to-orchestration
+  title: Cron jobs to managed orchestration
+  source: cron
+  source_artifact: null
+  targets: [databricks-workflows, apache-airflow, cloud-composer, google-cloud-scheduler, aws-step-functions]
+  approaches:
+    - Inventory crontabs across hosts and identify implicit dependencies (time offsets, lock files)
+    - Convert simple schedules to Google Cloud Scheduler or platform-native job schedules
+    - Consolidate dependent chains into Airflow DAGs or Databricks Workflows with retries and alerting
+  conversion_considerations:
+    - Time-offset sequencing hides dependencies that must be made explicit
+    - Scripts depend on host-local files, environment variables and credentials
+    - Timezone and daylight-saving behaviour differs from host cron
+  risks: [scheduling-dependency-loss, hidden-business-logic, security-gap]
+  automation_potential: medium
+  manual_effort_areas:
+    - Dependency discovery from time offsets
+    - Script containerisation and credential removal
+    - Alerting and retry design
+
+# ---------------------------------------------------------------- Mainframe
+- id: cobol-refactor
+  title: COBOL programs to Java or Spark (refactor)
+  source: cobol
+  source_artifact: null
+  targets: [java, apache-spark]
+  approaches:
+    - Refactor online and transactional COBOL to Java (Spring) using automated code transformation tools, then remediate
+    - Refactor batch COBOL that processes large files into PySpark or Spark jobs
+    - Rewrite selected programs from business rules extracted by code analysis where automated output is unmaintainable
+    - Retain stable, low-change programs on the mainframe during phased migration
+  conversion_considerations:
+    - Fixed-point decimal arithmetic must be preserved exactly (BigDecimal / DecimalType)
+    - Copybooks, REDEFINES and OCCURS DEPENDING ON drive data structures and parsing
+    - Automated translation can produce "JOBOL" that is hard to maintain without refactoring passes
+    - Program calls, file I/O and DB2/IMS access patterns need target-native equivalents
+  risks: [hidden-business-logic, mainframe-encoding, skills-gap, data-quality-regression, parallel-run-cost]
+  automation_potential: medium
+  manual_effort_areas:
+    - Business rule validation with SMEs
+    - Maintainability refactoring of generated code
+    - Test data creation and equivalence testing
+    - Performance tuning of batch throughput
+
+- id: cics-modernization
+  title: CICS transactions to cloud services
+  source: cics
+  source_artifact: null
+  targets: [java, spring, kubernetes, apigee]
+  approaches:
+    - Expose CICS transactions as APIs (z/OS Connect) behind an API gateway as an interim step
+    - Refactor CICS COBOL programs to Spring Boot services deployed on Kubernetes
+    - Replace BMS screens with web front-ends calling the new services
+  conversion_considerations:
+    - Pseudo-conversational design, COMMAREA/channels and TS/TD queues need stateless redesign
+    - Transaction integrity across CICS and Db2/VSAM must be preserved
+    - Response-time SLAs must be met under peak volumes
+  risks: [hidden-business-logic, integration-breakage, performance-regression, skills-gap]
+  automation_potential: low
+  manual_effort_areas:
+    - State and transaction management redesign
+    - UI rebuild for BMS screens
+    - Integration testing with channels and downstream systems
+
+- id: vsam-migration
+  title: VSAM datasets to cloud data stores
+  source: vsam
+  source_artifact: null
+  targets: [alloydb, cloud-sql, amazon-aurora, delta-lake, google-cloud-storage]
+  approaches:
+    - Extract VSAM files in binary mode and convert using copybook-driven parsers to relational tables
+    - Land converted data as Delta or Parquet for analytics use cases
+    - Use CDC tooling for VSAM where continuous synchronisation is required during coexistence
+  conversion_considerations:
+    - EBCDIC, COMP-3 and binary fields must be decoded exactly using verified copybooks
+    - KSDS keys and alternate indexes map to primary keys and indexes
+    - Multiple record types in one file need splitting into separate tables
+  risks: [mainframe-encoding, data-type-mismatch, data-quality-regression]
+  automation_potential: medium
+  manual_effort_areas:
+    - Copybook verification and REDEFINES handling
+    - Record-type splitting design
+    - Control-total reconciliation
+
+- id: jcl-to-orchestration
+  title: JCL batch to cloud orchestration
+  source: jcl
+  source_artifact: null
+  targets: [apache-airflow, aws-step-functions, databricks-workflows]
+  approaches:
+    - Parse JCL and PROCs into job/step graphs including COND codes and GDG usage
+    - Generate Airflow DAGs or Step Functions state machines invoking refactored programs
+    - Replace utility steps (SORT, IEBGENER, IDCAMS) with native cloud operations
+  conversion_considerations:
+    - COND/IF-THEN-ELSE return code logic and restart steps must be reproduced
+    - GDG versioning maps to dated object-storage paths or table versions
+    - Mainframe scheduler (CA-7, TWS, Control-M) dependencies sit above JCL and must be migrated together
+  risks: [scheduling-dependency-loss, hidden-business-logic, mainframe-encoding]
+  automation_potential: medium
+  manual_effort_areas:
+    - Utility step replacement
+    - GDG and restart semantics
+    - Scheduler-level dependency integration
+
+- id: db2-zos-migration
+  title: Db2 for z/OS to cloud databases and analytics
+  source: ibm-db2-zos
+  source_artifact: null
+  targets: [alloydb, amazon-aurora, databricks, bigquery]
+  approaches:
+    - Replicate to cloud analytics (Databricks, BigQuery) via log-based CDC (Qlik Replicate, IBM IIDR, Striim) for mainframe offload
+    - Unload history with DSNTIAUL/UNLOAD utilities and convert EBCDIC data on the target
+    - Replatform OLTP schemas to PostgreSQL-compatible targets alongside COBOL refactoring
+  conversion_considerations:
+    - EBCDIC collation ordering differs from ASCII/UTF-8 and changes ORDER BY results
+    - Static SQL bound in COBOL packages must move with the application
+    - MIPS consumption of CDC and unload on the mainframe must be budgeted
+  risks: [mainframe-encoding, data-type-mismatch, cdc-lag, cost-overrun, cutover-downtime]
+  automation_potential: medium
+  manual_effort_areas:
+    - CDC licensing and MIPS impact assessment
+    - Collation and sorting behaviour validation
+    - Coordination with application refactoring
+
+# ---------------------------------------------------------------- BI
+- id: cognos-to-modern-bi
+  title: Cognos to Power BI, Looker or Tableau
+  source: cognos
+  source_artifact: null
+  targets: [power-bi, looker, tableau]
+  approaches:
+    - Rationalise the report estate using audit/usage logs; retire unused reports
+    - Rebuild Framework Manager packages as semantic models (Power BI datasets, LookML, Tableau published sources)
+    - Convert reports with assisted migration tools, then rebuild complex layouts manually
+    - Use paginated reports for pixel-perfect and bursting requirements
+  conversion_considerations:
+    - Framework Manager determinants, prompts and macros need equivalent semantic constructs
+    - Bursting, scheduling and distribution must be redesigned
+    - Calculated fields in reports often duplicate warehouse logic
+  risks: [report-parity, hidden-business-logic, licensing-overlap]
+  automation_potential: low
+  manual_effort_areas:
+    - Semantic model rebuild
+    - Complex report layout and prompt redesign
+    - Business validation of key metrics
+
+- id: microstrategy-to-modern-bi
+  title: MicroStrategy to Power BI, Looker or Tableau
+  source: microstrategy
+  source_artifact: null
+  targets: [power-bi, looker, tableau]
+  approaches:
+    - Export metadata (schema objects, metrics, filters) and map to target semantic layers
+    - Rebuild dossiers and documents as dashboards; use paginated reports where needed
+    - Rationalise the metric catalogue before rebuilding
+  conversion_considerations:
+    - Attributes, facts, hierarchies and level metrics require careful semantic translation
+    - VLDB settings and multi-pass SQL generation affect results
+    - Intelligent Cubes map to extracts, aggregations or materialised views
+  risks: [report-parity, hidden-business-logic, licensing-overlap]
+  automation_potential: low
+  manual_effort_areas:
+    - Level-metric and multi-pass logic recreation
+    - Dashboard rebuild
+    - Metric validation
+
+- id: business-objects-to-modern-bi
+  title: SAP BusinessObjects to Power BI, Tableau or Looker
+  source: business-objects
+  source_artifact: null
+  targets: [power-bi, tableau, looker]
+  approaches:
+    - Inventory universes and Web Intelligence documents with usage statistics
+    - Rebuild universes as semantic models and convert WebI documents with assisted tools
+    - Move Crystal Reports to paginated reporting
+  conversion_considerations:
+    - Universe contexts, aliases and derived tables encode join logic that must be preserved
+    - WebI variables and multi-query documents need recreation
+    - Publications and bursting need replacement
+  risks: [report-parity, hidden-business-logic, licensing-overlap]
+  automation_potential: low
+  manual_effort_areas:
+    - Universe redesign
+    - WebI variable and multi-query recreation
+    - Publication/bursting replacement
+
+- id: tableau-repoint
+  title: Tableau retain and repoint to new platform
+  source: tableau
+  source_artifact: null
+  targets: [tableau]
+  approaches:
+    - Retain Tableau and repoint published data sources from the legacy warehouse to Databricks SQL, BigQuery or Snowflake
+    - Replace custom SQL with views in the new platform to keep logic out of workbooks
+    - Re-evaluate extract versus live connection per workbook based on target performance
+  conversion_considerations:
+    - Custom SQL and RAWSQL calculations written in the legacy dialect must be translated
+    - Connector and driver changes affect authentication (OAuth, SSO) and data types
+    - Extract refresh schedules must align with new pipeline completion times
+  risks: [report-parity, sql-dialect-conversion, performance-regression]
+  automation_potential: high
+  manual_effort_areas:
+    - Custom SQL translation
+    - Performance validation of live connections
+    - Regression testing of key dashboards
+
+# ---------------------------------------------------------------- Messaging and applications
+- id: ibm-mq-to-event-streaming
+  title: IBM MQ to event streaming platforms
+  source: ibm-mq
+  source_artifact: null
+  targets: [apache-kafka, google-pubsub, azure-event-hubs, amazon-msk]
+  approaches:
+    - Bridge MQ queues to Kafka using Kafka Connect MQ source/sink connectors during coexistence
+    - Re-architect point-to-point queues into topics with consumer groups and schema registry
+    - Migrate producers and consumers application by application behind an abstraction layer
+  conversion_considerations:
+    - MQ provides per-message transactional semantics; Kafka offers ordering per partition and idempotent/transactional producers
+    - Request/reply patterns and message selectors need redesign
+    - Message formats (copybook-based, XML) should be moved to governed schemas (Avro, Protobuf)
+    - Retention and replay change consumer design and storage sizing
+  risks: [integration-breakage, skills-gap, schema-drift, operational-readiness]
+  automation_potential: low
+  manual_effort_areas:
+    - Messaging pattern redesign
+    - Producer and consumer code changes
+    - Schema definition and governance
+    - Failure and exactly-once testing
+
+- id: weblogic-to-kubernetes
+  title: WebLogic applications to Kubernetes
+  source: weblogic
+  source_artifact: null
+  targets: [kubernetes, gke, amazon-eks, aks]
+  approaches:
+    - Containerise applications on WebLogic Kubernetes Operator as an interim replatform
+    - Replatform to open-source runtimes (Tomcat, Open Liberty, Spring Boot) on managed Kubernetes
+    - Refactor monoliths into services incrementally using the strangler pattern
+  conversion_considerations:
+    - JNDI resources, JMS, EJBs and WebLogic-specific APIs need replacement or configuration
+    - Session replication and clustering behave differently in containers
+    - Externalise configuration and secrets from domain configuration
+  risks: [integration-breakage, skills-gap, licensing-overlap, operational-readiness]
+  automation_potential: medium
+  manual_effort_areas:
+    - Proprietary API remediation
+    - Container image and Helm chart creation
+    - Performance and resilience testing
+
+- id: websphere-to-kubernetes
+  title: WebSphere applications to Kubernetes
+  source: websphere
+  source_artifact: null
+  targets: [kubernetes, gke, amazon-eks, aks]
+  approaches:
+    - Assess applications with IBM Transformation Advisor for Liberty compatibility
+    - Replatform to WebSphere Liberty or Open Liberty containers on managed Kubernetes
+    - Refactor to Spring Boot services where WebSphere-specific APIs are pervasive
+  conversion_considerations:
+    - WebSphere-specific APIs, EJB 2.x and JAX-RPC require remediation
+    - Shared libraries and cell-level configuration must be packaged per application
+    - Security realms map to OIDC/identity provider integration
+  risks: [integration-breakage, skills-gap, licensing-overlap, operational-readiness]
+  automation_potential: medium
+  manual_effort_areas:
+    - Legacy API remediation
+    - Security and identity integration
+    - CI/CD pipeline and manifest creation
+
+# ---------------------------------------------------------------- Replication tooling
+- id: goldengate-to-managed-cdc
+  title: Oracle GoldenGate to managed CDC services
+  source: oracle-goldengate
+  source_artifact: null
+  targets: [lakeflow-connect, google-datastream, aws-dms, debezium]
+  approaches:
+    - Replace GoldenGate feeds into analytics platforms with Lakeflow Connect or Datastream
+    - Run both tools in parallel per table set and compare row counts and lag before switching
+    - Retain GoldenGate for active-active OLTP replication where managed services lack parity
+  conversion_considerations:
+    - GoldenGate parameter-file transformations and filters must be reimplemented downstream
+    - Managed services differ in DDL replication, LOB support and supported data types
+    - Initial load and CDC start position must be aligned to avoid gaps or duplicates
+  risks: [cdc-lag, schema-drift, data-quality-regression, licensing-overlap]
+  automation_potential: medium
+  manual_effort_areas:
+    - Transformation logic migration
+    - Unsupported data type handling
+    - Lag and completeness validation

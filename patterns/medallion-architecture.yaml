@@ -1,0 +1,76 @@
+id: medallion-architecture
+name: Medallion Architecture
+summary: Bronze, silver and gold Delta layers that progressively refine raw source data into governed business-ready tables.
+description: >-
+  Organises lakehouse data into raw (bronze), validated and conformed (silver) and business-level (gold)
+  layers so that each stage has clear quality guarantees and ownership. Representative implementation on
+  Azure Databricks - Lakeflow Connect ingests SQL Server and Salesforce, Auto Loader ingests files from an
+  ADLS landing zone, and Unity Catalog with Lakehouse Monitoring governs and observes every layer.
+suitable_scenarios:
+  - Any lakehouse consolidating multiple sources with varying quality
+  - Replacing staging/ODS/mart chains in legacy warehouses
+  - Workloads needing replay from raw history after logic changes
+components:
+  - sql-server
+  - salesforce
+  - flat-files-sftp
+  - lakeflow-connect
+  - landing-zone
+  - databricks-auto-loader
+  - delta-bronze
+  - delta-silver
+  - delta-gold
+  - databricks-sql
+  - power-bi
+  - unity-catalog
+  - lakehouse-monitoring
+  - databricks-workflows
+  - azure-key-vault
+benefits:
+  - Clear separation of ingestion, conformance and business logic
+  - Raw history in bronze enables reprocessing and audit
+  - Quality expectations enforced at each promotion
+  - Consistent pattern across batch and streaming
+limitations:
+  - Additional storage for multiple copies of data
+  - Layer proliferation without naming and ownership standards
+  - Gold-layer modelling still requires dimensional design discipline
+tags: [azure, databricks, medallion, lakehouse, delta]
+template:
+  nodes:
+    - {key: sqlsrv, tech: sql-server}
+    - {key: sfdc, tech: salesforce}
+    - {key: sftp, tech: flat-files-sftp}
+    - {key: lfc, tech: lakeflow-connect, label: "Lakeflow Connect (managed connectors)"}
+    - {key: landing, tech: landing-zone, label: "Landing (ADLS Gen2 volume)"}
+    - {key: autoloader, tech: databricks-auto-loader}
+    - {key: bronze, tech: delta-bronze, label: "Bronze (raw)"}
+    - {key: silver, tech: delta-silver, label: "Silver (validated, conformed)"}
+    - {key: gold, tech: delta-gold, label: "Gold (business-ready)"}
+    - {key: dbsql, tech: databricks-sql}
+    - {key: pbi, tech: power-bi}
+    - {key: uc, tech: unity-catalog}
+    - {key: lhm, tech: lakehouse-monitoring}
+    - {key: wf, tech: databricks-workflows}
+    - {key: kv, tech: azure-key-vault}
+  edges:
+    - {from: sqlsrv, to: lfc, label: "Change tracking CDC", mode: cdc, frequency: continuous, latency: near-real-time}
+    - {from: sfdc, to: lfc, label: "Salesforce API", mode: api, frequency: hourly}
+    - {from: lfc, to: bronze, mode: streaming, format: delta}
+    - {from: sftp, to: landing, mode: file, frequency: daily, format: csv}
+    - {from: landing, to: autoloader, mode: file}
+    - {from: autoloader, to: bronze, mode: streaming, format: delta}
+    - {from: bronze, to: silver, label: "Cleanse, conform, dedupe", mode: batch, frequency: hourly, format: delta}
+    - {from: silver, to: gold, label: "Aggregate and model", mode: batch, frequency: hourly, format: delta}
+    - {from: gold, to: dbsql, mode: query}
+    - {from: dbsql, to: pbi, mode: query, latency: interactive}
+    - {from: wf, to: lfc, label: "Run ingestion", mode: control, kind: control}
+    - {from: wf, to: autoloader, label: "Run ingestion", mode: control, kind: control}
+    - {from: wf, to: silver, label: "Run pipeline", mode: control, kind: control}
+    - {from: wf, to: gold, label: "Run pipeline", mode: control, kind: control}
+    - {from: uc, to: bronze, mode: governance, kind: governance}
+    - {from: uc, to: silver, mode: governance, kind: governance}
+    - {from: uc, to: gold, mode: governance, kind: governance}
+    - {from: silver, to: lhm, label: "Profile and drift", kind: monitoring}
+    - {from: gold, to: lhm, label: "Profile and drift", kind: monitoring}
+    - {from: kv, to: lfc, label: "Connection secrets", kind: security}

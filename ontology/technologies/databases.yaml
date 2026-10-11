@@ -1,0 +1,529 @@
+# Operational databases, legacy MPP warehouses and modern managed relational targets.
+- id: oracle-database
+  name: Oracle Database
+  aliases: [oracle, oracle db, oracle database, oracle rdbms, oracle 19c, oracle 12c]
+  vendor: Oracle
+  category: databases
+  role: source-database
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#C74634"
+  description: Oracle's flagship relational database management system, used for OLTP and mixed analytical workloads.
+  typical_legacy_use: Backbone for core transactional systems (ERP, billing, banking cores) and departmental data marts, often with heavy PL/SQL business logic, RAC clustering and Data Guard for HA/DR.
+  capabilities: [oltp, sql, pl-sql, stored-procedures, partitioning, high-availability, redo-log-cdc]
+  possible_targets: [alloydb, cloud-sql, amazon-aurora, azure-sql-database, postgresql, databricks, bigquery, snowflake]
+  alternatives: [sql-server, ibm-db2, postgresql, mysql, sybase-ase]
+  replaces: []
+  suggested_next: [lakeflow-connect, google-datastream, oracle-goldengate, aws-dms, qlik-replicate, apache-kafka, landing-zone, informatica-powercenter]
+  migration_considerations:
+    - Inventory PL/SQL packages, triggers, sequences and scheduled DBMS_JOB/DBMS_SCHEDULER jobs; they frequently carry business rules that must be rewritten.
+    - Map Oracle types carefully (NUMBER without precision, DATE carrying time, empty string treated as NULL, TIMESTAMP WITH LOCAL TIME ZONE).
+    - CDC from redo/archive logs requires supplemental logging and appropriate privileges (LogMiner, XStream or GoldenGate); confirm with the DBA team early.
+    - Review Oracle licensing (processor/NUP, options such as Partitioning and Advanced Compression) to time decommissioning and avoid paying twice during parallel run.
+    - Size initial load against network bandwidth; large historical tables may need export to files or offline transfer.
+  known_challenges:
+    - Proprietary SQL constructs (CONNECT BY, MERGE variants, analytic extensions, optimizer hints) need dialect conversion.
+    - Implicit commit semantics and autonomous transactions do not translate directly to most targets.
+    - RAC and Exadata-specific performance assumptions can mask poorly written SQL that regresses elsewhere.
+  risks: [stored-procedure-rewrite, sql-dialect-conversion, data-type-mismatch, licensing-overlap, cdc-lag, cutover-downtime]
+  strategies: [retain, rehost, replatform, refactor, rearchitect, retire]
+  skills: [Oracle DBA, PL/SQL, SQL tuning, CDC configuration]
+  tags: [rdbms, oltp, legacy, oracle]
+  docs:
+    - title: Oracle Database documentation
+      url: https://docs.oracle.com/en/database/oracle/oracle-database/
+
+- id: sql-server
+  name: Microsoft SQL Server
+  aliases: [sql server, mssql, ms sql, microsoft sql server, sqlserver, tsql database]
+  vendor: Microsoft
+  category: databases
+  role: source-database
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#CC2927"
+  description: Microsoft's relational database engine for OLTP, data marts and BI workloads, programmed with T-SQL.
+  typical_legacy_use: Line-of-business application databases and departmental warehouses, frequently paired with SSIS for ETL, SSRS for reporting and SQL Agent for scheduling.
+  capabilities: [oltp, sql, t-sql, stored-procedures, columnstore, change-tracking, cdc]
+  possible_targets: [azure-sql-database, amazon-aurora, cloud-sql, alloydb, databricks, azure-synapse, microsoft-fabric, snowflake]
+  alternatives: [oracle-database, postgresql, mysql, ibm-db2, sybase-ase]
+  replaces: [sybase-ase]
+  suggested_next: [lakeflow-connect, azure-dms, aws-dms, google-datastream, qlik-replicate, debezium, landing-zone, ssis]
+  migration_considerations:
+    - Decide between native CDC and Change Tracking for incremental extraction; both must be enabled per database/table and have retention implications.
+    - Catalogue SQL Agent jobs, linked servers, CLR assemblies and cross-database queries; they create hidden dependencies.
+    - T-SQL procedures, temp tables and table variables need rewriting for non-Microsoft targets.
+    - Check collation and case-sensitivity differences, especially when moving to case-sensitive engines.
+  known_challenges:
+    - Linked-server and distributed-transaction patterns break when databases move to separate cloud services.
+    - Heavy use of SSIS packages and SSRS reports expands scope beyond the database itself.
+    - DATETIME precision and UNIQUEIDENTIFIER/MONEY types need explicit mapping.
+  risks: [stored-procedure-rewrite, sql-dialect-conversion, data-type-mismatch, integration-breakage, licensing-overlap]
+  strategies: [retain, rehost, replatform, refactor, rearchitect, retire]
+  skills: [SQL Server DBA, T-SQL, SSIS, Azure data services]
+  tags: [rdbms, oltp, legacy, microsoft]
+  docs:
+    - title: SQL Server documentation
+      url: https://learn.microsoft.com/en-us/sql/sql-server/
+
+- id: postgresql
+  name: PostgreSQL
+  aliases: [postgres, postgresql, psql database]
+  vendor: PostgreSQL Global Development Group
+  category: databases
+  role: source-database
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#336791"
+  description: Open-source object-relational database with strong SQL standards compliance and a rich extension ecosystem.
+  typical_legacy_use: Self-managed application databases for custom and open-source software, sometimes as the landing database after an earlier Oracle exit.
+  capabilities: [oltp, sql, pl-pgsql, extensions, json, logical-replication]
+  possible_targets: [alloydb, cloud-sql, amazon-aurora, azure-sql-database, databricks, bigquery, snowflake]
+  alternatives: [mysql, oracle-database, sql-server]
+  replaces: [oracle-database, sybase-ase]
+  suggested_next: [lakeflow-connect, google-datastream, aws-dms, debezium, azure-dms, qlik-replicate, apache-kafka, landing-zone]
+  migration_considerations:
+    - Logical replication slots are required for log-based CDC; set wal_level=logical and monitor slot lag to avoid WAL bloat.
+    - Validate that installed extensions (PostGIS, pg_partman, pgcrypto, etc.) are supported on the managed target.
+    - Tables without primary keys need REPLICA IDENTITY settings for update/delete capture.
+    - Major-version upgrades can be combined with the move; test planner behaviour changes.
+  known_challenges:
+    - Unconsumed replication slots can fill disk on the source if CDC tooling stalls.
+    - Custom extensions or C functions may be unavailable on managed services.
+  risks: [cdc-lag, schema-drift, performance-regression, operational-readiness]
+  strategies: [retain, rehost, replatform, refactor, retire]
+  skills: [PostgreSQL DBA, SQL, PL/pgSQL]
+  tags: [rdbms, oltp, open-source]
+  docs:
+    - title: PostgreSQL documentation
+      url: https://www.postgresql.org/docs/
+
+- id: mysql
+  name: MySQL
+  aliases: [mysql, my sql, mariadb]
+  vendor: Oracle
+  category: databases
+  role: source-database
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#00758F"
+  description: Widely deployed open-source relational database, common behind web and SaaS-style applications.
+  typical_legacy_use: Self-managed back ends for web applications, e-commerce platforms and packaged open-source software, often with primary/replica topologies.
+  capabilities: [oltp, sql, binlog-replication, json]
+  possible_targets: [cloud-sql, amazon-aurora, alloydb, azure-sql-database, databricks, bigquery, snowflake]
+  alternatives: [postgresql, sql-server, oracle-database]
+  replaces: []
+  suggested_next: [lakeflow-connect, google-datastream, aws-dms, debezium, azure-dms, qlik-replicate, apache-kafka, landing-zone]
+  migration_considerations:
+    - Log-based CDC requires binlog_format=ROW (and binlog_row_image=FULL) plus sufficient binlog retention.
+    - Check storage engines; MyISAM tables are non-transactional and complicate consistent snapshots.
+    - Validate SQL mode, character set (utf8 vs utf8mb4) and collation differences on the target.
+  known_challenges:
+    - Zero-date values and lenient SQL modes produce data that stricter targets reject.
+    - Short binlog retention on busy replicas can force full re-snapshots after CDC outages.
+  risks: [data-type-mismatch, cdc-lag, data-quality-regression]
+  strategies: [retain, rehost, replatform, refactor, retire]
+  skills: [MySQL DBA, SQL]
+  tags: [rdbms, oltp, open-source]
+  docs:
+    - title: MySQL documentation
+      url: https://dev.mysql.com/doc/
+
+- id: ibm-db2
+  name: IBM Db2 (LUW)
+  aliases: [db2, ibm db2, db2 luw, db2 linux, udb, db2 udb]
+  vendor: IBM
+  category: databases
+  role: source-database
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#1F70C1"
+  description: IBM's relational database for Linux, UNIX and Windows (distinct from Db2 for z/OS).
+  typical_legacy_use: Back end for packaged and in-house applications in banking, insurance and retail, and for data warehouses built on Db2 Database Partitioning Feature.
+  capabilities: [oltp, sql, sql-pl, stored-procedures, partitioning, high-availability]
+  possible_targets: [alloydb, cloud-sql, amazon-aurora, azure-sql-database, postgresql, databricks, bigquery, snowflake]
+  alternatives: [oracle-database, sql-server, postgresql]
+  replaces: []
+  suggested_next: [qlik-replicate, aws-dms, lakeflow-connect, striim, debezium, landing-zone, ibm-datastage, informatica-powercenter]
+  migration_considerations:
+    - Confirm the CDC path (IBM InfoSphere Data Replication, Qlik Replicate, DMS) and the log retention/archive settings it needs.
+    - Convert SQL PL procedures and Db2-specific syntax (FETCH FIRST, special registers, sequences).
+    - Map DECIMAL, GRAPHIC/VARGRAPHIC and timestamp precision explicitly.
+    - Check whether Db2 is bundled with an application licence that constrains what can move.
+  known_challenges:
+    - Fewer native cloud CDC connectors than Oracle or SQL Server; verify connector support per tool.
+    - Db2 skills are increasingly scarce, slowing analysis of procedural code.
+  risks: [stored-procedure-rewrite, sql-dialect-conversion, data-type-mismatch, skills-gap]
+  strategies: [retain, rehost, replatform, refactor, rearchitect, retire]
+  skills: [Db2 DBA, SQL PL, CDC configuration]
+  tags: [rdbms, oltp, legacy, ibm]
+  docs:
+    - title: IBM Db2 documentation
+      url: https://www.ibm.com/docs/en/db2
+
+- id: teradata
+  name: Teradata
+  aliases: [teradata, teradata vantage, teradata edw]
+  vendor: Teradata
+  category: databases
+  role: legacy-warehouse
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: server
+  color: "#F37440"
+  description: Shared-nothing MPP data warehouse platform (Teradata Vantage) for large-scale enterprise analytics.
+  typical_legacy_use: Enterprise data warehouse holding integrated, historical data, loaded by BTEQ/TPT scripts and ETL tools and queried by BI tools and analysts.
+  capabilities: [mpp, sql, bteq, tpt-loading, workload-management, stored-procedures]
+  possible_targets: [databricks, snowflake, bigquery, amazon-redshift, azure-synapse, microsoft-fabric]
+  alternatives: [netezza, greenplum, oracle-exadata]
+  replaces: []
+  suggested_next: [databricks, landing-zone, lakeflow-declarative-pipelines, dbt, reconciliation-framework, informatica-powercenter, aws-dms]
+  migration_considerations:
+    - Inventory BTEQ, TPT, FastLoad/MultiLoad scripts and macros; they hold much of the transformation logic.
+    - Translate Teradata SQL (QUALIFY, SET tables, PERIOD types, case-insensitive defaults) to the target dialect; automated converters cover most but not all.
+    - Plan historical data offload with TPT export or parallel extract; volumes are typically tens to hundreds of TB.
+    - Re-design primary index and partitioning choices for the target's clustering/partitioning model.
+    - Run reconciliation (row counts, checksums, aggregate comparisons) across a parallel-run period before decommissioning.
+  known_challenges:
+    - SET-table duplicate elimination and case-insensitive comparisons silently change results if not handled.
+    - Workload-management rules and concurrency behaviour do not map one-to-one to cloud warehouses.
+    - Contract renewal dates drive aggressive timelines.
+  risks: [sql-dialect-conversion, hidden-business-logic, data-volume-transfer, report-parity, licensing-overlap, parallel-run-cost]
+  strategies: [retain, replatform, refactor, rearchitect, retire]
+  skills: [Teradata SQL, BTEQ/TPT, data warehouse modelling]
+  tags: [mpp, edw, legacy, warehouse]
+  docs:
+    - title: Teradata documentation
+      url: https://docs.teradata.com/
+
+- id: netezza
+  name: IBM Netezza
+  aliases: [netezza, puredata, ibm puredata, nzsql]
+  vendor: IBM
+  category: databases
+  role: legacy-warehouse
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: server
+  color: "#054ADA"
+  description: MPP data warehouse appliance (IBM PureData System for Analytics, now Netezza Performance Server) using FPGA-assisted scans.
+  typical_legacy_use: Departmental or enterprise warehouse appliance loaded by nzload and ETL tools, serving BI and ad-hoc SQL.
+  capabilities: [mpp, sql, appliance, nzload, zone-maps]
+  possible_targets: [databricks, snowflake, bigquery, amazon-redshift, azure-synapse]
+  alternatives: [teradata, greenplum, oracle-exadata]
+  replaces: []
+  suggested_next: [databricks, landing-zone, lakeflow-declarative-pipelines, dbt, reconciliation-framework, informatica-powercenter]
+  migration_considerations:
+    - Hardware end-of-support on PureData appliances often dictates the timeline.
+    - Translate NZPLSQL procedures and nzsql scripts; distribution keys need rethinking on the target.
+    - Export data via external tables to files for bulk transfer.
+  known_challenges:
+    - Limited native CDC; incremental loads usually rely on ETL-level change detection or full reloads.
+    - Appliance-tuned queries may regress without equivalent clustering on the target.
+  risks: [sql-dialect-conversion, data-volume-transfer, performance-regression, report-parity]
+  strategies: [replatform, refactor, rearchitect, retire]
+  skills: [Netezza SQL, NZPLSQL, data warehouse modelling]
+  tags: [mpp, appliance, legacy, warehouse]
+  docs:
+    - title: IBM Netezza documentation
+      url: https://www.ibm.com/docs/en/netezza
+
+- id: sybase-ase
+  name: SAP ASE (Sybase)
+  aliases: [sybase, sybase ase, sap ase, adaptive server enterprise]
+  vendor: SAP
+  category: databases
+  role: source-database
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#0FAAFF"
+  description: SAP Adaptive Server Enterprise, the relational database formerly sold as Sybase ASE, programmed with Transact-SQL.
+  typical_legacy_use: Trading, risk and settlement systems in financial services and other high-throughput OLTP applications built in the 1990s-2000s.
+  capabilities: [oltp, sql, t-sql, stored-procedures, replication-server]
+  possible_targets: [sql-server, azure-sql-database, postgresql, amazon-aurora, alloydb, cloud-sql, databricks]
+  alternatives: [sql-server, oracle-database, ibm-db2]
+  replaces: []
+  suggested_next: [qlik-replicate, aws-dms, striim, landing-zone, informatica-powercenter, azure-dms]
+  migration_considerations:
+    - Sybase T-SQL is close to, but not identical with, Microsoft T-SQL; conversion tooling (e.g. SSMA for SAP ASE) helps but needs review.
+    - Confirm SAP's maintenance timeline for the installed ASE version and plan around it.
+    - Identify Replication Server topologies and downstream consumers before cutover.
+  known_challenges:
+    - Few cloud-native CDC connectors support ASE; often requires Qlik Replicate, Striim or batch extracts.
+    - Shrinking skills pool for ASE administration and code analysis.
+  risks: [stored-procedure-rewrite, sql-dialect-conversion, skills-gap, integration-breakage]
+  strategies: [retain, replatform, refactor, rearchitect, retire]
+  skills: [Sybase ASE DBA, Transact-SQL]
+  tags: [rdbms, oltp, legacy, sap]
+  docs:
+    - title: SAP ASE documentation
+      url: https://help.sap.com/docs/SAP_ASE
+
+- id: greenplum
+  name: Greenplum
+  aliases: [greenplum, gpdb, vmware greenplum, tanzu greenplum]
+  vendor: Broadcom (VMware)
+  category: databases
+  role: legacy-warehouse
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: server
+  color: "#3BA544"
+  description: PostgreSQL-based shared-nothing MPP analytical database.
+  typical_legacy_use: Enterprise or departmental analytical warehouse on commodity hardware, loaded through gpfdist/external tables and queried by BI tools.
+  capabilities: [mpp, sql, pl-pgsql, external-tables, gpfdist]
+  possible_targets: [databricks, snowflake, bigquery, amazon-redshift, azure-synapse]
+  alternatives: [teradata, netezza, oracle-exadata]
+  replaces: []
+  suggested_next: [databricks, landing-zone, lakeflow-declarative-pipelines, dbt, reconciliation-framework]
+  migration_considerations:
+    - PostgreSQL-derived SQL eases conversion, but distribution clauses and Greenplum-specific functions must be removed or remapped.
+    - Use writable external tables or gpfdist to export bulk history to object storage.
+    - Licensing and support changes after the Broadcom acquisition often trigger the migration; confirm the support end date.
+  known_challenges:
+    - Legacy PostgreSQL base version means some SQL and functions behave differently from modern engines.
+    - Distribution-key-tuned workloads need re-optimisation on the target.
+  risks: [sql-dialect-conversion, data-volume-transfer, performance-regression]
+  strategies: [replatform, refactor, rearchitect, retire]
+  skills: [Greenplum administration, PostgreSQL SQL, data warehouse modelling]
+  tags: [mpp, warehouse, legacy]
+  docs:
+    - title: Broadcom TechDocs (Greenplum)
+      url: https://techdocs.broadcom.com/
+
+- id: oracle-exadata
+  name: Oracle Exadata
+  aliases: [exadata, oracle exadata, exadata database machine]
+  vendor: Oracle
+  category: databases
+  role: legacy-warehouse
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: server
+  color: "#C74634"
+  description: Oracle's engineered database platform combining Oracle Database with smart-scan storage servers and high-speed interconnect.
+  typical_legacy_use: Consolidated platform for large Oracle OLTP and data warehouse workloads, frequently hosting the enterprise EDW with heavy PL/SQL ETL.
+  capabilities: [oltp, mpp-like-scans, sql, pl-sql, hybrid-columnar-compression, smart-scan]
+  possible_targets: [databricks, snowflake, bigquery, amazon-redshift, azure-synapse, alloydb, amazon-aurora]
+  alternatives: [teradata, netezza, greenplum]
+  replaces: []
+  suggested_next: [lakeflow-connect, oracle-goldengate, google-datastream, aws-dms, qlik-replicate, landing-zone, databricks, informatica-powercenter]
+  migration_considerations:
+    - Hybrid Columnar Compression and smart-scan offload hide inefficient SQL; benchmark critical queries on the target.
+    - Distinguish workloads that should move to a lakehouse/warehouse from OLTP that may stay on Oracle (including Exadata Cloud or Oracle Database@cloud offerings).
+    - PL/SQL-based ETL frameworks must be rewritten as pipelines or SQL transformations.
+    - Plan bulk export of compressed data; uncompressed volume can be many times the on-disk size.
+  known_challenges:
+    - Exadata-specific performance does not translate directly; performance regression is common without redesign.
+    - Licence and hardware refresh cycles constrain the cutover window.
+  risks: [performance-regression, stored-procedure-rewrite, data-volume-transfer, licensing-overlap, sql-dialect-conversion]
+  strategies: [retain, relocate, replatform, refactor, rearchitect, retire]
+  skills: [Oracle DBA, PL/SQL, Exadata administration, data warehouse modelling]
+  tags: [engineered-system, warehouse, legacy, oracle]
+  docs:
+    - title: Oracle Exadata Database Machine documentation
+      url: https://docs.oracle.com/en/engineered-systems/exadata-database-machine/
+
+- id: alloydb
+  name: AlloyDB for PostgreSQL
+  aliases: [alloydb, alloy db, alloydb for postgresql]
+  vendor: Google Cloud
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#4285F4"
+  description: Google Cloud's fully managed, PostgreSQL-compatible database with a disaggregated storage layer and columnar engine for mixed workloads.
+  typical_legacy_use: Modern target for Oracle and PostgreSQL OLTP workloads moving to Google Cloud, where PostgreSQL compatibility and high performance are required.
+  capabilities: [oltp, postgresql-compatible, columnar-engine, high-availability, read-pools, logical-replication]
+  possible_targets: []
+  alternatives: [cloud-sql, amazon-aurora, azure-sql-database]
+  replaces: [oracle-database, postgresql, sql-server, ibm-db2, sybase-ase]
+  suggested_next: [google-datastream, bigquery, google-secret-manager, google-cloud-monitoring, private-connectivity]
+  migration_considerations:
+    - Use Database Migration Service or Datastream-based approaches for minimal-downtime moves from PostgreSQL; Oracle sources need schema/code conversion first.
+    - Validate extension support and PostgreSQL version compatibility.
+    - Configure private IP connectivity and IAM-based authentication as part of the landing zone.
+  known_challenges:
+    - Oracle-to-PostgreSQL code conversion remains the dominant effort, not the data move.
+    - Columnar engine benefits depend on workload; benchmark before assuming analytic offload.
+  risks: [stored-procedure-rewrite, sql-dialect-conversion, vendor-lock-in, cost-overrun]
+  strategies: [replatform, refactor]
+  skills: [PostgreSQL, Google Cloud, database migration]
+  tags: [rdbms, postgresql, managed, gcp, target]
+  docs:
+    - title: AlloyDB documentation
+      url: https://cloud.google.com/alloydb/docs
+
+- id: cloud-sql
+  name: Cloud SQL
+  aliases: [cloud sql, google cloud sql, gcp cloud sql]
+  vendor: Google Cloud
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#4285F4"
+  description: Google Cloud's managed relational database service for MySQL, PostgreSQL and SQL Server.
+  typical_legacy_use: Lift-and-shift target for self-managed MySQL, PostgreSQL and SQL Server databases moving to Google Cloud.
+  capabilities: [oltp, mysql, postgresql, sql-server, high-availability, read-replicas, automated-backups]
+  possible_targets: [alloydb]
+  alternatives: [alloydb, amazon-aurora, azure-sql-database]
+  replaces: [mysql, postgresql, sql-server]
+  suggested_next: [google-datastream, bigquery, google-secret-manager, google-cloud-monitoring, private-connectivity]
+  migration_considerations:
+    - Database Migration Service supports continuous migration for MySQL and PostgreSQL; SQL Server typically uses backup/restore or replication-based approaches.
+    - Check engine-version and feature limits (e.g. superuser restrictions, unsupported extensions, SQL Server editions).
+    - Size instances and storage for peak plus growth; vertical scaling requires restarts.
+  known_challenges:
+    - Some administrative features available on self-managed engines are restricted in the managed service.
+    - Cross-region DR needs explicit replica configuration.
+  risks: [operational-readiness, performance-regression, cost-overrun]
+  strategies: [rehost, replatform]
+  skills: [MySQL/PostgreSQL/SQL Server administration, Google Cloud]
+  tags: [rdbms, managed, gcp, target]
+  docs:
+    - title: Cloud SQL documentation
+      url: https://cloud.google.com/sql/docs
+
+- id: amazon-aurora
+  name: Amazon Aurora
+  aliases: [aurora, amazon aurora, aurora postgresql, aurora mysql]
+  vendor: Amazon Web Services
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#FF9900"
+  description: AWS's managed MySQL- and PostgreSQL-compatible relational database with distributed, replicated storage (including a serverless option).
+  typical_legacy_use: Modern target for Oracle, SQL Server, MySQL and PostgreSQL OLTP workloads moving to AWS.
+  capabilities: [oltp, mysql-compatible, postgresql-compatible, high-availability, read-replicas, serverless, global-database]
+  possible_targets: []
+  alternatives: [alloydb, cloud-sql, azure-sql-database]
+  replaces: [oracle-database, sql-server, mysql, postgresql, ibm-db2, sybase-ase]
+  suggested_next: [aws-dms, amazon-redshift, aws-secrets-manager, amazon-cloudwatch, private-connectivity]
+  migration_considerations:
+    - AWS Schema Conversion Tool / DMS Schema Conversion assess and convert heterogeneous schemas; DMS handles full load plus CDC.
+    - Choose provisioned vs Serverless v2 based on load profile and cost predictability.
+    - Aurora I/O pricing (standard vs I/O-optimised) materially affects cost for write-heavy workloads.
+  known_challenges:
+    - Heterogeneous migrations (Oracle/SQL Server to Aurora PostgreSQL) require substantial procedural code rewrite.
+    - Engine version lifecycle requires planned upgrades.
+  risks: [stored-procedure-rewrite, sql-dialect-conversion, cost-overrun, vendor-lock-in]
+  strategies: [replatform, refactor]
+  skills: [PostgreSQL/MySQL, AWS, database migration]
+  tags: [rdbms, managed, aws, target]
+  docs:
+    - title: Amazon Aurora user guide
+      url: https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/
+
+- id: azure-sql-database
+  name: Azure SQL Database
+  aliases: [azure sql, azure sql database, azure sql db, azure sql managed instance, sql mi]
+  vendor: Microsoft
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#0078D4"
+  description: Microsoft's managed SQL Server-based database service on Azure (single database, elastic pools; Managed Instance for near-full SQL Server compatibility).
+  typical_legacy_use: Target for SQL Server and Sybase ASE workloads moving to Azure, often via Azure SQL Managed Instance when instance-level features are needed.
+  capabilities: [oltp, t-sql, high-availability, serverless, hyperscale, geo-replication]
+  possible_targets: []
+  alternatives: [amazon-aurora, cloud-sql, alloydb]
+  replaces: [sql-server, sybase-ase, oracle-database]
+  suggested_next: [azure-dms, azure-data-factory, microsoft-fabric, azure-key-vault, azure-monitor, private-connectivity]
+  migration_considerations:
+    - Choose between Azure SQL Database and Managed Instance based on SQL Agent, cross-database queries, CLR and linked-server usage.
+    - Run Azure Migrate / Data Migration Assistant assessments for compatibility blockers.
+    - Plan connectivity (private endpoints) and Entra ID authentication.
+  known_challenges:
+    - Single-database deployments lack instance-scoped features, forcing refactoring of cross-database code.
+    - DTU/vCore sizing and Hyperscale behaviour need performance testing.
+  risks: [integration-breakage, performance-regression, cost-overrun]
+  strategies: [rehost, replatform, refactor]
+  skills: [SQL Server, Azure, T-SQL]
+  tags: [rdbms, managed, azure, target]
+  docs:
+    - title: Azure SQL Database documentation
+      url: https://learn.microsoft.com/en-us/azure/azure-sql/database/

@@ -1,0 +1,113 @@
+# The 8 migration strategies (extended 7R model).
+- id: retain
+  name: Retain
+  summary: Keep the workload where it is, unchanged, and revisit later or integrate it with the target estate.
+  when_to_use:
+    - Recently upgraded or heavily customised systems with no compelling business case to move
+    - Regulatory, latency or data-residency constraints that block migration today
+    - Dependencies on systems scheduled for a later wave
+    - Modern tools that can simply be repointed to new data sources (e.g. BI tools)
+  typical_effort: low
+  risk_level: low
+  examples:
+    - Keep Tableau and repoint data sources from Teradata to Databricks SQL
+    - Retain the z/OS core banking system while offloading analytics to the cloud
+    - Retain a recently upgraded Oracle ERP database on-premises during phase 1
+
+- id: retire
+  name: Retire
+  summary: Decommission workloads, objects or reports that are no longer used or whose function is absorbed elsewhere.
+  when_to_use:
+    - Usage logs show no or negligible access over a defined period
+    - Functionality duplicated by another system or by the target platform
+    - Reports and ETL jobs feeding obsolete processes
+  typical_effort: low
+  risk_level: low
+  examples:
+    - Retire unused Cognos reports identified from audit logs before BI migration
+    - Decommission Informatica workflows feeding a retired data mart
+    - Retire legacy cron scripts replaced by Databricks Workflows tasks
+
+- id: rehost
+  name: Rehost
+  summary: Move the workload to cloud infrastructure as-is (lift and shift) without changing code or architecture.
+  when_to_use:
+    - Data-centre exit deadlines that outweigh optimisation benefits
+    - Packaged software supported on cloud IaaS
+    - As a first step before later replatforming or refactoring
+  typical_effort: low
+  risk_level: low
+  examples:
+    - Move Informatica PowerCenter servers to Compute Engine or EC2 VMs
+    - Rehost Control-M server on cloud VMs while job definitions remain unchanged
+    - Run Oracle Database on cloud VMs with the same version and configuration
+
+- id: relocate
+  name: Relocate
+  summary: Move an entire platform to a cloud-hosted equivalent of the same technology with no change to workloads or operations.
+  when_to_use:
+    - Hypervisor-level moves such as VMware estates to a cloud VMware service
+    - Vendor-provided cloud editions of the same engine (e.g. Exadata in a hyperscaler region)
+    - Need for minimal disruption and no retraining
+  typical_effort: low
+  risk_level: medium
+  examples:
+    - Move a VMware-hosted WebSphere estate to Google Cloud VMware Engine
+    - Relocate Oracle Exadata to Oracle Database@Google Cloud or Exadata Database Service on AWS/Azure
+    - Move SAP on VMware to Azure VMware Solution
+
+- id: repurchase
+  name: Repurchase
+  summary: Replace the workload with a different product, typically SaaS or a managed service, and migrate data and configuration into it.
+  when_to_use:
+    - Legacy product end-of-life or prohibitive licensing
+    - A commercial SaaS covers the required functionality
+    - Commodity capabilities with little differentiation (BI, scheduling, ETL)
+  typical_effort: medium
+  risk_level: medium
+  examples:
+    - Replace Cognos with Power BI or Looker
+    - Replace on-prem Informatica PowerCenter with Informatica IDMC
+    - Replace Control-M with a managed Airflow service such as Cloud Composer
+
+- id: replatform
+  name: Replatform
+  summary: Move to a managed or cloud-native platform with targeted changes (lift, tinker and shift) while preserving core logic.
+  when_to_use:
+    - Database or warehouse engines where data and SQL can move with conversion
+    - Desire to remove infrastructure management without full redesign
+    - Moderate timelines with clear operational benefits
+  typical_effort: medium
+  risk_level: medium
+  examples:
+    - Migrate Teradata to BigQuery with automated SQL translation
+    - Move OLTP Oracle databases to AlloyDB or Amazon Aurora PostgreSQL
+    - Move Hadoop Spark jobs from Cloudera to Dataproc or EMR
+
+- id: refactor
+  name: Refactor
+  summary: Rewrite or substantially restructure code to use cloud-native services and modern languages while keeping functional behaviour.
+  when_to_use:
+    - Legacy languages or tools with shrinking skills pools (COBOL, proprietary ETL)
+    - Need for scalability, agility or cost improvements the current code cannot deliver
+    - Logic must be retained but the runtime must change
+  typical_effort: high
+  risk_level: high
+  examples:
+    - Convert COBOL batch programs to Java or PySpark
+    - Rewrite PL/SQL stored procedures as Databricks SQL and PySpark jobs
+    - Convert Informatica mappings to Lakeflow Declarative Pipelines or dbt models
+
+- id: rearchitect
+  name: Rearchitect
+  summary: Redesign the solution architecture around new patterns such as lakehouse, event-driven or data mesh to meet new business requirements.
+  when_to_use:
+    - Current architecture cannot meet target latency, scale or AI/ML ambitions
+    - Consolidation of multiple warehouses, marts and lakes into one platform
+    - Move from batch to streaming or from monolith to domain-oriented products
+  typical_effort: high
+  risk_level: high
+  examples:
+    - Replace nightly Teradata ETL with a CDC-fed medallion lakehouse on Databricks
+    - Re-architect IBM MQ point-to-point integrations as Kafka event streams
+    - Move from a central warehouse to a domain-owned data mesh

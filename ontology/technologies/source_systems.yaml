@@ -1,0 +1,114 @@
+# Packaged business applications and file-based sources.
+- id: sap-erp
+  name: SAP ERP (ECC / S/4HANA)
+  aliases: [sap, sap erp, sap ecc, s/4hana, s4hana, sap s/4hana]
+  vendor: SAP
+  category: source-systems
+  role: file-source
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: server
+  color: "#0FAAFF"
+  description: SAP's enterprise resource planning suite (ECC on AnyDB/HANA and its successor S/4HANA) covering finance, supply chain, manufacturing and HR.
+  typical_legacy_use: Core finance and operations system; its data is extracted into BW or an enterprise warehouse for reporting via extractors, ODP, SLT or ETL tools.
+  capabilities: [erp, business-processes, odp-extraction, abap, cds-views]
+  possible_targets: [databricks, bigquery, snowflake, azure-synapse, microsoft-fabric]
+  alternatives: []
+  replaces: []
+  suggested_next: [lakeflow-connect, qlik-replicate, informatica-idmc, azure-data-factory, aws-glue, google-cloud-data-fusion, landing-zone]
+  migration_considerations:
+    - Confirm the extraction approach is permitted under the SAP licence (e.g. SAP's restrictions on direct database-log extraction and ODP RFC use by third parties).
+    - Prefer business-object level extraction (ODP/CDS views) over raw tables to preserve semantics such as currency, units and language-dependent texts.
+    - Cluster/pool tables and complex table relationships in ECC make raw-table replication hard to model.
+    - Coordinate with any ongoing ECC-to-S/4HANA conversion, which changes the data model (e.g. ACDOCA, MATDOC).
+  known_challenges:
+    - Business logic encoded in ABAP and configuration is not visible in the tables.
+    - Large volumes in finance and logistics tables strain extraction windows.
+    - Licensing constraints on third-party extraction methods.
+  risks: [regulatory-compliance, hidden-business-logic, data-volume-transfer, licensing-overlap, vendor-lock-in]
+  strategies: [retain, rehost, replatform, repurchase]
+  skills: [SAP data model, ABAP, SAP extraction (ODP/SLT), data warehouse modelling]
+  tags: [erp, sap, packaged-application]
+  docs:
+    - title: SAP Help Portal
+      url: https://help.sap.com/
+
+- id: salesforce
+  name: Salesforce
+  aliases: [salesforce, sfdc, salesforce crm, sales cloud, service cloud]
+  vendor: Salesforce
+  category: source-systems
+  role: file-source
+  layer: sources
+  environment: saas
+  legacy: true
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: cloud
+  color: "#00A1E0"
+  description: SaaS CRM platform (Sales Cloud, Service Cloud and related clouds) accessed through REST, Bulk and streaming APIs.
+  typical_legacy_use: System of record for accounts, opportunities and cases; data is extracted to the warehouse for pipeline and customer analytics.
+  capabilities: [crm, rest-api, bulk-api, change-data-capture-events, custom-objects]
+  possible_targets: [databricks, bigquery, snowflake, amazon-redshift, microsoft-fabric]
+  alternatives: []
+  replaces: []
+  suggested_next: [lakeflow-connect, informatica-idmc, azure-data-factory, aws-glue, google-cloud-data-fusion, landing-zone]
+  migration_considerations:
+    - Respect API limits; use Bulk API for large initial loads and incremental extraction by SystemModstamp or CDC events.
+    - Custom objects and fields change frequently; design for schema drift.
+    - Capture deleted records (queryAll / IsDeleted) to keep downstream data consistent.
+  known_challenges:
+    - Formula fields and roll-ups are computed at read time and may not be extractable incrementally.
+    - Per-org API quotas shared with other integrations.
+  risks: [schema-drift, integration-breakage, security-gap]
+  strategies: [retain, repurchase]
+  skills: [Salesforce data model, Salesforce APIs]
+  tags: [crm, saas, packaged-application]
+  docs:
+    - title: Salesforce developer documentation
+      url: https://developer.salesforce.com/docs
+
+- id: flat-files-sftp
+  name: Flat Files / SFTP
+  aliases: [flat files, sftp, csv files, file drop, file share, ftp, fixed width files, nas share]
+  vendor: Generic
+  category: source-systems
+  role: file-source
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: file-text
+  color: "#64748B"
+  description: Delimited, fixed-width, XML or JSON files exchanged through SFTP servers, network shares or managed file transfer.
+  typical_legacy_use: Batch interfaces with partners and internal systems, including mainframe extracts, vendor feeds and regulatory files delivered on a schedule.
+  capabilities: [batch-file-transfer, delimited-files, fixed-width-files, file-encryption]
+  possible_targets: [google-cloud-storage, amazon-s3, adls-gen2, landing-zone]
+  alternatives: []
+  replaces: []
+  suggested_next: [landing-zone, databricks-auto-loader, google-cloud-storage, amazon-s3, adls-gen2, azure-data-factory, aws-glue]
+  migration_considerations:
+    - Inventory every feed with its producer, consumer, schedule, format, encryption (PGP) and arrival SLA.
+    - Define file-arrival detection, idempotent reprocessing and archival in the target landing zone.
+    - Fixed-width and EBCDIC mainframe files need layout definitions (copybooks) to parse.
+    - Replace hard-coded SFTP endpoints with managed transfer services or object-storage drop zones where partners allow.
+  known_challenges:
+    - Undocumented feeds and ad-hoc manual file drops surface late in migration.
+    - Inconsistent headers, delimiters and encodings across producers.
+  risks: [schema-drift, data-quality-regression, integration-breakage, mainframe-encoding, security-gap]
+  strategies: [retain, replatform, refactor, retire]
+  skills: [file transfer, data profiling, scripting]
+  tags: [files, batch, sftp]
+  docs:
+    - title: OpenSSH manual pages (sftp)
+      url: https://www.openssh.com/manual.html

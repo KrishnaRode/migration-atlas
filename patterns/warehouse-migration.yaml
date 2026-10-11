@@ -1,0 +1,60 @@
+id: warehouse-migration
+name: Warehouse Migration
+summary: Migrate a legacy MPP warehouse (Teradata) to Snowflake on AWS with converted SQL, dbt models and automated reconciliation.
+description: >-
+  Moves schemas, history and workloads from an appliance warehouse to a cloud warehouse in subject-area
+  waves. Representative implementation is Teradata to Snowflake on AWS - TPT exports history to S3,
+  Snowpipe loads incremental files, converted BTEQ and ETL logic runs as dbt models orchestrated by
+  Amazon MWAA, and a reconciliation framework compares Teradata and Snowflake during parallel run.
+suitable_scenarios:
+  - Teradata, Netezza, Greenplum or Exadata appliance end-of-life or renewal
+  - Lift-and-optimise of a dimensional warehouse without full redesign
+  - BI estates that must keep working with minimal change
+components:
+  - teradata
+  - amazon-s3
+  - snowpipe
+  - snowflake
+  - dbt
+  - tableau
+  - amazon-mwaa
+  - snowflake-horizon
+  - reconciliation-framework
+  - aws-secrets-manager
+  - amazon-cloudwatch
+benefits:
+  - Elastic compute and separation of storage and compute
+  - Removes appliance hardware and capacity planning
+  - High SQL conversion automation for DDL, views and BTEQ
+  - Version-controlled, tested transformations in dbt
+limitations:
+  - Large history transfer requires bandwidth or offline transfer planning
+  - Workload management and SET table semantics need redesign
+  - Parallel run doubles platform cost until decommission
+tags: [aws, snowflake, teradata, warehouse, migration]
+template:
+  nodes:
+    - {key: td, tech: teradata}
+    - {key: s3, tech: amazon-s3, label: "S3 staging bucket"}
+    - {key: snowpipe, tech: snowpipe}
+    - {key: sf, tech: snowflake}
+    - {key: dbt, tech: dbt, label: "dbt models (converted BTEQ/ETL)"}
+    - {key: tableau, tech: tableau}
+    - {key: mwaa, tech: amazon-mwaa}
+    - {key: horizon, tech: snowflake-horizon}
+    - {key: recon, tech: reconciliation-framework}
+    - {key: secrets, tech: aws-secrets-manager}
+    - {key: cw, tech: amazon-cloudwatch}
+  edges:
+    - {from: td, to: s3, label: "TPT export (history + increments)", mode: file, frequency: daily, format: parquet}
+    - {from: s3, to: snowpipe, label: "Event notifications", mode: file, frequency: continuous}
+    - {from: snowpipe, to: sf, label: "Auto-ingest COPY", mode: batch, frequency: continuous, latency: minutes}
+    - {from: dbt, to: sf, label: "ELT models", mode: batch, frequency: daily}
+    - {from: sf, to: tableau, label: "Repointed data sources", mode: query, latency: interactive}
+    - {from: td, to: recon, label: "Source aggregates", mode: query, frequency: daily}
+    - {from: sf, to: recon, label: "Target aggregates", mode: query, frequency: daily}
+    - {from: mwaa, to: dbt, label: "Run models", mode: control, kind: control}
+    - {from: mwaa, to: recon, label: "Run reconciliation", mode: control, kind: control}
+    - {from: horizon, to: sf, label: "Policies, tags, lineage", mode: governance, kind: governance}
+    - {from: secrets, to: mwaa, label: "Warehouse credentials", kind: security}
+    - {from: mwaa, to: cw, kind: monitoring}

@@ -1,0 +1,411 @@
+# Batch and stream processing engines, transformation frameworks and SQL serving.
+- id: apache-spark
+  name: Apache Spark
+  aliases: [spark, apache spark, pyspark, spark sql]
+  vendor: Apache Software Foundation
+  category: processing
+  role: processing
+  layer: processing
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: flame
+  color: "#E25A1C"
+  description: Distributed, in-memory analytics engine for large-scale batch processing, SQL, streaming and machine learning with Python, SQL, Scala and Java APIs.
+  typical_legacy_use: Batch ETL and analytics on Hadoop/YARN clusters or Kubernetes, replacing MapReduce and Hive jobs.
+  capabilities: [batch-processing, distributed-sql, dataframe-api, stream-processing, machine-learning]
+  possible_targets: [databricks, google-dataproc, amazon-emr, microsoft-fabric]
+  alternatives: [apache-flink, google-dataflow]
+  replaces: [cloudera-hadoop]
+  suggested_next: [databricks, delta-lake, google-dataproc, amazon-emr, apache-airflow]
+  migration_considerations:
+    - Upgrade Spark 2.x code to Spark 3.x/4.x APIs (ANSI mode, datetime parsing, Python 3) before or during migration.
+    - Replace HDFS paths and Hive metastore references with object storage and Unity Catalog / Glue / Dataproc Metastore.
+    - Re-tune shuffle partitions and memory; adaptive query execution often removes manual tuning.
+  known_challenges:
+    - RDD-based and Scala UDF-heavy code is harder to optimise and port than DataFrame/SQL code.
+    - Dependency (JAR/Python wheel) conflicts surface on managed runtimes.
+  risks: [performance-regression, skills-gap, hidden-business-logic]
+  strategies: [rehost, replatform, refactor]
+  skills: [Apache Spark, PySpark, Scala, Spark SQL]
+  tags: [processing, spark, batch, open-source]
+  docs:
+    - title: Apache Spark documentation
+      url: https://spark.apache.org/docs/latest/
+
+- id: google-dataproc
+  name: Google Cloud Dataproc
+  aliases: [dataproc, google dataproc, dataproc serverless, cloud dataproc]
+  vendor: Google Cloud
+  category: processing
+  role: processing
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: zap
+  color: "#4285F4"
+  description: Managed Spark and Hadoop service on Google Cloud offering ephemeral clusters, Dataproc Serverless for Spark and Dataproc Metastore.
+  typical_legacy_use: Lift-and-shift target for on-prem Hadoop/Spark workloads moving to Google Cloud with minimal code change.
+  capabilities: [managed-spark, managed-hadoop, serverless-spark, ephemeral-clusters, hive-metastore]
+  possible_targets: [databricks, bigquery]
+  alternatives: [databricks, amazon-emr, google-dataflow]
+  replaces: [cloudera-hadoop]
+  suggested_next: [google-cloud-storage, bigquery, cloud-composer, apache-iceberg, google-dataplex]
+  migration_considerations:
+    - Prefer ephemeral, job-scoped clusters or Dataproc Serverless over long-lived clusters to control cost.
+    - Move data from HDFS to Cloud Storage and use the Cloud Storage connector.
+    - Migrate Oozie workflows to Cloud Composer.
+  known_challenges:
+    - Lift-and-shift preserves Hadoop operational complexity and technical debt.
+    - Initialization actions and custom images need maintenance across image versions.
+  risks: [operational-readiness, cost-overrun, scheduling-dependency-loss]
+  strategies: [rehost, replatform]
+  skills: [Apache Spark, Dataproc, GCP IAM]
+  tags: [processing, spark, hadoop, gcp, managed]
+  docs:
+    - title: Dataproc documentation
+      url: https://cloud.google.com/dataproc/docs
+
+- id: amazon-emr
+  name: Amazon EMR
+  aliases: [emr, amazon emr, elastic mapreduce, emr serverless]
+  vendor: Amazon Web Services
+  category: processing
+  role: processing
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: zap
+  color: "#FF9900"
+  description: Managed big-data platform on AWS running Spark, Hive, Presto/Trino, Flink and HBase on EC2, EKS or EMR Serverless.
+  typical_legacy_use: AWS lift-and-shift target for Hadoop and Spark estates, using S3 via EMRFS and the Glue Data Catalog as metastore.
+  capabilities: [managed-spark, managed-hadoop, serverless-spark, trino, flink]
+  possible_targets: [databricks, amazon-redshift]
+  alternatives: [databricks, google-dataproc, aws-glue]
+  replaces: [cloudera-hadoop]
+  suggested_next: [amazon-s3, aws-glue-data-catalog, amazon-mwaa, apache-iceberg, aws-lake-formation]
+  migration_considerations:
+    - Use transient clusters or EMR Serverless per job; long-running clusters replicate on-prem cost patterns.
+    - Point Hive metastore to Glue Data Catalog and data to S3.
+    - Use instance fleets with Spot capacity for cost-efficient batch workloads.
+  known_challenges:
+    - Bootstrap actions and custom configurations carry over hidden operational complexity.
+    - Version drift between EMR releases and on-prem component versions.
+  risks: [operational-readiness, cost-overrun, scheduling-dependency-loss]
+  strategies: [rehost, replatform]
+  skills: [Apache Spark, Amazon EMR, AWS IAM]
+  tags: [processing, spark, hadoop, aws, managed]
+  docs:
+    - title: Amazon EMR documentation
+      url: https://docs.aws.amazon.com/emr/
+
+- id: spark-structured-streaming
+  name: Spark Structured Streaming
+  aliases: [structured streaming, spark streaming, spark structured streaming]
+  vendor: Apache Software Foundation
+  category: streaming
+  role: stream-processing
+  layer: processing
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: waves
+  color: "#E25A1C"
+  description: Spark's incremental stream-processing engine treating streams as unbounded tables, with exactly-once sinks, stateful aggregations and micro-batch or real-time modes.
+  typical_legacy_use: Consuming Kafka/Event Hubs/Kinesis streams into Delta tables and real-time aggregates on Databricks or other Spark platforms; replaces legacy DStreams jobs.
+  capabilities: [stream-processing, exactly-once, stateful-processing, watermarking, delta-sink]
+  possible_targets: [lakeflow-declarative-pipelines]
+  alternatives: [apache-flink, google-dataflow, azure-stream-analytics]
+  replaces: []
+  suggested_next: [delta-bronze, lakeflow-declarative-pipelines, databricks, delta-lake]
+  migration_considerations:
+    - Migrate legacy DStreams applications to the Structured Streaming DataFrame API.
+    - Store checkpoints on durable object storage; checkpoints are not portable across major query changes.
+    - Consider Lakeflow Declarative Pipelines for declarative streaming tables with built-in expectations.
+  known_challenges:
+    - Unbounded state growth without watermarks causes memory pressure.
+    - Changing stateful query logic may require checkpoint reset and backfill.
+  risks: [cdc-lag, operational-readiness, skills-gap]
+  strategies: [refactor, rearchitect]
+  skills: [Spark Structured Streaming, PySpark, Kafka]
+  tags: [streaming, spark, real-time]
+  docs:
+    - title: Structured Streaming programming guide
+      url: https://spark.apache.org/docs/latest/streaming/index.html
+    - title: Structured Streaming on Databricks
+      url: https://docs.databricks.com/aws/en/structured-streaming/
+
+- id: google-dataflow
+  name: Google Cloud Dataflow
+  aliases: [dataflow, google dataflow, cloud dataflow, apache beam]
+  vendor: Google Cloud
+  category: processing
+  role: stream-processing
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: waves
+  color: "#4285F4"
+  description: Serverless, autoscaling runner for Apache Beam pipelines providing unified batch and streaming processing with exactly-once semantics on Google Cloud.
+  typical_legacy_use: Streaming ingestion from Pub/Sub into BigQuery and Cloud Storage, and batch ETL replacing legacy ETL tools on Google Cloud, often via Google-provided templates.
+  capabilities: [stream-processing, batch-processing, autoscaling, exactly-once, beam-sdk, flex-templates]
+  possible_targets: []
+  alternatives: [apache-flink, spark-structured-streaming, google-dataproc]
+  replaces: [informatica-powercenter, ibm-datastage, talend]
+  suggested_next: [bigquery, google-cloud-storage, google-pubsub, cloud-composer, google-dataplex]
+  migration_considerations:
+    - Beam pipelines are portable across runners, but Dataflow-specific features (Streaming Engine, templates) shape operations.
+    - Use Google-provided templates for common patterns (Pub/Sub to BigQuery, JDBC to BigQuery) before writing custom code.
+    - Design windowing, triggers and late-data handling explicitly for streaming jobs.
+  known_challenges:
+    - Beam programming model has a steep learning curve for SQL-centric ETL teams.
+    - Pipeline updates with incompatible graph changes require drain-and-replace.
+  risks: [skills-gap, vendor-lock-in, cost-overrun]
+  strategies: [refactor, rearchitect]
+  skills: [Apache Beam, Java or Python, Dataflow, Pub/Sub]
+  tags: [streaming, batch, serverless, gcp, beam]
+  docs:
+    - title: Dataflow documentation
+      url: https://cloud.google.com/dataflow/docs
+
+- id: apache-flink
+  name: Apache Flink
+  aliases: [flink, apache flink, flink sql, managed service for apache flink]
+  vendor: Apache Software Foundation
+  category: streaming
+  role: stream-processing
+  layer: processing
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: waves
+  color: "#E6526F"
+  description: Distributed, stateful stream-processing engine with event-time semantics, exactly-once state consistency and Flink SQL for low-latency pipelines.
+  typical_legacy_use: Low-latency event processing (fraud detection, real-time aggregation, enrichment) on Kafka, self-managed on Kubernetes or via managed services such as Amazon Managed Service for Apache Flink and Confluent Cloud.
+  capabilities: [stream-processing, stateful-processing, event-time, exactly-once, flink-sql, savepoints]
+  possible_targets: [spark-structured-streaming, google-dataflow]
+  alternatives: [spark-structured-streaming, google-dataflow, azure-stream-analytics]
+  replaces: []
+  suggested_next: [apache-kafka, delta-lake, apache-iceberg, amazon-s3]
+  migration_considerations:
+    - Use savepoints to migrate stateful jobs between clusters or Flink versions.
+    - Managed Flink services simplify operations but constrain version and connector choice.
+    - Validate state backend (RocksDB) sizing and checkpoint intervals on the target.
+  known_challenges:
+    - Operating self-managed Flink clusters with large state requires specialist skills.
+    - State schema evolution across job versions is complex.
+  risks: [skills-gap, operational-readiness, cdc-lag]
+  strategies: [rehost, replatform, refactor]
+  skills: [Apache Flink, Java/Scala, Flink SQL, Kafka]
+  tags: [streaming, real-time, open-source, stateful]
+  docs:
+    - title: Apache Flink documentation
+      url: https://nightlies.apache.org/flink/flink-docs-stable/
+
+- id: azure-stream-analytics
+  name: Azure Stream Analytics
+  aliases: [stream analytics, azure stream analytics, asa]
+  vendor: Microsoft
+  category: streaming
+  role: stream-processing
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: waves
+  color: "#0078D4"
+  description: Fully managed, SQL-based real-time analytics service on Azure processing events from Event Hubs and IoT Hub with windowed aggregations.
+  typical_legacy_use: Simple real-time dashboards, alerting and IoT telemetry aggregation on Azure, writing to Power BI, SQL Database or ADLS.
+  capabilities: [stream-processing, sql-streaming, windowed-aggregation, power-bi-output]
+  possible_targets: [spark-structured-streaming, microsoft-fabric]
+  alternatives: [spark-structured-streaming, apache-flink, google-dataflow]
+  replaces: []
+  suggested_next: [azure-event-hubs, adls-gen2, power-bi, microsoft-fabric]
+  migration_considerations:
+    - Suited to SQL-expressible streaming logic; complex stateful logic is better on Spark or Flink.
+    - Size streaming units per job and test throughput with representative event rates.
+    - Fabric Real-Time Intelligence (Eventstream) is an increasingly common alternative for new designs.
+  known_challenges:
+    - Limited extensibility compared with code-based engines.
+    - Debugging late/out-of-order event policies requires careful testing.
+  risks: [vendor-lock-in, performance-regression]
+  strategies: [replatform, rearchitect]
+  skills: [Stream Analytics query language, Azure Event Hubs]
+  tags: [streaming, serverless, azure, sql]
+  docs:
+    - title: Azure Stream Analytics documentation
+      url: https://learn.microsoft.com/azure/stream-analytics/
+
+- id: dbt
+  name: dbt
+  aliases: [dbt, dbt core, dbt cloud, data build tool]
+  vendor: dbt Labs
+  category: processing
+  role: transformation
+  layer: processing
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: git-merge
+  color: "#FF694B"
+  description: SQL-first transformation framework that compiles modular, version-controlled models with tests, documentation and lineage, executing them inside the warehouse or lakehouse.
+  typical_legacy_use: Replaces GUI ETL mappings and stored-procedure pipelines with ELT models on Snowflake, Databricks, BigQuery, Redshift and Fabric.
+  capabilities: [elt-transformation, sql-modelling, data-testing, documentation, lineage, incremental-models, semantic-layer]
+  possible_targets: []
+  alternatives: [lakeflow-declarative-pipelines, dataform]
+  replaces: [informatica-powercenter, ssis, ibm-datastage, talend, pentaho]
+  suggested_next: [apache-airflow, databricks-workflows, github-actions, great-expectations]
+  migration_considerations:
+    - Convert ETL mappings to staging, intermediate and mart models; push transformation logic into SQL.
+    - Use incremental materialisations and snapshots to replace legacy delta/SCD logic.
+    - Integrate dbt tests and CI (slim CI on modified models) into the deployment pipeline.
+    - Choose dbt Core with an external orchestrator or dbt Cloud for managed scheduling and IDE.
+  known_challenges:
+    - Procedural, row-by-row ETL logic does not map naturally to set-based SQL models.
+    - Large projects need conventions for model layering, ownership and performance.
+  risks: [hidden-business-logic, skills-gap, data-quality-regression]
+  strategies: [refactor, rearchitect]
+  skills: [SQL, dbt, Jinja, Git]
+  tags: [transformation, elt, sql, analytics-engineering]
+  docs:
+    - title: dbt documentation
+      url: https://docs.getdbt.com/
+
+- id: lakeflow-declarative-pipelines
+  name: Lakeflow Declarative Pipelines
+  aliases: [lakeflow declarative pipelines, delta live tables, dlt, ldp, spark declarative pipelines]
+  vendor: Databricks
+  category: processing
+  role: transformation
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [databricks]
+  operational_model: serverless
+  icon: git-merge
+  color: "#FF3621"
+  description: Declarative framework (formerly Delta Live Tables) for building batch and streaming pipelines as SQL or Python streaming tables and materialized views with expectations and automatic dependency management.
+  typical_legacy_use: Replaces Informatica, DataStage and SSIS mappings and Hadoop ETL with managed medallion pipelines on Databricks.
+  capabilities: [declarative-etl, streaming-tables, materialized-views, data-quality-expectations, auto-cdc, serverless-pipelines, lineage]
+  possible_targets: []
+  alternatives: [dbt, dataform]
+  replaces: [informatica-powercenter, ibm-datastage, ssis, talend, ab-initio]
+  suggested_next: [delta-bronze, delta-silver, delta-gold, databricks-workflows, unity-catalog]
+  migration_considerations:
+    - Use AUTO CDC (APPLY CHANGES) for SCD Type 1/2 handling from CDC feeds instead of hand-written MERGE logic.
+    - Encode legacy data-quality checks as expectations with warn, drop or fail actions.
+    - Organise pipelines by medallion layer or domain and deploy via Databricks Asset Bundles.
+  known_challenges:
+    - Complex procedural ETL logic requires decomposition into declarative datasets.
+    - Pipeline boundaries and full-refresh behaviour need deliberate design for very large tables.
+  risks: [hidden-business-logic, skills-gap, vendor-lock-in]
+  strategies: [refactor, rearchitect]
+  skills: [Databricks, SQL, PySpark, Delta Lake]
+  tags: [transformation, databricks, declarative, streaming, etl]
+  docs:
+    - title: Lakeflow Declarative Pipelines documentation
+      url: https://docs.databricks.com/aws/en/dlt/
+
+- id: dataform
+  name: Dataform
+  aliases: [dataform, google dataform, sqlx]
+  vendor: Google Cloud
+  category: processing
+  role: transformation
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: [bigquery]
+  operational_model: serverless
+  icon: git-merge
+  color: "#4285F4"
+  description: Google Cloud service for developing, testing, versioning and scheduling SQLX transformation workflows that run in BigQuery.
+  typical_legacy_use: BigQuery-native ELT replacing stored procedures and legacy ETL mappings in Teradata/Oracle-to-BigQuery migrations.
+  capabilities: [elt-transformation, sqlx-modelling, assertions, incremental-tables, git-integration, workflow-scheduling]
+  possible_targets: []
+  alternatives: [dbt, lakeflow-declarative-pipelines]
+  replaces: [informatica-powercenter, ibm-datastage, ssis, talend]
+  suggested_next: [bigquery, cloud-composer, google-dataplex, looker]
+  migration_considerations:
+    - Translate legacy SQL with the BigQuery Migration Service, then structure as Dataform SQLX actions.
+    - Use assertions for data-quality checks and incremental tables for large fact loads.
+    - Orchestrate with Dataform workflow configurations or Cloud Composer for cross-system dependencies.
+  known_challenges:
+    - BigQuery-only; multi-platform estates may prefer dbt.
+    - JavaScript-based templating is less familiar to SQL-only teams.
+  risks: [vendor-lock-in, hidden-business-logic, skills-gap]
+  strategies: [refactor, rearchitect]
+  skills: [BigQuery SQL, Dataform SQLX, Git]
+  tags: [transformation, elt, bigquery, gcp]
+  docs:
+    - title: Dataform documentation
+      url: https://cloud.google.com/dataform/docs
+
+- id: databricks-sql
+  name: Databricks SQL
+  aliases: [databricks sql, dbsql, sql warehouse, databricks sql warehouse]
+  vendor: Databricks
+  category: data-warehouse
+  role: serving
+  layer: serving
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [databricks]
+  operational_model: serverless
+  icon: database
+  color: "#FF3621"
+  description: Serverless SQL warehouses on the Databricks lakehouse powered by the Photon engine, serving BI, ad hoc SQL, dashboards and metric views over Unity Catalog tables.
+  typical_legacy_use: Replaces EDW appliance query serving (Teradata, Netezza, Exadata) for BI tools and analysts after migration to Databricks.
+  capabilities: [sql-warehousing, serverless-compute, photon-engine, bi-connectivity, ai-bi-dashboards, metric-views, query-federation]
+  possible_targets: []
+  alternatives: [snowflake, bigquery, amazon-redshift, azure-synapse]
+  replaces: [teradata, netezza, oracle-exadata, greenplum]
+  suggested_next: [power-bi, tableau, looker, unity-catalog, amazon-quicksight]
+  migration_considerations:
+    - Size serverless SQL warehouses and scaling ranges per workload class (BI, ad hoc, ETL SQL).
+    - Convert legacy SQL dialects (BTEQ, PL/SQL, T-SQL) to Databricks SQL, including SQL scripting for procedural logic.
+    - Tune gold tables with liquid clustering and predictive optimisation for BI concurrency.
+    - Repoint BI connections (ODBC/JDBC, Partner Connect) and validate report parity.
+  known_challenges:
+    - High-concurrency BI workloads need warehouse sizing and query-result caching strategy.
+    - Legacy workload-management rules have no one-to-one equivalent.
+  risks: [sql-dialect-conversion, performance-regression, report-parity, cost-overrun]
+  strategies: [replatform, refactor]
+  skills: [Databricks SQL, SQL, BI integration]
+  tags: [serving, sql, databricks, warehouse, serverless]
+  docs:
+    - title: Databricks SQL documentation
+      url: https://docs.databricks.com/aws/en/sql/

@@ -1,0 +1,267 @@
+# Cloud data platforms (lakehouses and warehouses) and legacy Hadoop distributions.
+- id: databricks
+  name: Databricks Data Intelligence Platform
+  aliases: [databricks, dbx, databricks lakehouse, azure databricks, databricks platform]
+  vendor: Databricks
+  category: data-platforms
+  role: lakehouse
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: sparkles
+  color: "#FF3621"
+  description: Unified lakehouse platform built on Apache Spark, Delta Lake and Unity Catalog for data engineering, SQL warehousing, streaming and machine learning on open formats.
+  typical_legacy_use: Modernisation target consolidating legacy EDW appliances, Hadoop clusters and ETL tools onto a governed medallion lakehouse with serverless compute.
+  capabilities: [lakehouse, batch-processing, stream-processing, sql-warehousing, machine-learning, unified-governance, serverless-compute, open-table-formats]
+  possible_targets: []
+  alternatives: [snowflake, bigquery, microsoft-fabric, amazon-redshift, azure-synapse]
+  replaces: [teradata, netezza, greenplum, oracle-exadata, cloudera-hadoop, hdfs, informatica-powercenter, ibm-datastage, ab-initio]
+  suggested_next: [unity-catalog, databricks-workflows, delta-lake, databricks-sql, mlflow, lakeflow-declarative-pipelines, delta-bronze, databricks-asset-bundles, lakeflow-connect, databricks-auto-loader, lakehouse-monitoring]
+  migration_considerations:
+    - Establish Unity Catalog metastore, catalogs per environment/domain and external locations before migrating any data.
+    - Convert legacy SQL (Teradata BTEQ, PL/SQL, T-SQL) to Databricks SQL / PySpark using automated converters plus manual review of stored procedures.
+    - Re-implement ETL as Lakeflow Declarative Pipelines or notebooks/jobs orchestrated by Databricks Workflows, deployed through Asset Bundles.
+    - Use serverless SQL warehouses and job compute with cluster policies and budgets to control cost.
+    - Plan reconciliation (row counts, checksums, aggregates) and a parallel run per subject area before decommissioning legacy.
+  known_challenges:
+    - Stored-procedure-heavy warehouses need significant refactoring into set-based SQL or Python.
+    - Workspace, networking (PrivateLink, customer-managed VPC/VNet) and identity setup is non-trivial in regulated environments.
+    - Teams new to Spark need guidance on performance tuning, file layout and cost management.
+  risks: [sql-dialect-conversion, stored-procedure-rewrite, skills-gap, cost-overrun, parallel-run-cost, governance-gap]
+  strategies: [replatform, refactor, rearchitect]
+  skills: [Databricks, Apache Spark, Delta Lake, Unity Catalog, PySpark, Databricks SQL]
+  tags: [lakehouse, databricks, spark, modern, data-platform]
+  docs:
+    - title: Databricks documentation
+      url: https://docs.databricks.com/
+
+- id: snowflake
+  name: Snowflake
+  aliases: [snowflake, snowflake data cloud, snowflake ai data cloud, sf dwh]
+  vendor: Snowflake
+  category: data-warehouse
+  role: warehouse
+  layer: processing
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: snowflake
+  color: "#29B5E8"
+  description: Fully managed cloud data platform separating storage and elastic virtual-warehouse compute, with secure data sharing, Snowpark and Iceberg table support.
+  typical_legacy_use: Modernisation target for on-prem EDWs (Teradata, Netezza, Oracle, SQL Server) where SQL-centric teams want minimal operations.
+  capabilities: [cloud-data-warehouse, elastic-compute, data-sharing, time-travel, snowpark, iceberg-tables, semi-structured-data]
+  possible_targets: []
+  alternatives: [databricks, bigquery, amazon-redshift, azure-synapse, microsoft-fabric]
+  replaces: [teradata, netezza, greenplum, oracle-exadata]
+  suggested_next: [dbt, snowpipe, snowflake-horizon, apache-airflow, tableau, power-bi]
+  migration_considerations:
+    - Use SnowConvert or equivalent tooling for DDL, SQL and stored-procedure conversion; validate procedural logic manually.
+    - Design warehouse sizing, multi-cluster settings and auto-suspend per workload to control credit consumption.
+    - Map legacy roles to Snowflake RBAC hierarchy and apply masking/row-access policies via Horizon.
+    - Load history via staged files (COPY INTO) and incrementals via Snowpipe / Snowpipe Streaming or CDC tools.
+  known_challenges:
+    - Teradata-style workload management and indexing strategies do not translate; performance tuning relies on clustering and warehouse sizing.
+    - Credit consumption can escalate without resource monitors and governance.
+  risks: [sql-dialect-conversion, stored-procedure-rewrite, cost-overrun, vendor-lock-in, data-type-mismatch]
+  strategies: [replatform, refactor, repurchase]
+  skills: [Snowflake SQL, Snowpark, dbt, Snowflake RBAC]
+  tags: [warehouse, snowflake, saas, modern]
+  docs:
+    - title: Snowflake documentation
+      url: https://docs.snowflake.com/
+
+- id: bigquery
+  name: Google BigQuery
+  aliases: [bigquery, bq, big query, google bigquery]
+  vendor: Google Cloud
+  category: data-warehouse
+  role: warehouse
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: warehouse
+  color: "#669DF6"
+  description: Serverless, columnar cloud data warehouse on Google Cloud with separated storage and slot-based compute, BigLake/Iceberg tables, BigQuery ML and streaming ingestion.
+  typical_legacy_use: Modernisation target for Teradata, Netezza, Oracle and Hadoop/Hive workloads on Google Cloud, with Looker and Dataform for semantic modelling and transformation.
+  capabilities: [cloud-data-warehouse, serverless-sql, streaming-ingestion, biglake, bigquery-ml, materialized-views, row-column-security]
+  possible_targets: []
+  alternatives: [snowflake, databricks, amazon-redshift, azure-synapse]
+  replaces: [teradata, netezza, greenplum, oracle-exadata, cloudera-hadoop]
+  suggested_next: [dataform, dbt, google-dataplex, looker, cloud-composer, google-dataflow, google-datastream]
+  migration_considerations:
+    - Use the BigQuery Migration Service (batch and interactive SQL translation) for Teradata, Oracle, Netezza and other dialects.
+    - Choose on-demand versus capacity (Editions/reservations) pricing per workload and set quotas.
+    - Design partitioning and clustering for each large table; legacy indexes and PI/AMP distribution have no equivalent.
+    - Validate migrated data with the Data Validation Tool (google-dvt) before cutover.
+  known_challenges:
+    - Procedural logic (BTEQ, PL/SQL) must be rewritten as BigQuery scripting, stored procedures or Dataform/dbt models.
+    - DML concurrency and mutation quotas affect high-frequency update patterns.
+  risks: [sql-dialect-conversion, stored-procedure-rewrite, cost-overrun, vendor-lock-in, data-type-mismatch]
+  strategies: [replatform, refactor, rearchitect]
+  skills: [BigQuery SQL, Dataform, GCP IAM, Looker]
+  tags: [warehouse, bigquery, serverless, gcp, modern]
+  docs:
+    - title: BigQuery documentation
+      url: https://cloud.google.com/bigquery/docs
+
+- id: amazon-redshift
+  name: Amazon Redshift
+  aliases: [redshift, amazon redshift, redshift serverless, aws redshift]
+  vendor: Amazon Web Services
+  category: data-warehouse
+  role: warehouse
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: warehouse
+  color: "#8C4FFF"
+  description: Managed MPP columnar data warehouse on AWS (RA3 provisioned or Serverless) with Spectrum for S3 data lakes, zero-ETL integrations and data sharing.
+  typical_legacy_use: AWS-native warehouse target for Teradata, Netezza, Oracle and SQL Server analytics, often with S3 data lakes queried via Spectrum.
+  capabilities: [cloud-data-warehouse, mpp, redshift-spectrum, zero-etl, data-sharing, materialized-views]
+  possible_targets: [databricks, snowflake]
+  alternatives: [snowflake, databricks, bigquery, azure-synapse]
+  replaces: [teradata, netezza, greenplum, oracle-exadata]
+  suggested_next: [dbt, aws-glue, amazon-quicksight, aws-lake-formation, amazon-mwaa]
+  migration_considerations:
+    - Use AWS Schema Conversion Tool and DMS for schema conversion and data movement from on-prem EDWs.
+    - Choose distribution and sort keys (or AUTO) carefully; legacy PI/distribution designs need re-evaluation.
+    - Decide between provisioned RA3 and Serverless based on concurrency and workload pattern.
+  known_challenges:
+    - Stored procedures and complex PL/pgSQL-style logic require manual conversion.
+    - Concurrency scaling and WLM tuning are needed for mixed workloads.
+  risks: [sql-dialect-conversion, stored-procedure-rewrite, performance-regression, vendor-lock-in]
+  strategies: [replatform, refactor]
+  skills: [Amazon Redshift, SQL, AWS SCT, AWS IAM]
+  tags: [warehouse, redshift, aws, mpp]
+  docs:
+    - title: Amazon Redshift documentation
+      url: https://docs.aws.amazon.com/redshift/
+
+- id: azure-synapse
+  name: Azure Synapse Analytics
+  aliases: [synapse, azure synapse, synapse analytics, azure sql data warehouse, dedicated sql pool]
+  vendor: Microsoft
+  category: data-warehouse
+  role: warehouse
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: warehouse
+  color: "#0078D4"
+  description: Azure analytics service combining dedicated and serverless SQL pools, Apache Spark pools and pipelines; Microsoft now positions Fabric as its successor for new workloads.
+  typical_legacy_use: Azure warehouse for SQL Server, Teradata and Netezza migrations using dedicated SQL pools, often with ADF/Synapse pipelines and Power BI.
+  capabilities: [cloud-data-warehouse, mpp, serverless-sql, spark-pools, synapse-pipelines]
+  possible_targets: [microsoft-fabric, databricks, snowflake]
+  alternatives: [microsoft-fabric, databricks, snowflake, amazon-redshift, bigquery]
+  replaces: [teradata, netezza, sql-server, oracle-exadata]
+  suggested_next: [power-bi, azure-data-factory, microsoft-purview, microsoft-fabric]
+  migration_considerations:
+    - For new programmes evaluate Microsoft Fabric or Azure Databricks first; Synapse dedicated pools receive limited new investment.
+    - Existing dedicated pools can be migrated to Fabric Warehouse using Microsoft's migration assistant.
+    - Distribution (hash, round-robin, replicated) and columnstore design drive dedicated-pool performance.
+  known_challenges:
+    - T-SQL surface area in dedicated pools is a subset of SQL Server; some features need rework.
+    - Pausing and scaling dedicated pools affects availability and cost planning.
+  risks: [vendor-lock-in, sql-dialect-conversion, performance-regression, skills-gap]
+  strategies: [retain, replatform, refactor]
+  skills: [T-SQL, Azure Synapse, Azure Data Factory, Power BI]
+  tags: [warehouse, synapse, azure, mpp]
+  docs:
+    - title: Azure Synapse Analytics documentation
+      url: https://learn.microsoft.com/azure/synapse-analytics/
+
+- id: microsoft-fabric
+  name: Microsoft Fabric
+  aliases: [fabric, microsoft fabric, ms fabric, onelake]
+  vendor: Microsoft
+  category: data-platforms
+  role: lakehouse
+  layer: processing
+  environment: saas
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: layers
+  color: "#117865"
+  description: SaaS analytics platform unifying OneLake (Delta-based storage), Data Factory, Lakehouse, Warehouse, Real-Time Intelligence and Power BI under capacity-based licensing.
+  typical_legacy_use: Microsoft-centric modernisation target for SQL Server, SSIS, Synapse and Power BI estates seeking a single SaaS analytics experience.
+  capabilities: [lakehouse, data-warehouse, onelake, data-pipelines, real-time-analytics, direct-lake, power-bi-integration]
+  possible_targets: []
+  alternatives: [databricks, snowflake, azure-synapse, bigquery]
+  replaces: [azure-synapse, ssis, sql-server, teradata, netezza]
+  suggested_next: [power-bi, microsoft-purview, azure-data-factory, adls-gen2, databricks]
+  migration_considerations:
+    - Size Fabric capacity (F SKUs) per workload; capacity throttling and smoothing affect concurrent workloads.
+    - Use OneLake shortcuts to ADLS Gen2, S3 or Databricks-managed Delta tables to avoid copying data.
+    - Migrate SSIS packages via Fabric Data Factory (including SSIS lift-and-shift options) or rewrite as pipelines/dataflows.
+    - Plan Power BI Direct Lake semantic models on top of lakehouse/warehouse tables.
+  known_challenges:
+    - Platform is evolving quickly; feature gaps and preview features need careful assessment for production.
+    - Capacity-based cost model requires governance across shared workspaces.
+  risks: [vendor-lock-in, operational-readiness, cost-overrun, governance-gap]
+  strategies: [repurchase, replatform, rearchitect]
+  skills: [Microsoft Fabric, Power BI, T-SQL, PySpark]
+  tags: [lakehouse, saas, microsoft, onelake]
+  docs:
+    - title: Microsoft Fabric documentation
+      url: https://learn.microsoft.com/fabric/
+
+- id: cloudera-hadoop
+  name: Cloudera / Hadoop (CDH, HDP, CDP)
+  aliases: [cloudera, hadoop, cdh, hdp, cdp, hortonworks, hive, impala]
+  vendor: Cloudera
+  category: data-platforms
+  role: processing
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#F96702"
+  description: On-premises Hadoop distribution bundling HDFS, YARN, Hive, Impala, Spark, HBase, Oozie and Ranger for large-scale batch processing and SQL-on-Hadoop.
+  typical_legacy_use: Enterprise data lakes built 2012-2020 for ETL offload, log analytics and Hive/Impala reporting, often with Oozie scheduling and Sqoop ingestion from RDBMS sources.
+  capabilities: [distributed-processing, sql-on-hadoop, batch-etl, nosql-hbase, yarn-resource-management]
+  possible_targets: [databricks, google-dataproc, amazon-emr, bigquery, snowflake, microsoft-fabric]
+  alternatives: []
+  replaces: []
+  suggested_next: [databricks, delta-lake, google-dataproc, amazon-emr, apache-spark]
+  migration_considerations:
+    - Inventory Hive/Impala tables, Spark/MapReduce jobs, Oozie workflows, Sqoop jobs and Ranger policies; usage logs reveal what can be retired.
+    - Spark jobs usually migrate with moderate change; Hive QL and Impala SQL need dialect conversion, MapReduce/Pig needs rewrite.
+    - Move HDFS data to object storage and convert to Delta or Iceberg; decouple storage from compute.
+    - Replace Oozie with Databricks Workflows, Airflow or Cloud Composer; map Ranger policies to Unity Catalog or cloud-native governance.
+  known_challenges:
+    - Long-lived clusters accumulate undocumented jobs, UDFs and shell-script glue.
+    - Hive/Impala UDFs and SerDes may not be available on the target.
+    - End of support for CDH/HDP versions creates time pressure for migration.
+  risks: [hidden-business-logic, data-volume-transfer, scheduling-dependency-loss, lineage-loss, sql-dialect-conversion, skills-gap]
+  strategies: [retire, rehost, replatform, refactor, rearchitect]
+  skills: [Hadoop, Hive, Spark, Oozie, Ranger]
+  tags: [hadoop, legacy, on-prem, data-lake]
+  docs:
+    - title: Cloudera documentation
+      url: https://docs.cloudera.com/

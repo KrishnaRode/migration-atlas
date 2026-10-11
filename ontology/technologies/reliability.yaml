@@ -1,0 +1,105 @@
+# Reliability building blocks. These are architectural capabilities rather than single
+# vendor products; the validator looks for their capability tags.
+- id: cross-region-dr
+  name: Cross-Region Disaster Recovery
+  aliases: [disaster recovery, dr region, secondary region]
+  vendor: Pattern
+  category: reliability
+  role: resilience
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: life-buoy
+  color: "#F43F5E"
+  description: Replicates data and platform configuration to a secondary region so the platform can recover from a regional outage within agreed RPO/RTO.
+  typical_legacy_use: On-premises estates typically relied on a secondary data centre with storage-level replication and manual failover runbooks.
+  capabilities: [disaster-recovery, replication, failover]
+  possible_targets: []
+  alternatives: [backup-recovery]
+  replaces: []
+  suggested_next: [backup-recovery, terraform]
+  migration_considerations:
+    - Agree RPO/RTO per data product before choosing between active-passive replication and restore-from-backup.
+    - Object storage replication, metadata/catalog replication and workspace configuration are separate concerns — each needs a mechanism.
+    - Infrastructure-as-code makes rebuilding the secondary region repeatable.
+    - Test failover regularly; an untested DR plan is an assumption, not a capability.
+  known_challenges:
+    - Egress cost and replication lag for large, frequently changing tables.
+    - Keeping secrets, identities and network rules in sync across regions.
+  risks: [operational-readiness, cost-overrun]
+  strategies: [rearchitect]
+  skills: [Cloud architecture, Infrastructure as code]
+  tags: [dr, resilience, nfr]
+  docs: []
+- id: backup-recovery
+  name: Backup & Point-in-Time Recovery
+  aliases: [backup, point in time recovery, pitr, snapshots]
+  vendor: Pattern
+  category: reliability
+  role: resilience
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: archive
+  color: "#F43F5E"
+  description: Scheduled backups, object versioning and table time travel that allow recovery from accidental deletes, corruption or bad loads.
+  typical_legacy_use: Nightly database and file-system backups to tape or disk appliances, with restores handled by an infrastructure team.
+  capabilities: [backup, point-in-time-recovery, data-retention]
+  possible_targets: []
+  alternatives: [cross-region-dr]
+  replaces: []
+  suggested_next: [cross-region-dr]
+  migration_considerations:
+    - Map legacy backup retention obligations to object versioning, snapshot and time-travel retention settings.
+    - Table time travel is not a backup if the storage account itself can be deleted — protect storage separately.
+    - Document and rehearse restore procedures for each layer.
+  known_challenges:
+    - Retention settings that are too short silently reduce recoverability.
+    - Restore testing is often skipped until an incident.
+  risks: [operational-readiness, regulatory-compliance]
+  strategies: [rearchitect]
+  skills: [Cloud operations]
+  tags: [backup, resilience, nfr]
+  docs: []
+- id: retry-dead-letter
+  name: Retry & Dead-Letter Handling
+  aliases: [dead letter queue, dlq, retry policy]
+  vendor: Pattern
+  category: reliability
+  role: resilience
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: repeat
+  color: "#F43F5E"
+  description: Retry policies with backoff plus dead-letter destinations so failed records or tasks are isolated, inspected and replayed instead of lost or blocking pipelines.
+  typical_legacy_use: Legacy schedulers re-ran failed jobs manually; rejected rows were written to ETL error tables.
+  capabilities: [retry-strategy, dead-letter-queue, idempotency]
+  possible_targets: []
+  alternatives: []
+  replaces: []
+  suggested_next: [google-cloud-monitoring, amazon-cloudwatch, azure-monitor]
+  migration_considerations:
+    - Make pipeline steps idempotent before enabling automatic retries.
+    - Route poison records to a dead-letter location with enough context to replay them.
+    - Alert on dead-letter growth, not just on job failure.
+  known_challenges:
+    - Retries on non-idempotent writes create duplicates.
+    - Dead-letter queues that nobody monitors become silent data loss.
+  risks: [data-quality-regression, operational-readiness]
+  strategies: [rearchitect]
+  skills: [Data engineering]
+  tags: [retry, resilience, nfr]
+  docs: []

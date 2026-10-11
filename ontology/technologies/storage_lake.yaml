@@ -1,0 +1,489 @@
+# Object storage, lake/lakehouse zones and open table formats.
+- id: google-cloud-storage
+  name: Google Cloud Storage
+  aliases: [gcs, google cloud storage, cloud storage, gs bucket]
+  vendor: Google Cloud
+  category: storage
+  role: object-storage
+  layer: storage
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: hard-drive
+  color: "#4285F4"
+  description: Durable, strongly consistent object storage on Google Cloud with regional, dual-region and multi-region buckets and Standard to Archive storage classes.
+  typical_legacy_use: Raw landing and archive zone for files, database extracts and exports on Google Cloud, and the storage layer beneath Dataproc, Databricks on GCP and BigQuery external/BigLake tables.
+  capabilities: [object-storage, lifecycle-management, storage-classes, cmek-encryption, event-notifications]
+  possible_targets: []
+  alternatives: [amazon-s3, adls-gen2]
+  replaces: [hdfs]
+  suggested_next: [databricks-auto-loader, delta-bronze, bigquery, google-dataflow, landing-zone]
+  migration_considerations:
+    - Use Storage Transfer Service or Transfer Appliance for bulk historical loads; size network bandwidth against volume and cutover window.
+    - Choose bucket location (region vs dual-region) to co-locate with compute and meet data-residency requirements.
+    - Define lifecycle rules and storage classes up-front to control cost of raw and archival zones.
+    - Apply uniform bucket-level access, CMEK and VPC Service Controls perimeters for regulated data.
+  known_challenges:
+    - Small-file proliferation from naive ingestion degrades downstream Spark and BigQuery performance.
+    - Egress and inter-region transfer charges are often under-estimated.
+  risks: [data-volume-transfer, network-bandwidth, security-gap, cost-overrun]
+  strategies: [replatform, rearchitect]
+  skills: [Google Cloud Storage, GCP IAM, Data lake design]
+  tags: [storage, object-storage, gcp, data-lake]
+  docs:
+    - title: Cloud Storage documentation
+      url: https://cloud.google.com/storage/docs
+
+- id: amazon-s3
+  name: Amazon S3
+  aliases: [s3, amazon s3, s3 bucket, simple storage service]
+  vendor: Amazon Web Services
+  category: storage
+  role: object-storage
+  layer: storage
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: hard-drive
+  color: "#569A31"
+  description: Highly durable, strongly consistent object storage on AWS with multiple storage classes, versioning, Object Lock and S3 Tables for managed Iceberg.
+  typical_legacy_use: The de-facto data-lake storage layer on AWS for raw files, extracts, logs and table formats used by EMR, Glue, Athena, Redshift Spectrum and Databricks.
+  capabilities: [object-storage, lifecycle-management, versioning, object-lock, event-notifications, kms-encryption]
+  possible_targets: []
+  alternatives: [google-cloud-storage, adls-gen2]
+  replaces: [hdfs]
+  suggested_next: [databricks-auto-loader, delta-bronze, aws-glue, amazon-redshift, landing-zone]
+  migration_considerations:
+    - Use AWS DataSync, Snowball or S3 Transfer Acceleration for bulk historical migration depending on volume and bandwidth.
+    - Design bucket and prefix layout per zone (landing, bronze/raw, silver, gold) with separate access policies.
+    - Enforce Block Public Access, SSE-KMS and bucket policies; integrate with Lake Formation or Unity Catalog for fine-grained access.
+  known_challenges:
+    - Request-rate and small-file patterns impact downstream query performance and cost.
+    - Cross-region replication and egress costs need explicit budgeting.
+  risks: [data-volume-transfer, network-bandwidth, security-gap, cost-overrun]
+  strategies: [replatform, rearchitect]
+  skills: [Amazon S3, AWS IAM, Data lake design]
+  tags: [storage, object-storage, aws, data-lake]
+  docs:
+    - title: Amazon S3 documentation
+      url: https://docs.aws.amazon.com/s3/
+
+- id: adls-gen2
+  name: Azure Data Lake Storage Gen2
+  aliases: [adls, adls gen2, azure data lake storage, data lake storage gen2]
+  vendor: Microsoft
+  category: storage
+  role: object-storage
+  layer: storage
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: hard-drive
+  color: "#0078D4"
+  description: Azure Blob Storage with a hierarchical namespace, offering POSIX-style ACLs and atomic directory operations optimised for analytics workloads.
+  typical_legacy_use: Primary data-lake storage on Azure beneath Azure Databricks, Synapse and Fabric (via OneLake shortcuts), commonly organised by medallion zones.
+  capabilities: [object-storage, hierarchical-namespace, posix-acls, lifecycle-management, cmk-encryption]
+  possible_targets: [microsoft-fabric]
+  alternatives: [amazon-s3, google-cloud-storage]
+  replaces: [hdfs]
+  suggested_next: [databricks-auto-loader, delta-bronze, azure-data-factory, azure-synapse, landing-zone]
+  migration_considerations:
+    - Enable hierarchical namespace at account creation; it cannot be retrofitted without migration.
+    - Use AzCopy, Data Box or ADF copy activities for bulk loads depending on volume and connectivity.
+    - Combine Azure RBAC with ACLs carefully; prefer Unity Catalog or Purview policies for table-level governance.
+    - Use private endpoints and disable public network access for regulated environments.
+  known_challenges:
+    - ACL inheritance does not apply retroactively to existing files.
+    - Mixing Blob and DFS endpoints in tooling causes confusing behaviour.
+  risks: [data-volume-transfer, network-bandwidth, security-gap, governance-gap]
+  strategies: [replatform, rearchitect]
+  skills: [Azure Storage, Microsoft Entra ID, Data lake design]
+  tags: [storage, object-storage, azure, data-lake]
+  docs:
+    - title: Azure Data Lake Storage documentation
+      url: https://learn.microsoft.com/azure/storage/blobs/data-lake-storage-introduction
+
+- id: landing-zone
+  name: Landing Zone
+  aliases: [landing zone, landing layer, landing area, file landing]
+  vendor: Generic
+  category: data-lake
+  role: lake-layer
+  layer: storage
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: landing
+  platforms: []
+  operational_model: managed
+  icon: folder
+  color: "#94A3B8"
+  description: Transient object-storage zone where source extracts, files and CDC batches arrive unchanged before being ingested into the lake or lakehouse.
+  typical_legacy_use: SFTP drop folders or staging directories on shared file systems where upstream systems deposit daily extract files.
+  capabilities: [file-landing, immutable-arrival, ingestion-trigger, retention-policy]
+  possible_targets: []
+  alternatives: [raw-layer]
+  replaces: []
+  suggested_next: [delta-bronze, raw-layer, databricks-auto-loader]
+  migration_considerations:
+    - Keep landed files immutable and partitioned by source and arrival date to support replay and audit.
+    - Define retention so landing is cleaned up after successful ingestion into bronze/raw.
+    - Separate landing credentials from downstream zones; producers should only have write access.
+  known_challenges:
+    - Late-arriving or partial files need completion markers or manifest files to avoid premature ingestion.
+    - Landing often becomes an unmanaged archive without retention enforcement.
+  risks: [data-quality-regression, security-gap, governance-gap]
+  strategies: [rearchitect]
+  skills: [Data lake design, Object storage]
+  tags: [lake, landing, zone, ingestion]
+  docs:
+    - title: Medallion architecture (Databricks)
+      url: https://docs.databricks.com/aws/en/lakehouse/medallion
+
+- id: delta-bronze
+  name: Bronze Layer (Delta)
+  aliases: [bronze, bronze layer, bronze tables, delta bronze]
+  vendor: Databricks
+  category: data-lake
+  role: lake-layer
+  layer: storage
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: bronze
+  platforms: [databricks]
+  operational_model: managed
+  icon: layers
+  color: "#B45309"
+  description: Medallion bronze zone holding raw, append-only Delta tables that preserve source fidelity plus ingestion metadata.
+  typical_legacy_use: Replaces raw staging schemas in legacy warehouses and raw HDFS directories in Hadoop estates.
+  capabilities: [raw-history, append-only-ingestion, schema-evolution, replay, ingestion-metadata]
+  possible_targets: []
+  alternatives: [raw-layer]
+  replaces: []
+  suggested_next: [delta-silver, lakeflow-declarative-pipelines, unity-catalog]
+  migration_considerations:
+    - Ingest with Auto Loader or Lakeflow Connect, capturing source file, load timestamp and source system columns.
+    - Store data close to source types (or as strings/variant) to avoid ingestion failures on schema drift.
+    - Register bronze tables in Unity Catalog with restricted access, as they often contain unmasked PII.
+  known_challenges:
+    - Unbounded bronze growth without retention or VACUUM policies drives storage cost.
+    - Schema evolution settings must be explicit to avoid silent column loss or job failures.
+  risks: [schema-drift, governance-gap, cost-overrun]
+  strategies: [rearchitect]
+  skills: [Databricks, Delta Lake, Auto Loader]
+  tags: [lake, medallion, bronze, delta, databricks]
+  docs:
+    - title: Medallion architecture (Databricks)
+      url: https://docs.databricks.com/aws/en/lakehouse/medallion
+
+- id: delta-silver
+  name: Silver Layer (Delta)
+  aliases: [silver, silver layer, silver tables, delta silver]
+  vendor: Databricks
+  category: data-lake
+  role: lake-layer
+  layer: storage
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: silver
+  platforms: [databricks]
+  operational_model: managed
+  icon: layers
+  color: "#64748B"
+  description: Medallion silver zone holding cleansed, conformed, deduplicated and type-enforced Delta tables at entity grain.
+  typical_legacy_use: Replaces integration/ODS layers and conformed staging schemas in legacy warehouses.
+  capabilities: [data-cleansing, deduplication, scd-handling, conformance, data-quality-expectations]
+  possible_targets: []
+  alternatives: [staging-layer]
+  replaces: []
+  suggested_next: [delta-gold, lakehouse-monitoring, unity-catalog]
+  migration_considerations:
+    - Apply MERGE / AUTO CDC (APPLY CHANGES) to build current-state and SCD Type 2 tables from bronze change feeds.
+    - Encode data-quality rules as expectations and quarantine failing records rather than dropping them silently.
+    - Align silver entities with legacy ODS/integration-layer tables to enable reconciliation.
+  known_challenges:
+    - Business rules hidden in legacy ETL must be rediscovered and reimplemented here.
+    - Late-arriving and out-of-order CDC events complicate SCD logic.
+  risks: [hidden-business-logic, data-quality-regression, schema-drift]
+  strategies: [rearchitect]
+  skills: [Databricks, Delta Lake, Data modelling]
+  tags: [lake, medallion, silver, delta, databricks]
+  docs:
+    - title: Medallion architecture (Databricks)
+      url: https://docs.databricks.com/aws/en/lakehouse/medallion
+
+- id: delta-gold
+  name: Gold Layer (Delta)
+  aliases: [gold, gold layer, gold tables, delta gold]
+  vendor: Databricks
+  category: data-lake
+  role: lake-layer
+  layer: storage
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: gold
+  platforms: [databricks]
+  operational_model: managed
+  icon: layers
+  color: "#CA8A04"
+  description: Medallion gold zone of business-level, consumption-ready Delta tables such as dimensional models, aggregates and feature tables.
+  typical_legacy_use: Replaces data marts, star schemas and summary/aggregate tables in legacy warehouses consumed by BI tools.
+  capabilities: [dimensional-modelling, aggregates, business-metrics, bi-serving, feature-tables]
+  possible_targets: []
+  alternatives: [curated-layer]
+  replaces: []
+  suggested_next: [databricks-sql, power-bi, tableau, looker, databricks-model-serving]
+  migration_considerations:
+    - Model gold tables to match existing mart and report contracts first, then optimise.
+    - Use liquid clustering and predictive optimisation for BI query performance.
+    - Define metric views or a semantic layer to keep KPI definitions consistent across BI tools.
+    - Reconcile gold outputs against legacy marts during parallel run.
+  known_challenges:
+    - Report parity disputes surface here when legacy marts embedded undocumented calculations.
+    - Proliferation of near-duplicate gold tables without ownership.
+  risks: [report-parity, performance-regression, data-quality-regression]
+  strategies: [rearchitect]
+  skills: [Databricks SQL, Dimensional modelling, Delta Lake]
+  tags: [lake, medallion, gold, delta, databricks]
+  docs:
+    - title: Medallion architecture (Databricks)
+      url: https://docs.databricks.com/aws/en/lakehouse/medallion
+
+- id: raw-layer
+  name: Raw Layer
+  aliases: [raw layer, raw zone, raw data layer]
+  vendor: Generic
+  category: data-lake
+  role: lake-layer
+  layer: storage
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: raw
+  platforms: []
+  operational_model: managed
+  icon: archive
+  color: "#A16207"
+  description: Platform-neutral lake zone holding source data as ingested, unmodified, with full history for replay and audit.
+  typical_legacy_use: Raw directories in HDFS or object storage, or raw/ingest schemas in cloud warehouses such as Snowflake and BigQuery.
+  capabilities: [raw-history, replay, audit, source-fidelity]
+  possible_targets: [delta-bronze]
+  alternatives: [delta-bronze, landing-zone]
+  replaces: []
+  suggested_next: [staging-layer, dbt, dataform]
+  migration_considerations:
+    - Preserve source fidelity and add ingestion metadata (source, batch id, load time).
+    - Store in an open columnar format (Parquet, Delta, Iceberg) rather than raw CSV where possible.
+    - Restrict access; raw data typically contains unmasked sensitive fields.
+  known_challenges:
+    - Without retention and compaction, raw zones grow unbounded and fragment into small files.
+    - Inconsistent naming and partitioning across sources hampers discovery.
+  risks: [schema-drift, governance-gap, cost-overrun]
+  strategies: [rearchitect]
+  skills: [Data lake design, Data engineering]
+  tags: [lake, raw, zone]
+  docs:
+    - title: Medallion architecture (Databricks)
+      url: https://docs.databricks.com/aws/en/lakehouse/medallion
+
+- id: staging-layer
+  name: Staging Layer
+  aliases: [staging layer, staging zone, stg layer, standardized layer]
+  vendor: Generic
+  category: data-lake
+  role: lake-layer
+  layer: storage
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: staging
+  platforms: []
+  operational_model: managed
+  icon: layers
+  color: "#78716C"
+  description: Platform-neutral zone of cleansed, typed and standardised data, typically one model per source entity, feeding curated models.
+  typical_legacy_use: Staging (STG) schemas in legacy warehouses and dbt/Dataform staging models in cloud warehouses.
+  capabilities: [type-casting, standardisation, deduplication, light-cleansing]
+  possible_targets: [delta-silver]
+  alternatives: [delta-silver]
+  replaces: []
+  suggested_next: [curated-layer, dbt, dataform]
+  migration_considerations:
+    - Keep staging one-to-one with source entities and avoid business logic here.
+    - Implement tests for uniqueness, not-null and accepted values at this layer.
+    - Map legacy STG tables explicitly to avoid duplicate or orphaned staging models.
+  known_challenges:
+    - Legacy staging schemas often mix technical and business transformations.
+    - Incremental logic needs reliable change markers from upstream.
+  risks: [hidden-business-logic, data-quality-regression]
+  strategies: [refactor, rearchitect]
+  skills: [SQL, dbt, Data modelling]
+  tags: [lake, staging, zone]
+  docs:
+    - title: dbt documentation (how we structure projects)
+      url: https://docs.getdbt.com/best-practices/how-we-structure/1-guide-overview
+
+- id: curated-layer
+  name: Curated Layer
+  aliases: [curated layer, curated zone, presentation layer, consumption layer]
+  vendor: Generic
+  category: data-lake
+  role: lake-layer
+  layer: storage
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: curated
+  platforms: []
+  operational_model: managed
+  icon: layers
+  color: "#D97706"
+  description: Platform-neutral zone of business-ready, governed data products such as marts, dimensional models and aggregates for consumption.
+  typical_legacy_use: Data marts and reporting schemas in legacy warehouses; mart models in dbt projects on Snowflake, BigQuery or Redshift.
+  capabilities: [data-products, dimensional-modelling, aggregates, bi-serving]
+  possible_targets: [delta-gold]
+  alternatives: [delta-gold]
+  replaces: []
+  suggested_next: [looker, power-bi, tableau, amazon-quicksight]
+  migration_considerations:
+    - Preserve report-facing contracts (table names, grains, KPIs) to minimise BI rework.
+    - Assign data-product ownership and SLAs per curated dataset.
+    - Reconcile curated outputs with legacy marts during parallel run.
+  known_challenges:
+    - Report parity issues arise from undocumented legacy calculations.
+    - Overlapping marts across business units create metric inconsistency.
+  risks: [report-parity, data-quality-regression, governance-gap]
+  strategies: [refactor, rearchitect]
+  skills: [Dimensional modelling, SQL, Data product management]
+  tags: [lake, curated, zone, marts]
+  docs:
+    - title: Medallion architecture (Databricks)
+      url: https://docs.databricks.com/aws/en/lakehouse/medallion
+
+- id: delta-lake
+  name: Delta Lake
+  aliases: [delta, delta lake, delta tables, delta format]
+  vendor: Linux Foundation (Databricks)
+  category: data-lake
+  role: lakehouse
+  layer: storage
+  environment: any
+  legacy: false
+  clouds: [aws, azure, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: layers
+  color: "#00ADD4"
+  description: Open-source table format adding ACID transactions, schema enforcement, time travel, change data feed and liquid clustering on top of Parquet files in object storage.
+  typical_legacy_use: Storage foundation of the Databricks lakehouse and Microsoft Fabric OneLake; replaces Hive/Parquet tables on HDFS and object storage.
+  capabilities: [acid-transactions, time-travel, schema-enforcement, change-data-feed, merge-upsert, liquid-clustering, uniform-iceberg-interop]
+  possible_targets: []
+  alternatives: [apache-iceberg]
+  replaces: [hdfs]
+  suggested_next: [delta-bronze, unity-catalog, databricks, apache-spark]
+  migration_considerations:
+    - Convert existing Parquet/Hive tables in place with CONVERT TO DELTA or re-write with CTAS for layout optimisation.
+    - Enable UniForm when Iceberg readers (Snowflake, BigQuery, Trino) also need access.
+    - Plan OPTIMIZE / liquid clustering and VACUUM retention to balance performance, time travel and cost.
+    - Check reader/writer protocol versions and table features for compatibility with non-Databricks engines.
+  known_challenges:
+    - Advanced table features (deletion vectors, liquid clustering) may not be supported by older external readers.
+    - Concurrent writers to the same partitions can produce conflicts needing retry design.
+  risks: [vendor-lock-in, performance-regression, skills-gap]
+  strategies: [replatform, rearchitect]
+  skills: [Delta Lake, Apache Spark, Lakehouse design]
+  tags: [table-format, lakehouse, delta, open-source, acid]
+  docs:
+    - title: Delta Lake on Databricks
+      url: https://docs.databricks.com/aws/en/delta/
+    - title: Delta Lake documentation
+      url: https://docs.delta.io/latest/index.html
+
+- id: apache-iceberg
+  name: Apache Iceberg
+  aliases: [iceberg, apache iceberg, iceberg tables]
+  vendor: Apache Software Foundation
+  category: data-lake
+  role: lakehouse
+  layer: storage
+  environment: any
+  legacy: false
+  clouds: [aws, azure, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: snowflake
+  color: "#4C8BF5"
+  description: Open table format for large analytic datasets providing ACID snapshots, hidden partitioning, partition and schema evolution, and time travel across many engines.
+  typical_legacy_use: Interoperable table layer on S3/GCS/ADLS read by Spark, Trino, Flink, Snowflake, BigQuery (BigLake), Athena and Databricks; frequently replaces Hive tables.
+  capabilities: [acid-transactions, time-travel, hidden-partitioning, schema-evolution, partition-evolution, multi-engine-access, rest-catalog]
+  possible_targets: [delta-lake]
+  alternatives: [delta-lake]
+  replaces: [hdfs]
+  suggested_next: [unity-catalog, aws-glue-data-catalog, snowflake, bigquery, apache-spark]
+  migration_considerations:
+    - Choose the catalog (REST catalog such as Unity Catalog or Polaris, Glue, Hive Metastore) first; it determines engine interoperability.
+    - Migrate Hive tables with in-place snapshot/migrate procedures or rewrite for better layout.
+    - Schedule snapshot expiration, orphan-file removal and compaction maintenance jobs.
+  known_challenges:
+    - Feature support (v2/v3 spec, row-level deletes) varies across engines and versions.
+    - Catalog fragmentation causes inconsistent table visibility across engines.
+  risks: [governance-gap, operational-readiness, skills-gap]
+  strategies: [replatform, rearchitect]
+  skills: [Apache Iceberg, Apache Spark, Lakehouse design]
+  tags: [table-format, lakehouse, iceberg, open-source, acid]
+  docs:
+    - title: Apache Iceberg documentation
+      url: https://iceberg.apache.org/docs/latest/
+
+- id: hdfs
+  name: Hadoop HDFS
+  aliases: [hdfs, hadoop distributed file system, hadoop hdfs]
+  vendor: Apache Software Foundation
+  category: storage
+  role: object-storage
+  layer: storage
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: hard-drive
+  color: "#66CCFF"
+  description: Distributed, block-replicated file system of the Apache Hadoop ecosystem, co-locating storage with compute on commodity nodes.
+  typical_legacy_use: Storage layer of on-prem Cloudera/Hortonworks data lakes holding raw files and Hive/Impala tables in ORC, Parquet, Avro and text formats.
+  capabilities: [distributed-file-system, block-replication, data-locality, kerberos-security]
+  possible_targets: [google-cloud-storage, amazon-s3, adls-gen2, delta-lake, apache-iceberg]
+  alternatives: []
+  replaces: []
+  suggested_next: [amazon-s3, adls-gen2, google-cloud-storage, delta-lake]
+  migration_considerations:
+    - Use DistCp, cloud transfer services or offline appliances for petabyte-scale copies; plan bandwidth and incremental sync.
+    - Convert Hive/ORC/text tables to Delta or Iceberg during or after copy rather than lifting raw layouts.
+    - Map Ranger/Sentry policies and Kerberos principals to cloud IAM and catalog-level permissions.
+    - Decouple storage from compute; jobs relying on HDFS-specific semantics (atomic rename, appends) need review.
+  known_challenges:
+    - Millions of small files and deep partition trees slow transfer and degrade cloud query performance.
+    - Ranger policies, Hive views and UDFs carry hidden logic and access rules.
+    - Inventorying which datasets are actually used is hard on long-lived clusters.
+  risks: [data-volume-transfer, network-bandwidth, governance-gap, lineage-loss, security-gap]
+  strategies: [retire, rehost, replatform, rearchitect]
+  skills: [Hadoop administration, HDFS, Hive, Kerberos]
+  tags: [storage, hadoop, legacy, on-prem]
+  docs:
+    - title: HDFS architecture guide
+      url: https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsDesign.html

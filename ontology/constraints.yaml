@@ -1,0 +1,63 @@
+# Migration requirement vocabulary.
+# keywords: lower-case phrases the NL estate parser looks for.
+# effects: hints the deterministic generator and validator act on.
+- id: minimize-downtime
+  name: Minimize downtime
+  keywords: [minimal downtime, minimize downtime, minimising downtime, minimizing downtime, zero downtime, near-zero downtime, low downtime, no downtime, downtime]
+  effects: [prefer-cdc, require-parallel-run, require-rollback]
+- id: minimize-rewrite
+  name: Minimize rewrite
+  keywords: [minimize rewrite, minimal rewrite, avoid rewrite, lift and shift, lift-and-shift, minimal code change]
+  effects: [prefer-rehost, retain-where-possible]
+- id: reduce-licensing
+  name: Reduce licensing cost
+  keywords: [licensing, license cost, licence cost, reduce cost, lower cost, cost reduction, reduce licensing]
+  effects: [replace-commercial-legacy]
+- id: maximize-managed
+  name: Maximize managed services
+  keywords: [managed services, fully managed, serverless, reduce ops, less operations]
+  effects: [prefer-managed]
+- id: retain-skills
+  name: Retain existing skills
+  keywords: [existing skills, retain skills, current team, sql skills, keep skills]
+  effects: [prefer-sql-first]
+- id: open-architecture
+  name: Open architecture
+  keywords: [open architecture, open source, open formats, open standards]
+  effects: [prefer-open-source]
+- id: avoid-lock-in
+  name: Avoid vendor lock-in
+  keywords: [vendor lock-in, lock-in, lockin, portable, portability]
+  effects: [prefer-open-source, prefer-multi-cloud]
+- id: near-real-time
+  name: Near-real-time ingestion
+  keywords: [real-time, real time, near-real-time, near real time, streaming, low latency, event-driven, events]
+  effects: [require-streaming, prefer-cdc]
+- id: strict-governance
+  name: Strict governance
+  keywords: [governance, lineage, data catalog, access control, audit]
+  effects: [require-governance, require-lineage]
+- id: multi-cloud
+  name: Multi-cloud
+  keywords: [multi-cloud, multicloud, multiple clouds]
+  effects: [prefer-multi-cloud]
+- id: hybrid-cloud
+  name: Hybrid cloud
+  keywords: [hybrid, hybrid cloud, coexistence, on-prem and cloud, keep on-prem]
+  effects: [require-hybrid-network]
+- id: regulatory
+  name: Regulatory constraints
+  keywords: [regulatory, regulated, compliance, gdpr, hipaa, pci, sox, rbi, audit trail]
+  effects: [require-governance, require-encryption, require-audit]
+- id: high-availability
+  name: High availability
+  keywords: [high availability, always on, "99.9", "99.99", uptime]
+  effects: [require-ha]
+- id: disaster-recovery
+  name: Disaster recovery
+  keywords: [disaster recovery, dr, rpo, rto, failover, backup]
+  effects: [require-dr]
+- id: data-residency
+  name: Data residency
+  keywords: [data residency, data sovereignty, in-country, region, residency]
+  effects: [require-region-pinning]

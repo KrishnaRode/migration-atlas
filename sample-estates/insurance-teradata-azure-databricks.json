@@ -1,0 +1,41 @@
+{
+  "id": "insurance-teradata-azure-databricks",
+  "title": "Warehouse Modernization (Insurance)",
+  "subtitle": "Teradata + DataStage + Cognos \u2192 Azure + Databricks",
+  "industry": "Insurance",
+  "featured": false,
+  "description": "A 180 TB Teradata enterprise warehouse loaded by IBM DataStage and reported through Cognos. Moving to Azure Databricks to reduce licensing cost with strict governance for regulatory reporting.",
+  "project": {
+    "name": "Warehouse Modernization (Insurance)",
+    "description": "Teradata + DataStage + Cognos \u2192 Azure + Databricks",
+    "industry": "Insurance",
+    "estate": {
+      "description": "A 180 TB Teradata enterprise warehouse loaded by IBM DataStage and reported through Cognos. Moving to Azure Databricks to reduce licensing cost with strict governance for regulatory reporting.",
+      "industry": "Insurance",
+      "current_technologies": [
+        "teradata",
+        "ibm-datastage",
+        "cognos"
+      ],
+      "target_cloud": "azure",
+      "target_platforms": [
+        "databricks"
+      ],
+      "constraints": [
+        {
+          "id": "reduce-licensing",
+          "priority": "high"
+        },
+        {
+          "id": "strict-governance",
+          "priority": "high"
+        },
+        {
+          "id": "regulatory",
+          "priority": "high"
+        }
+      ],
+      "data_volume_tb": 180
+    }
+  }
+}

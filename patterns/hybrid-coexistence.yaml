@@ -1,0 +1,63 @@
+id: hybrid-coexistence
+name: Hybrid Coexistence
+summary: Run on-premises and Azure platforms side by side during a phased migration with private connectivity, shared scheduling and continuous reconciliation.
+description: >-
+  Supports a multi-wave migration in which legacy systems and the cloud platform operate together for an
+  extended period. Representative implementation on Azure - on-premises SQL Server data flows over
+  ExpressRoute through Azure Data Factory's self-hosted integration runtime into ADLS Gen2 and Databricks,
+  Control-M continues to own the enterprise schedule and triggers cloud pipelines, and Purview scans both
+  estates for a single lineage view.
+suitable_scenarios:
+  - Multi-year programmes migrating domain by domain
+  - Regulatory or contractual constraints keeping some systems on-premises
+  - Gradual BI cutover where reports switch source per wave
+components:
+  - sql-server
+  - control-m
+  - azure-expressroute
+  - azure-data-factory
+  - adls-gen2
+  - databricks
+  - power-bi
+  - microsoft-purview
+  - azure-key-vault
+  - azure-monitor
+  - reconciliation-framework
+benefits:
+  - Reduces cutover risk by moving workloads incrementally
+  - Preserves existing enterprise scheduling and operational controls during transition
+  - Continuous reconciliation builds confidence before each switch
+limitations:
+  - Dual running cost and operational complexity
+  - Cross-boundary dependencies add latency and failure modes
+  - Requires disciplined decommissioning to avoid permanent hybrid state
+tags: [azure, hybrid, coexistence, phased-migration]
+template:
+  nodes:
+    - {key: sql, tech: sql-server, label: "SQL Server (on-prem)"}
+    - {key: ctm, tech: control-m, label: "Control-M (retained)"}
+    - {key: er, tech: azure-expressroute}
+    - {key: adf, tech: azure-data-factory, label: "ADF (self-hosted IR)"}
+    - {key: adls, tech: adls-gen2}
+    - {key: dbx, tech: databricks}
+    - {key: pbi, tech: power-bi}
+    - {key: purview, tech: microsoft-purview}
+    - {key: kv, tech: azure-key-vault}
+    - {key: mon, tech: azure-monitor}
+    - {key: recon, tech: reconciliation-framework}
+  edges:
+    - {from: sql, to: er, label: "Private extract path", mode: batch, frequency: daily}
+    - {from: er, to: adf, mode: batch, frequency: daily}
+    - {from: adf, to: adls, mode: file, frequency: daily, format: parquet}
+    - {from: adls, to: dbx, label: "Lakehouse processing", mode: batch, frequency: daily, format: delta}
+    - {from: dbx, to: pbi, label: "Migrated reports", mode: query, latency: interactive}
+    - {from: sql, to: pbi, label: "Not-yet-migrated reports (gateway)", mode: query, latency: interactive}
+    - {from: sql, to: recon, label: "Legacy results", mode: query, frequency: daily}
+    - {from: dbx, to: recon, label: "Cloud results", mode: query, frequency: daily}
+    - {from: ctm, to: adf, label: "Trigger pipeline (REST)", mode: control, kind: control}
+    - {from: ctm, to: recon, label: "Run reconciliation", mode: control, kind: control}
+    - {from: purview, to: sql, label: "Scan on-prem", mode: governance, kind: governance}
+    - {from: purview, to: adls, label: "Scan cloud", mode: governance, kind: governance}
+    - {from: kv, to: adf, label: "Linked service secrets", kind: security}
+    - {from: adf, to: mon, kind: monitoring}
+    - {from: dbx, to: mon, kind: monitoring}

@@ -1,0 +1,338 @@
+# Messaging and event-streaming backbones (legacy brokers and modern streaming platforms).
+- id: ibm-mq
+  name: IBM MQ
+  aliases: [ibm mq, websphere mq, mqseries, mq series]
+  vendor: IBM
+  category: messaging
+  role: streaming
+  layer: ingestion
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: mail
+  color: "#1F70C1"
+  description: Enterprise message-oriented middleware providing assured, once-only delivery of messages over point-to-point queues and publish/subscribe topics.
+  typical_legacy_use: Backbone for transactional integration between mainframe (CICS/IMS), ERP and distributed Java applications, typically carrying payments, orders and reference-data updates with XA transactional guarantees.
+  capabilities: [message-queuing, publish-subscribe, assured-delivery, transactional-messaging, mainframe-integration]
+  possible_targets: [apache-kafka, confluent-cloud, amazon-msk, google-pubsub, azure-event-hubs]
+  alternatives: [rabbitmq, activemq]
+  replaces: []
+  suggested_next: [apache-kafka, confluent-cloud, google-pubsub, azure-event-hubs, amazon-msk]
+  migration_considerations:
+    - Inventory queue managers, queues, channels, clusters and the applications bound to each before choosing a target pattern.
+    - Queue semantics (destructive consume, per-message acknowledgement, priority, message expiry) do not map one-to-one onto log-based platforms such as Kafka or Pub/Sub.
+    - XA / two-phase-commit consumers must be redesigned around idempotent processing or transactional outbox patterns.
+    - A Kafka Connect IBM MQ source/sink connector or MQ-to-Kafka bridge allows a phased coexistence period instead of a big-bang cutover.
+  known_challenges:
+    - Mainframe producers using MQ over CICS or IMS often cannot be changed, so a bridge must remain in place for years.
+    - Message formats are frequently EBCDIC copybook payloads that require conversion downstream.
+    - Strict ordering and exactly-once business expectations are often implicit and undocumented.
+  risks: [integration-breakage, mainframe-encoding, hidden-business-logic, cutover-downtime, skills-gap]
+  strategies: [retain, rehost, replatform, rearchitect]
+  skills: [IBM MQ administration, JMS, Kafka Connect, Event-driven architecture]
+  tags: [messaging, queue, legacy, mainframe, jms]
+  docs:
+    - title: IBM MQ documentation
+      url: https://www.ibm.com/docs/en/ibm-mq
+
+- id: rabbitmq
+  name: RabbitMQ
+  aliases: [rabbitmq, rabbit mq, amqp broker]
+  vendor: Broadcom (VMware)
+  category: messaging
+  role: streaming
+  layer: ingestion
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: mail
+  color: "#FF6600"
+  description: Open-source message broker implementing AMQP 0-9-1 (plus MQTT and STOMP) with flexible exchange-based routing, quorum queues and streams.
+  typical_legacy_use: Task queues and asynchronous service-to-service messaging for microservices and web applications; occasionally used as a lightweight event bus feeding downstream data pipelines.
+  capabilities: [message-queuing, publish-subscribe, flexible-routing, amqp, mqtt]
+  possible_targets: [apache-kafka, confluent-cloud, amazon-msk, google-pubsub, azure-event-hubs, amazon-kinesis]
+  alternatives: [activemq, ibm-mq, google-pubsub]
+  replaces: []
+  suggested_next: [apache-kafka, google-pubsub, azure-event-hubs, amazon-kinesis]
+  migration_considerations:
+    - RabbitMQ queues are transient work queues; analytics use cases usually need a replayable log (Kafka, Pub/Sub, Event Hubs, Kinesis) instead.
+    - Exchange/binding topologies (topic, headers, fanout) must be translated into topics, subscriptions or filters on the target.
+    - Consumers relying on per-message acks, dead-lettering and TTL need equivalent dead-letter and retry policies on the target.
+  known_challenges:
+    - Routing logic embedded in exchange bindings is easy to overlook during inventory.
+    - Throughput and retention characteristics change significantly when moving to a log-based platform.
+  risks: [integration-breakage, hidden-business-logic, operational-readiness]
+  strategies: [retain, rehost, replatform, rearchitect]
+  skills: [AMQP, RabbitMQ administration, Event-driven architecture]
+  tags: [messaging, queue, amqp, open-source]
+  docs:
+    - title: RabbitMQ documentation
+      url: https://www.rabbitmq.com/docs
+
+- id: activemq
+  name: Apache ActiveMQ
+  aliases: [activemq, active mq, activemq artemis, amazon mq]
+  vendor: Apache Software Foundation
+  category: messaging
+  role: streaming
+  layer: ingestion
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: mail
+  color: "#C2185B"
+  description: Open-source JMS message broker (Classic and Artemis) supporting OpenWire, AMQP, STOMP and MQTT for queue and topic messaging.
+  typical_legacy_use: JMS backbone for Java EE application servers (WebLogic, WebSphere, JBoss) and ESB integrations, carrying order, event and notification messages between applications.
+  capabilities: [message-queuing, publish-subscribe, jms, multi-protocol-messaging]
+  possible_targets: [apache-kafka, confluent-cloud, amazon-msk, google-pubsub, azure-event-hubs]
+  alternatives: [ibm-mq, rabbitmq]
+  replaces: []
+  suggested_next: [apache-kafka, amazon-msk, google-pubsub, azure-event-hubs]
+  migration_considerations:
+    - Amazon MQ offers a lift-and-shift (rehost) path that preserves JMS semantics with minimal application change.
+    - Data-analytics consumers should be repointed to a replayable streaming log rather than JMS topics.
+    - Durable subscriptions, message selectors and XA transactions must be inventoried per application.
+  known_challenges:
+    - Message selectors and JMS-specific headers have no direct equivalent in Kafka or Pub/Sub.
+    - Network-of-brokers topologies hide cross-site routing behaviour.
+  risks: [integration-breakage, hidden-business-logic, cutover-downtime]
+  strategies: [retain, rehost, replatform, rearchitect, retire]
+  skills: [JMS, ActiveMQ administration, Java EE integration]
+  tags: [messaging, queue, jms, legacy, open-source]
+  docs:
+    - title: Apache ActiveMQ documentation
+      url: https://activemq.apache.org/components/classic/documentation
+
+- id: apache-kafka
+  name: Apache Kafka
+  aliases: [kafka, apache kafka, kafka cluster]
+  vendor: Apache Software Foundation
+  category: streaming
+  role: streaming
+  layer: ingestion
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: activity
+  color: "#231F20"
+  description: Distributed, partitioned and replicated commit log used as a high-throughput event-streaming platform with durable retention and consumer-group replay.
+  typical_legacy_use: Self-managed clusters (often on-prem or on VMs) acting as the central event bus for CDC feeds, application events, logs and clickstream, with Kafka Connect for integration and Kafka Streams/ksqlDB for processing.
+  capabilities: [event-streaming, publish-subscribe, durable-log, replay, kafka-connect, exactly-once-semantics]
+  possible_targets: [confluent-cloud, amazon-msk, azure-event-hubs, google-pubsub]
+  alternatives: [google-pubsub, azure-event-hubs, amazon-kinesis, confluent-cloud]
+  replaces: [ibm-mq, activemq, rabbitmq]
+  suggested_next: [spark-structured-streaming, databricks-auto-loader, apache-flink, delta-bronze, google-dataflow]
+  migration_considerations:
+    - Managed Kafka (Confluent Cloud, Amazon MSK, Event Hubs Kafka endpoint) preserves the Kafka protocol so producers and consumers usually only need connection and auth changes.
+    - Topic replication with MirrorMaker 2 or Cluster Linking enables a phased consumer-first cutover while offsets are translated.
+    - Review partition counts, retention, compaction and ACLs; managed services impose quotas and different defaults.
+    - Schema Registry subjects and compatibility settings must be migrated alongside topics.
+  known_challenges:
+    - Offset translation between clusters is error-prone and can cause duplicate or skipped processing.
+    - Self-managed Connect workers and custom SMTs often carry undocumented logic.
+    - Operating ZooKeeper-based clusters and upgrading to KRaft adds operational complexity.
+  risks: [cdc-lag, schema-drift, operational-readiness, integration-breakage, skills-gap]
+  strategies: [retain, rehost, replatform, repurchase]
+  skills: [Kafka administration, Kafka Connect, Schema Registry, Event-driven architecture]
+  tags: [streaming, kafka, event-bus, open-source, real-time]
+  docs:
+    - title: Apache Kafka documentation
+      url: https://kafka.apache.org/documentation/
+
+- id: confluent-cloud
+  name: Confluent Cloud
+  aliases: [confluent, confluent cloud, confluent kafka]
+  vendor: Confluent
+  category: streaming
+  role: streaming
+  layer: ingestion
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: activity
+  color: "#0074A2"
+  description: Fully managed, cloud-native Kafka service with managed connectors, Schema Registry, stream governance, Flink SQL and Tableflow for Iceberg/Delta materialisation.
+  typical_legacy_use: Target for organisations exiting self-managed Kafka that want a multi-cloud managed event-streaming platform with fully managed connectors.
+  capabilities: [event-streaming, managed-kafka, managed-connectors, schema-registry, stream-processing, cluster-linking]
+  possible_targets: []
+  alternatives: [amazon-msk, azure-event-hubs, google-pubsub, amazon-kinesis]
+  replaces: [apache-kafka, ibm-mq, activemq, rabbitmq]
+  suggested_next: [databricks-auto-loader, spark-structured-streaming, apache-flink, delta-bronze, snowpipe]
+  migration_considerations:
+    - Cluster Linking replicates topics with preserved offsets from self-managed Kafka, simplifying consumer cutover.
+    - Choose cluster type (Basic, Standard, Enterprise, Dedicated) based on throughput, private networking and SLA requirements.
+    - Private connectivity (PrivateLink / Private Service Connect / peering) must be designed up-front for regulated workloads.
+  known_challenges:
+    - Consumption-based pricing (eCKUs, throughput, connector tasks) can surprise teams used to fixed on-prem cost.
+    - Not every self-managed Connect plugin is available as a fully managed connector.
+  risks: [cost-overrun, vendor-lock-in, network-bandwidth, security-gap]
+  strategies: [repurchase, replatform]
+  skills: [Kafka, Confluent Cloud, Schema Registry, Flink SQL]
+  tags: [streaming, kafka, managed, saas, multi-cloud]
+  docs:
+    - title: Confluent Cloud documentation
+      url: https://docs.confluent.io/cloud/current/overview.html
+
+- id: amazon-msk
+  name: Amazon MSK
+  aliases: [msk, amazon msk, managed streaming for kafka, aws msk]
+  vendor: Amazon Web Services
+  category: streaming
+  role: streaming
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: activity
+  color: "#FF9900"
+  description: Amazon Managed Streaming for Apache Kafka, a managed Kafka service (provisioned or serverless) with MSK Connect for managed Kafka Connect workers.
+  typical_legacy_use: AWS-native landing point for workloads moving off self-managed Kafka while keeping the open-source Kafka APIs.
+  capabilities: [event-streaming, managed-kafka, msk-connect, iam-auth, tiered-storage]
+  possible_targets: []
+  alternatives: [confluent-cloud, amazon-kinesis, azure-event-hubs, google-pubsub]
+  replaces: [apache-kafka, ibm-mq, activemq, rabbitmq]
+  suggested_next: [databricks-auto-loader, spark-structured-streaming, apache-flink, amazon-s3, delta-bronze]
+  migration_considerations:
+    - MirrorMaker 2 on MSK Connect is the usual replication path from on-prem Kafka.
+    - Decide between provisioned and MSK Serverless based on partition counts, throughput and feature needs.
+    - Plan IAM access control versus SASL/SCRAM or mTLS for client authentication.
+  known_challenges:
+    - Broker sizing and partition limits per broker still require capacity planning on provisioned clusters.
+    - Cross-account and cross-VPC client connectivity needs multi-VPC private connectivity design.
+  risks: [operational-readiness, cost-overrun, network-bandwidth, security-gap]
+  strategies: [rehost, replatform]
+  skills: [Kafka, AWS networking, AWS IAM]
+  tags: [streaming, kafka, managed, aws]
+  docs:
+    - title: Amazon MSK documentation
+      url: https://docs.aws.amazon.com/msk/
+
+- id: google-pubsub
+  name: Google Cloud Pub/Sub
+  aliases: [pubsub, pub/sub, pub sub, cloud pubsub, google pub/sub]
+  vendor: Google Cloud
+  category: streaming
+  role: streaming
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: radio
+  color: "#4285F4"
+  description: Serverless, globally available messaging and event-ingestion service with at-least-once (optionally exactly-once) delivery, push/pull subscriptions and direct BigQuery and Cloud Storage subscriptions.
+  typical_legacy_use: Event ingestion backbone on Google Cloud for application events, IoT telemetry and CDC streams feeding Dataflow, BigQuery and Cloud Storage.
+  capabilities: [event-streaming, publish-subscribe, serverless-messaging, bigquery-subscription, message-ordering, dead-letter-topics]
+  possible_targets: []
+  alternatives: [apache-kafka, confluent-cloud, azure-event-hubs, amazon-kinesis]
+  replaces: [ibm-mq, activemq, rabbitmq, apache-kafka]
+  suggested_next: [google-dataflow, bigquery, google-cloud-storage, databricks-auto-loader, spark-structured-streaming]
+  migration_considerations:
+    - Pub/Sub is not Kafka-protocol compatible; producers and consumers must be rewritten or bridged with the Pub/Sub Kafka connector.
+    - Ordering is per ordering key, not per partition; redesign partition-based ordering assumptions.
+    - Retention and replay (seek to timestamp/snapshot) differ from Kafka offsets; validate replay requirements.
+    - BigQuery subscriptions can remove a Dataflow hop for simple append-only ingestion.
+  known_challenges:
+    - At-least-once delivery requires idempotent downstream processing unless exactly-once subscriptions are enabled.
+    - Message size limit (10 MB) and attribute limits constrain large-payload use cases.
+  risks: [integration-breakage, vendor-lock-in, schema-drift, skills-gap]
+  strategies: [replatform, rearchitect]
+  skills: [Pub/Sub, Dataflow / Apache Beam, Event-driven architecture]
+  tags: [streaming, messaging, serverless, gcp]
+  docs:
+    - title: Pub/Sub documentation
+      url: https://cloud.google.com/pubsub/docs
+
+- id: azure-event-hubs
+  name: Azure Event Hubs
+  aliases: [event hubs, event hub, eventhubs, azure event hub]
+  vendor: Microsoft
+  category: streaming
+  role: streaming
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: activity
+  color: "#0078D4"
+  description: Fully managed, partitioned event-ingestion service on Azure with a native Apache Kafka-compatible endpoint, Capture to ADLS and Schema Registry.
+  typical_legacy_use: Telemetry, clickstream and application-event ingestion on Azure, commonly feeding Stream Analytics, Databricks and Fabric.
+  capabilities: [event-streaming, kafka-protocol-endpoint, event-capture, schema-registry, partitioned-log]
+  possible_targets: []
+  alternatives: [apache-kafka, confluent-cloud, google-pubsub, amazon-kinesis]
+  replaces: [ibm-mq, activemq, rabbitmq, apache-kafka]
+  suggested_next: [azure-stream-analytics, databricks-auto-loader, spark-structured-streaming, adls-gen2, microsoft-fabric]
+  migration_considerations:
+    - The Kafka endpoint lets many Kafka clients connect with configuration changes only, but not every Kafka feature (e.g. some admin APIs, transactions on lower tiers) is supported.
+    - Size throughput/processing units by tier (Standard, Premium, Dedicated); partition count is fixed on lower tiers.
+    - Event Hubs Capture provides a low-effort raw landing of events into ADLS Gen2 in Avro or Parquet.
+  known_challenges:
+    - Retention limits vary by tier and are shorter than typical self-managed Kafka retention.
+    - Consumer-group limits per tier constrain fan-out designs.
+  risks: [integration-breakage, vendor-lock-in, cost-overrun]
+  strategies: [replatform, rearchitect]
+  skills: [Azure Event Hubs, Kafka, Azure networking]
+  tags: [streaming, kafka-compatible, managed, azure]
+  docs:
+    - title: Azure Event Hubs documentation
+      url: https://learn.microsoft.com/azure/event-hubs/
+
+- id: amazon-kinesis
+  name: Amazon Kinesis Data Streams
+  aliases: [kinesis, amazon kinesis, kinesis data streams, kds]
+  vendor: Amazon Web Services
+  category: streaming
+  role: streaming
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: waves
+  color: "#8C4FFF"
+  description: Serverless, shard-based real-time data-streaming service on AWS with on-demand or provisioned capacity and native integration with Firehose, Lambda and Managed Service for Apache Flink.
+  typical_legacy_use: AWS-native ingestion of clickstream, IoT and log data, often paired with Kinesis Data Firehose to land data in S3 or Redshift.
+  capabilities: [event-streaming, serverless-streaming, shard-based-scaling, firehose-delivery, enhanced-fan-out]
+  possible_targets: [amazon-msk, confluent-cloud]
+  alternatives: [amazon-msk, apache-kafka, google-pubsub, azure-event-hubs]
+  replaces: [rabbitmq, activemq]
+  suggested_next: [apache-flink, spark-structured-streaming, databricks-auto-loader, amazon-s3, amazon-redshift]
+  migration_considerations:
+    - Kinesis is not Kafka-compatible; migrating Kafka producers requires SDK or KPL changes.
+    - Choose on-demand versus provisioned mode based on traffic predictability and cost.
+    - Retention defaults to 24 hours (extendable to 365 days); confirm replay windows.
+  known_challenges:
+    - Per-shard throughput limits require careful partition-key design to avoid hot shards.
+    - Ordering is only guaranteed within a shard.
+  risks: [vendor-lock-in, cost-overrun, integration-breakage]
+  strategies: [replatform, rearchitect]
+  skills: [Amazon Kinesis, AWS Lambda, Apache Flink]
+  tags: [streaming, serverless, aws, real-time]
+  docs:
+    - title: Amazon Kinesis Data Streams documentation
+      url: https://docs.aws.amazon.com/kinesis/

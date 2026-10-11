@@ -1,0 +1,28 @@
+# Component-library categories, in display order.
+# icon = lucide-react icon name; color = accent used for node chips and library headers.
+- {id: source-systems,   name: Source Systems,    icon: server,          color: "#64748B"}
+- {id: databases,        name: Databases,         icon: database,        color: "#E11D48"}
+- {id: mainframe,        name: Mainframe,         icon: cpu,             color: "#7C3AED"}
+- {id: applications,     name: Applications,      icon: app-window,      color: "#0EA5E9"}
+- {id: etl,              name: ETL,               icon: workflow,        color: "#F97316"}
+- {id: cdc,              name: CDC,               icon: git-compare,     color: "#14B8A6"}
+- {id: messaging,        name: Messaging,         icon: mail,            color: "#8B5CF6"}
+- {id: streaming,        name: Streaming,         icon: activity,        color: "#06B6D4"}
+- {id: storage,          name: Storage,           icon: hard-drive,      color: "#3B82F6"}
+- {id: data-lake,        name: Data Lake,         icon: layers,          color: "#CA8A04"}
+- {id: data-platforms,   name: Data Platforms,    icon: sparkles,        color: "#FF3621"}
+- {id: data-warehouse,   name: Data Warehouse,    icon: warehouse,       color: "#2563EB"}
+- {id: processing,       name: Processing,        icon: zap,             color: "#F59E0B"}
+- {id: orchestration,    name: Orchestration,     icon: calendar-clock,  color: "#10B981"}
+- {id: governance,       name: Governance,        icon: shield-check,    color: "#059669"}
+- {id: data-quality,     name: Data Quality,      icon: scale,           color: "#84CC16"}
+- {id: security,         name: Security,          icon: lock,            color: "#DC2626"}
+- {id: observability,    name: Observability,     icon: gauge,           color: "#EC4899"}
+- {id: bi,               name: BI,                icon: chart-column,     color: "#A855F7"}
+- {id: apis,             name: APIs,              icon: plug,            color: "#0891B2"}
+- {id: containers,       name: Containers,        icon: box,             color: "#0284C7"}
+- {id: ai-ml,            name: AI / ML,           icon: brain,           color: "#D946EF"}
+- {id: devops,           name: DevOps,            icon: git-branch,      color: "#475569"}
+- {id: cloud-networking, name: Cloud Networking,  icon: network,         color: "#0D9488"}
+- {id: cloud-platforms,  name: Cloud Platforms,   icon: cloud,           color: "#4F46E5"}
+- {id: reliability,      name: Reliability,       icon: life-buoy,       color: "#F43F5E"}

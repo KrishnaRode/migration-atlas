@@ -1,0 +1,42 @@
+{
+  "id": "retail-oracle-gcp-databricks",
+  "title": "Retail Data Modernization",
+  "subtitle": "Oracle + Informatica + Control-M + Tableau \u2192 GCP + Databricks",
+  "industry": "Retail",
+  "featured": true,
+  "description": "Our current stack has Oracle, Informatica PowerCenter, Control-M, Tableau and around 300 TB of warehouse data. We want to move to GCP and Databricks while minimizing downtime.",
+  "project": {
+    "name": "Retail Data Modernization",
+    "description": "Oracle + Informatica + Control-M + Tableau \u2192 GCP + Databricks",
+    "industry": "Retail",
+    "estate": {
+      "description": "Our current stack has Oracle, Informatica PowerCenter, Control-M, Tableau and around 300 TB of warehouse data. We want to move to GCP and Databricks while minimizing downtime.",
+      "industry": "Retail",
+      "current_technologies": [
+        "oracle-database",
+        "informatica-powercenter",
+        "control-m",
+        "tableau"
+      ],
+      "target_cloud": "gcp",
+      "target_platforms": [
+        "databricks"
+      ],
+      "constraints": [
+        {
+          "id": "minimize-downtime",
+          "priority": "high"
+        },
+        {
+          "id": "maximize-managed",
+          "priority": "medium"
+        },
+        {
+          "id": "strict-governance",
+          "priority": "medium"
+        }
+      ],
+      "data_volume_tb": 300
+    }
+  }
+}

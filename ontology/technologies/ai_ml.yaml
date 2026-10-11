@@ -1,0 +1,187 @@
+# ML platforms, model lifecycle and model serving.
+- id: mlflow
+  name: MLflow
+  aliases: [mlflow, managed mlflow, mlflow tracking, mlflow model registry]
+  vendor: Linux Foundation (Databricks)
+  category: ai-ml
+  role: ml
+  layer: serving
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: brain
+  color: "#0194E2"
+  description: Open-source platform for the ML and GenAI lifecycle covering experiment tracking, model packaging, model registry, evaluation and tracing; fully managed on Databricks with Unity Catalog models.
+  typical_legacy_use: Tracking experiments and registering models from Spark, scikit-learn, XGBoost and deep-learning workloads; replaces ad hoc model files and spreadsheets of experiment results.
+  capabilities: [experiment-tracking, model-registry, model-packaging, model-evaluation, genai-tracing]
+  possible_targets: []
+  alternatives: [vertex-ai, amazon-sagemaker, azure-machine-learning]
+  replaces: []
+  suggested_next: [databricks-model-serving, unity-catalog, databricks-workflows, lakehouse-monitoring]
+  migration_considerations:
+    - Migrate experiments and registered models with MLflow export/import tooling; re-register models in Unity Catalog on Databricks.
+    - Standardise model signatures and input examples to enable consistent serving.
+    - Govern model access and lineage via the catalog rather than workspace-local registries.
+  known_challenges:
+    - Self-hosted tracking servers often lack consistent artifact storage and access control.
+    - Model dependencies (library versions) drift between training and serving environments.
+  risks: [governance-gap, operational-readiness, skills-gap]
+  strategies: [rehost, replatform]
+  skills: [MLflow, Python, MLOps]
+  tags: [ml, mlops, model-registry, open-source]
+  docs:
+    - title: MLflow documentation
+      url: https://mlflow.org/docs/latest/
+    - title: MLflow on Databricks
+      url: https://docs.databricks.com/aws/en/mlflow/
+
+- id: vertex-ai
+  name: Vertex AI
+  aliases: [vertex ai, vertex, google vertex ai, vertex ai platform]
+  vendor: Google Cloud
+  category: ai-ml
+  role: ml
+  layer: serving
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: brain
+  color: "#4285F4"
+  description: Google Cloud's unified ML and generative-AI platform providing training, Vertex AI Pipelines, Feature Store, Model Registry, online/batch prediction and Gemini model access.
+  typical_legacy_use: Training and serving models on BigQuery data in Google Cloud, including AutoML, custom containers and GenAI applications.
+  capabilities: [model-training, model-registry, online-prediction, batch-prediction, ml-pipelines, feature-store, generative-ai]
+  possible_targets: []
+  alternatives: [amazon-sagemaker, azure-machine-learning, mlflow, databricks-model-serving]
+  replaces: []
+  suggested_next: [bigquery, google-cloud-storage, cloud-composer, google-dataplex]
+  migration_considerations:
+    - Containerise training and serving code; use custom containers for frameworks not covered by prebuilt images.
+    - Use BigQuery as feature source and Vertex AI Feature Store for online serving.
+    - Re-implement pipeline orchestration with Vertex AI Pipelines (Kubeflow Pipelines SDK).
+  known_challenges:
+    - Endpoint and GPU quotas must be requested in advance per region.
+    - Cost of always-on prediction endpoints needs autoscaling and scale-to-zero planning where supported.
+  risks: [vendor-lock-in, cost-overrun, skills-gap]
+  strategies: [replatform, rearchitect]
+  skills: [Vertex AI, Python, Kubeflow Pipelines, BigQuery]
+  tags: [ml, mlops, gcp, genai]
+  docs:
+    - title: Vertex AI documentation
+      url: https://cloud.google.com/vertex-ai/docs
+
+- id: amazon-sagemaker
+  name: Amazon SageMaker AI
+  aliases: [sagemaker, amazon sagemaker, sagemaker ai, aws sagemaker]
+  vendor: Amazon Web Services
+  category: ai-ml
+  role: ml
+  layer: serving
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: brain
+  color: "#01A88D"
+  description: AWS managed service to build, train, tune, register and deploy ML models, with SageMaker Pipelines, Feature Store, Model Registry and real-time, serverless or batch inference.
+  typical_legacy_use: AWS-native MLOps for models trained on S3 and Redshift data, deployed to real-time endpoints or batch transform jobs.
+  capabilities: [model-training, hyperparameter-tuning, model-registry, real-time-inference, batch-inference, ml-pipelines, feature-store]
+  possible_targets: []
+  alternatives: [vertex-ai, azure-machine-learning, mlflow, databricks-model-serving]
+  replaces: []
+  suggested_next: [amazon-s3, amazon-redshift, aws-step-functions, amazon-cloudwatch]
+  migration_considerations:
+    - Package training code as SageMaker training jobs using framework containers or bring-your-own containers.
+    - Choose inference option (real-time, serverless, asynchronous, batch transform) per latency and traffic profile.
+    - SageMaker supports managed MLflow tracking servers, easing migration from self-hosted MLflow.
+  known_challenges:
+    - Endpoint instance costs accumulate when endpoints are left running.
+    - IAM role and VPC configuration for training jobs is complex in locked-down accounts.
+  risks: [vendor-lock-in, cost-overrun, security-gap]
+  strategies: [replatform, rearchitect]
+  skills: [Amazon SageMaker, Python, AWS IAM, MLOps]
+  tags: [ml, mlops, aws]
+  docs:
+    - title: Amazon SageMaker AI documentation
+      url: https://docs.aws.amazon.com/sagemaker/
+
+- id: azure-machine-learning
+  name: Azure Machine Learning
+  aliases: [azure ml, azure machine learning, aml, azureml]
+  vendor: Microsoft
+  category: ai-ml
+  role: ml
+  layer: serving
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: brain
+  color: "#0078D4"
+  description: Azure service for the end-to-end ML lifecycle with workspaces, compute clusters, pipelines, MLflow-compatible tracking and registries, and managed online and batch endpoints.
+  typical_legacy_use: Training and deploying models on Azure for teams standardised on Microsoft tooling, often with data in ADLS Gen2 and Synapse.
+  capabilities: [model-training, automl, model-registry, managed-endpoints, ml-pipelines, responsible-ai]
+  possible_targets: []
+  alternatives: [vertex-ai, amazon-sagemaker, mlflow, databricks-model-serving]
+  replaces: []
+  suggested_next: [adls-gen2, azure-key-vault, azure-monitor, azure-devops]
+  migration_considerations:
+    - Azure ML uses MLflow as its tracking interface, so MLflow-instrumented code ports with minimal change.
+    - Migrate from SDK v1 to v2 and CLI v2 as v1 is deprecated.
+    - Use managed online endpoints with private networking for regulated inference.
+  known_challenges:
+    - Workspace networking (managed VNet, private endpoints) adds setup complexity.
+    - Compute quota limits per region and VM family need planning.
+  risks: [vendor-lock-in, operational-readiness, security-gap]
+  strategies: [replatform, rearchitect]
+  skills: [Azure Machine Learning, Python, MLflow, Azure networking]
+  tags: [ml, mlops, azure]
+  docs:
+    - title: Azure Machine Learning documentation
+      url: https://learn.microsoft.com/azure/machine-learning/
+
+- id: databricks-model-serving
+  name: Mosaic AI Model Serving
+  aliases: [model serving, databricks model serving, mosaic ai model serving, model serving endpoint]
+  vendor: Databricks
+  category: ai-ml
+  role: ml
+  layer: serving
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [databricks]
+  operational_model: serverless
+  icon: sparkles
+  color: "#FF3621"
+  description: Serverless real-time model serving on Databricks for custom MLflow models, foundation models and external models, with AI Gateway governance, inference tables and autoscaling.
+  typical_legacy_use: Replaces bespoke Flask/Docker scoring services and batch-only scoring jobs with governed, autoscaling REST endpoints on lakehouse models.
+  capabilities: [real-time-inference, serverless-endpoints, foundation-model-apis, ai-gateway, inference-tables, autoscaling]
+  possible_targets: []
+  alternatives: [vertex-ai, amazon-sagemaker, azure-machine-learning]
+  replaces: []
+  suggested_next: [mlflow, unity-catalog, lakehouse-monitoring, databricks-asset-bundles]
+  migration_considerations:
+    - Register models in Unity Catalog with MLflow signatures before creating endpoints.
+    - Enable inference tables to capture requests and responses for monitoring and auditing.
+    - Configure scale-to-zero, provisioned concurrency and traffic splitting per endpoint SLA.
+  known_challenges:
+    - Cold starts with scale-to-zero can breach latency SLAs.
+    - Custom dependencies and GPU workloads require careful environment specification.
+  risks: [cost-overrun, operational-readiness, governance-gap]
+  strategies: [replatform, rearchitect]
+  skills: [Databricks, MLflow, Python, MLOps]
+  tags: [ml, model-serving, databricks, serverless, genai]
+  docs:
+    - title: Model Serving documentation
+      url: https://docs.databricks.com/aws/en/machine-learning/model-serving/

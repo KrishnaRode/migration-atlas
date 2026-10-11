@@ -1,0 +1,448 @@
+# Governance (catalog, lineage, access policy) and data-quality / reconciliation technologies.
+
+- id: unity-catalog
+  name: Unity Catalog
+  aliases: [uc, unity catalog, databricks unity catalog]
+  vendor: Databricks
+  category: governance
+  role: governance
+  layer: governance
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [databricks]
+  operational_model: managed
+  icon: shield-check
+  color: "#FF3621"
+  description: Unified governance layer for data and AI assets on Databricks, providing a three-level namespace, fine-grained access control, lineage, auditing and discovery.
+  typical_legacy_use: Replaces the per-workspace Hive metastore and table ACLs, centralising permissions, lineage and audit across all Databricks workspaces in a region.
+  capabilities: [catalog, lineage, access-control, data-discovery, auditing, row-column-security, data-sharing, metastore]
+  possible_targets: []
+  alternatives: [google-dataplex, microsoft-purview, aws-lake-formation, snowflake-horizon, collibra]
+  replaces: [aws-glue-data-catalog]
+  suggested_next: [lakehouse-monitoring, databricks-sql, reconciliation-framework, microsoft-entra-id, databricks-asset-bundles]
+  migration_considerations:
+    - Plan the catalog / schema hierarchy (by environment, domain or business unit) before migrating any tables.
+    - Upgrade Hive metastore tables with SYNC or deep clone; external tables need storage credentials and external locations.
+    - Map legacy table ACLs and IAM-based access to account-level groups synced from the identity provider via SCIM.
+    - Clusters must use Unity Catalog-capable access modes; legacy init scripts and instance-profile patterns may need rework.
+  known_challenges:
+    - Workloads relying on DBFS mounts or direct cloud-storage paths must be refactored to volumes and external locations.
+    - Row filters and column masks need re-implementation from legacy view-based security models.
+    - Lineage only covers workloads that run through Unity Catalog-enabled compute.
+  risks: [governance-gap, lineage-loss, security-gap, skills-gap]
+  strategies: [replatform, refactor]
+  skills: [Databricks administration, Unity Catalog, SQL, Identity and access management]
+  tags: [governance, catalog, lineage, databricks, lakehouse]
+  docs:
+    - title: What is Unity Catalog?
+      url: https://docs.databricks.com/en/data-governance/unity-catalog/index.html
+
+- id: google-dataplex
+  name: Google Cloud Dataplex
+  aliases: [dataplex, dataplex universal catalog, google dataplex]
+  vendor: Google Cloud
+  category: governance
+  role: governance
+  layer: governance
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: shield-check
+  color: "#4285F4"
+  description: Google Cloud's intelligent data fabric for discovering, cataloguing, governing and quality-checking data across Cloud Storage, BigQuery and other sources.
+  typical_legacy_use: Used as the central metadata catalog (successor to Data Catalog), lineage tracker and data-quality engine for GCP analytics estates organised into lakes and zones.
+  capabilities: [catalog, lineage, access-control, data-discovery, data-profiling, data-quality-checks, metadata-management]
+  possible_targets: []
+  alternatives: [unity-catalog, microsoft-purview, aws-lake-formation, collibra, alation]
+  replaces: []
+  suggested_next: [bigquery, google-cloud-storage, google-iam, google-dvt, vpc-service-controls]
+  migration_considerations:
+    - Design lakes, zones and assets to mirror data domains before attaching Cloud Storage buckets and BigQuery datasets.
+    - Define aspect types and business glossary terms early so migrated assets are tagged consistently.
+    - Enable automatic data lineage for BigQuery and Dataflow; lineage from external tools requires the Lineage API.
+    - Use auto data quality scans to establish baselines before and after cutover.
+  known_challenges:
+    - Lineage coverage is limited to supported GCP services; lineage from legacy ETL tools is not captured automatically.
+    - Migrating custom metadata and tags from legacy catalogs needs scripted import.
+  risks: [governance-gap, lineage-loss, vendor-lock-in]
+  strategies: [replatform, repurchase]
+  skills: [Google Cloud data governance, BigQuery, IAM]
+  tags: [governance, catalog, lineage, gcp]
+  docs:
+    - title: Dataplex documentation
+      url: https://cloud.google.com/dataplex/docs
+
+- id: microsoft-purview
+  name: Microsoft Purview
+  aliases: [purview, azure purview, microsoft purview]
+  vendor: Microsoft
+  category: governance
+  role: governance
+  layer: governance
+  environment: saas
+  legacy: false
+  clouds: [azure, aws, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: shield-check
+  color: "#0078D4"
+  description: Microsoft's unified data governance, risk and compliance service for scanning, classifying, cataloguing and tracing lineage of data across on-premises, multicloud and SaaS sources.
+  typical_legacy_use: Deployed as the enterprise data map and catalog for Azure, Fabric and Microsoft 365 estates, with sensitivity labelling and lineage from Azure Data Factory and Synapse.
+  capabilities: [catalog, lineage, access-control, data-discovery, data-classification, sensitivity-labeling, business-glossary]
+  possible_targets: []
+  alternatives: [unity-catalog, google-dataplex, collibra, alation, aws-lake-formation]
+  replaces: []
+  suggested_next: [microsoft-entra-id, azure-data-factory, azure-synapse, microsoft-fabric, adls-gen2]
+  migration_considerations:
+    - Register sources and schedule scans using managed identities or self-hosted integration runtimes for on-prem systems.
+    - Organise collections and governance domains to reflect business ownership before onboarding data.
+    - Align classification rules and sensitivity labels with Microsoft Information Protection policies.
+  known_challenges:
+    - Lineage is strongest for Azure Data Factory, Synapse and Fabric; third-party ETL lineage needs custom Atlas API ingestion.
+    - Scanning large estates incurs capacity cost and needs network access to private sources.
+  risks: [governance-gap, lineage-loss, cost-overrun]
+  strategies: [repurchase, replatform]
+  skills: [Microsoft Purview, Azure data governance, Entra ID]
+  tags: [governance, catalog, lineage, azure, compliance]
+  docs:
+    - title: Microsoft Purview documentation
+      url: https://learn.microsoft.com/en-us/purview/
+
+- id: aws-lake-formation
+  name: AWS Lake Formation
+  aliases: [lake formation, aws lake formation]
+  vendor: Amazon Web Services
+  category: governance
+  role: governance
+  layer: governance
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: shield-check
+  color: "#FF9900"
+  description: AWS service that centralises fine-grained permissions, tag-based access control and cross-account sharing for data lakes catalogued in the AWS Glue Data Catalog.
+  typical_legacy_use: Used to govern S3-based data lakes queried by Athena, Redshift Spectrum, EMR and Glue, replacing bucket-policy and IAM-only access models.
+  capabilities: [access-control, catalog, data-discovery, row-column-security, tag-based-access-control, data-sharing, auditing]
+  possible_targets: []
+  alternatives: [unity-catalog, google-dataplex, microsoft-purview]
+  replaces: []
+  suggested_next: [aws-glue-data-catalog, amazon-s3, aws-iam, amazon-redshift, aws-kms]
+  migration_considerations:
+    - Switch from IAM-only access to Lake Formation permissions deliberately; the IAMAllowedPrincipals default must be revoked per database.
+    - Use LF-Tags for scalable tag-based access control rather than per-table grants.
+    - Register S3 locations with an appropriate role and plan cross-account sharing via AWS RAM.
+  known_challenges:
+    - Mixed IAM and Lake Formation permission models cause confusing access-denied errors during transition.
+    - Not all query engines and third-party tools honour Lake Formation fine-grained permissions.
+  risks: [governance-gap, security-gap, integration-breakage]
+  strategies: [replatform, refactor]
+  skills: [AWS IAM, AWS Lake Formation, AWS Glue]
+  tags: [governance, access-control, aws, data-lake]
+  docs:
+    - title: AWS Lake Formation documentation
+      url: https://docs.aws.amazon.com/lake-formation/
+
+- id: aws-glue-data-catalog
+  name: AWS Glue Data Catalog
+  aliases: [glue catalog, glue data catalog]
+  vendor: Amazon Web Services
+  category: governance
+  role: governance
+  layer: governance
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: book-open
+  color: "#FF9900"
+  description: Hive-metastore-compatible central metadata repository on AWS that stores table definitions, schemas and partitions used by Athena, EMR, Glue and Redshift Spectrum.
+  typical_legacy_use: Serves as the shared metastore for S3 data lakes, populated by Glue crawlers or ETL jobs, often replacing self-managed Hive metastores from Hadoop clusters.
+  capabilities: [catalog, metastore, schema-registry, data-discovery, schema-inference]
+  possible_targets: [unity-catalog, aws-lake-formation]
+  alternatives: [unity-catalog, google-dataplex]
+  replaces: []
+  suggested_next: [aws-lake-formation, aws-glue, amazon-s3, amazon-redshift]
+  migration_considerations:
+    - Migrate Hive metastore definitions via Glue import scripts or crawlers; validate partition metadata after load.
+    - Decide whether crawlers or explicit DDL own schema evolution to avoid schema drift.
+    - Pair with Lake Formation for fine-grained access control rather than relying on IAM resource policies.
+  known_challenges:
+    - Crawlers can infer incorrect types or split tables when file layouts are inconsistent.
+    - Large partition counts degrade query planning without partition indexes or projection.
+  risks: [schema-drift, governance-gap, data-type-mismatch]
+  strategies: [replatform, retain]
+  skills: [AWS Glue, Hive metastore, SQL]
+  tags: [catalog, metastore, aws]
+  docs:
+    - title: AWS Glue Data Catalog
+      url: https://docs.aws.amazon.com/glue/latest/dg/catalog-and-crawler.html
+
+- id: collibra
+  name: Collibra
+  aliases: [collibra, collibra data intelligence]
+  vendor: Collibra
+  category: governance
+  role: governance
+  layer: governance
+  environment: saas
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: book-open
+  color: "#2C6AB8"
+  description: Enterprise data intelligence platform providing business glossary, data catalog, stewardship workflows, policy management and lineage across heterogeneous estates.
+  typical_legacy_use: Used by data-governance offices for glossary ownership, stewardship workflows and regulatory reporting (e.g. BCBS 239, GDPR) across many source systems.
+  capabilities: [catalog, lineage, data-discovery, business-glossary, stewardship-workflows, policy-management, access-control]
+  possible_targets: []
+  alternatives: [alation, microsoft-purview, google-dataplex, unity-catalog]
+  replaces: []
+  suggested_next: [unity-catalog, snowflake-horizon, google-dataplex, microsoft-purview]
+  migration_considerations:
+    - Re-point Edge connectors and lineage harvesters to the new cloud platforms as workloads migrate.
+    - Keep business glossary and ownership stable while technical metadata is re-ingested from the target platform.
+    - Integrate with the target platform's native catalog (e.g. Unity Catalog) to avoid duplicated policy enforcement.
+  known_challenges:
+    - Technical lineage depends on connector coverage; custom code and stored procedures may leave gaps.
+    - Policies defined in Collibra still need enforcement in the platform's native access controls.
+  risks: [lineage-loss, governance-gap, licensing-overlap]
+  strategies: [retain, repurchase]
+  skills: [Collibra administration, Data stewardship, Metadata management]
+  tags: [governance, catalog, glossary, enterprise]
+  docs:
+    - title: Collibra product documentation
+      url: https://productresources.collibra.com/docs/
+
+- id: alation
+  name: Alation
+  aliases: [alation, alation data catalog]
+  vendor: Alation
+  category: governance
+  role: governance
+  layer: governance
+  environment: hybrid
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: book-open
+  color: "#0B4D8C"
+  description: Data catalog and intelligence platform that uses query-log analysis and behavioural signals to drive data discovery, curation, stewardship and governance.
+  typical_legacy_use: Deployed as a self-service catalog over data warehouses and BI tools so analysts can find trusted, popular datasets and their documentation.
+  capabilities: [catalog, data-discovery, lineage, business-glossary, query-log-analysis, stewardship-workflows]
+  possible_targets: []
+  alternatives: [collibra, microsoft-purview, google-dataplex, unity-catalog]
+  replaces: []
+  suggested_next: [unity-catalog, snowflake-horizon, google-dataplex]
+  migration_considerations:
+    - Configure connectors to the target warehouse or lakehouse and preserve curated articles and stewardship assignments.
+    - Map legacy object identifiers to migrated objects so curation and popularity signals carry over.
+    - Re-harvest query logs after cutover to rebuild usage-based recommendations.
+  known_challenges:
+    - Curated documentation can be orphaned when schemas are renamed or restructured during migration.
+    - Lineage completeness varies by connector and query complexity.
+  risks: [lineage-loss, governance-gap, licensing-overlap]
+  strategies: [retain, repurchase]
+  skills: [Alation administration, Data stewardship, SQL]
+  tags: [governance, catalog, discovery]
+  docs:
+    - title: Alation documentation
+      url: https://docs.alation.com/
+
+- id: snowflake-horizon
+  name: Snowflake Horizon
+  aliases: [horizon, snowflake horizon catalog]
+  vendor: Snowflake
+  category: governance
+  role: governance
+  layer: governance
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [snowflake]
+  operational_model: saas
+  icon: shield-check
+  color: "#29B5E8"
+  description: Snowflake's built-in governance and discovery suite covering object tagging, classification, masking and row-access policies, access history, lineage and the internal marketplace.
+  typical_legacy_use: Used to govern Snowflake accounts with tag-based masking, automatic sensitive-data classification and access-history auditing for compliance.
+  capabilities: [catalog, lineage, access-control, data-discovery, data-classification, row-column-security, auditing]
+  possible_targets: []
+  alternatives: [unity-catalog, collibra, alation]
+  replaces: []
+  suggested_next: [snowflake, reconciliation-framework, collibra]
+  migration_considerations:
+    - Recreate legacy view-based security as masking and row-access policies attached via tags.
+    - Design a role hierarchy (functional and access roles) before migrating grants.
+    - Run sensitive-data classification on migrated tables to validate PII handling.
+  known_challenges:
+    - Several features (masking, row-access policies, tag-based policies) require Enterprise edition or higher.
+    - Governance stops at the Snowflake boundary; upstream lineage needs an external catalog.
+  risks: [governance-gap, security-gap, vendor-lock-in]
+  strategies: [replatform, refactor]
+  skills: [Snowflake administration, SQL, Data governance]
+  tags: [governance, snowflake, catalog]
+  docs:
+    - title: Snowflake Horizon Catalog
+      url: https://docs.snowflake.com/en/user-guide/snowflake-horizon
+
+- id: reconciliation-framework
+  name: Reconciliation Framework
+  aliases: [reconciliation framework, data reconciliation, recon framework, source to target reconciliation]
+  vendor: Generic
+  category: data-quality
+  role: data-quality
+  layer: governance
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: check-check
+  color: "#84CC16"
+  description: Generic source-to-target reconciliation component that compares row counts, column checksums, aggregates and sampled records between legacy and target systems during parallel run and cutover.
+  typical_legacy_use: Built as a migration accelerator that runs after each load cycle in parallel run, producing pass/fail evidence that business owners use to sign off cutover.
+  capabilities: [reconciliation, data-validation, parallel-run-support, data-quality-checks, row-count-comparison, checksum-comparison, aggregate-comparison, sampling]
+  possible_targets: []
+  alternatives: [google-dvt, great-expectations]
+  replaces: []
+  suggested_next: [databricks-workflows, apache-airflow, lakehouse-monitoring, google-dvt, great-expectations]
+  migration_considerations:
+    - Define reconciliation tiers up front (counts, column checksums, aggregates by business key, record-level sampling) and tolerances per table.
+    - Normalise data types, time zones, character encodings and numeric precision before hashing or comparison.
+    - Schedule reconciliation after every parallel-run cycle and persist results as auditable evidence for cutover sign-off.
+    - Handle in-flight CDC by comparing at consistent watermarks or snapshot timestamps.
+  known_challenges:
+    - Full record-level comparison on very large tables is expensive; stratified sampling and partition-level hashing are needed.
+    - Type and precision differences between platforms create false mismatches unless normalised.
+    - Business owners must agree acceptable tolerances, which is often slower than building the tooling.
+  risks: [data-quality-regression, parallel-run-cost, data-type-mismatch, cutover-downtime]
+  strategies: [refactor, rearchitect, replatform]
+  skills: [SQL, Python, Data testing, Data modelling]
+  tags: [data-quality, reconciliation, parallel-run, cutover, validation]
+  docs: []
+
+- id: great-expectations
+  name: Great Expectations
+  aliases: [great expectations, gx, gx core]
+  vendor: Great Expectations (GX)
+  category: data-quality
+  role: data-quality
+  layer: governance
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: check-check
+  color: "#FF6310"
+  description: Open-source Python framework for declaring, executing and documenting data-quality tests ("Expectations") against pandas, Spark and SQL data sources.
+  typical_legacy_use: Embedded in pipelines and orchestrators to validate datasets at ingestion and transformation boundaries, producing human-readable Data Docs.
+  capabilities: [data-quality-checks, data-validation, data-profiling, data-documentation]
+  possible_targets: []
+  alternatives: [lakehouse-monitoring, google-dvt, reconciliation-framework]
+  replaces: []
+  suggested_next: [apache-airflow, databricks-workflows, dbt, reconciliation-framework]
+  migration_considerations:
+    - Translate legacy data-quality rules into Expectation suites and version them alongside pipeline code.
+    - Run checkpoints from the orchestrator so validation failures can block downstream loads.
+    - Store validation results centrally to evidence quality trends before and after cutover.
+  known_challenges:
+    - Expectations are dataset-level and do not provide cross-system reconciliation on their own.
+    - API changes between major versions require refactoring of older projects.
+  risks: [data-quality-regression, skills-gap]
+  strategies: [refactor, rearchitect]
+  skills: [Python, SQL, Data testing]
+  tags: [data-quality, open-source, testing]
+  docs:
+    - title: Great Expectations documentation
+      url: https://docs.greatexpectations.io/
+
+- id: google-dvt
+  name: Google Data Validation Tool
+  aliases: [dvt, data validation tool, google dvt, professional services data validator]
+  vendor: Google Cloud
+  category: data-quality
+  role: data-quality
+  layer: governance
+  environment: any
+  legacy: false
+  clouds: [gcp, on-prem, aws, azure]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: check-check
+  color: "#34A853"
+  description: Google's open-source Python CLI for validating data between heterogeneous sources and targets using column aggregates, row-level hashes, schema and custom-query comparisons.
+  typical_legacy_use: Used in migrations to BigQuery, Cloud SQL, AlloyDB and Spanner to compare Teradata, Oracle, SQL Server, Hive and other sources against targets during parallel run.
+  capabilities: [reconciliation, data-validation, parallel-run-support, data-quality-checks, schema-validation, row-hash-comparison]
+  possible_targets: []
+  alternatives: [reconciliation-framework, great-expectations]
+  replaces: []
+  suggested_next: [bigquery, cloud-composer, google-dataplex, google-cloud-storage]
+  migration_considerations:
+    - Start with column-level aggregate validations, then add row-hash validations on primary keys for critical tables.
+    - Store validation results in BigQuery to build a cutover evidence dashboard.
+    - Run validations at scale by partitioning tables and orchestrating via Cloud Composer or Cloud Run jobs.
+  known_challenges:
+    - Row-level validation requires a reliable primary or composite key on both sides.
+    - Data type and collation differences need explicit casting or calculated fields to avoid false mismatches.
+  risks: [data-quality-regression, data-type-mismatch, parallel-run-cost]
+  strategies: [replatform, refactor]
+  skills: [Python, SQL, BigQuery]
+  tags: [data-quality, reconciliation, open-source, gcp]
+  docs:
+    - title: Data Validation Tool (GitHub)
+      url: https://github.com/GoogleCloudPlatform/professional-services-data-validator
+
+- id: lakehouse-monitoring
+  name: Databricks Lakehouse Monitoring
+  aliases: [lakehouse monitoring, databricks data quality monitoring]
+  vendor: Databricks
+  category: data-quality
+  role: data-quality
+  layer: governance
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [databricks]
+  operational_model: serverless
+  icon: scan-search
+  color: "#FF3621"
+  description: Databricks feature that profiles Unity Catalog tables and model inference logs over time, computing statistical metrics, drift and custom quality checks with generated dashboards.
+  typical_legacy_use: Attached to gold and serving tables to detect data drift, null spikes and freshness issues after migrated pipelines go live.
+  capabilities: [data-quality-checks, data-profiling, drift-detection, metrics, alerting, data-validation]
+  possible_targets: []
+  alternatives: [great-expectations, google-dataplex]
+  replaces: []
+  suggested_next: [unity-catalog, databricks-sql, databricks-workflows, reconciliation-framework]
+  migration_considerations:
+    - Create monitors on critical gold tables with baseline tables captured from the legacy system where possible.
+    - Choose snapshot, time-series or inference profiles to match each table's access pattern.
+    - Route SQL alerts on metric tables to on-call channels as part of operational readiness.
+  known_challenges:
+    - Requires Unity Catalog-managed tables and serverless compute, adding cost per monitored table.
+    - Profiling is statistical; it does not replace source-to-target reconciliation during cutover.
+  risks: [data-quality-regression, cost-overrun]
+  strategies: [replatform, refactor]
+  skills: [Databricks, SQL, Data quality engineering]
+  tags: [data-quality, monitoring, databricks]
+  docs:
+    - title: Introduction to Databricks Lakehouse Monitoring
+      url: https://docs.databricks.com/en/lakehouse-monitoring/index.html

@@ -1,0 +1,371 @@
+# Workload schedulers and workflow orchestrators.
+- id: control-m
+  name: BMC Control-M
+  aliases: [control-m, control m, controlm, bmc control-m]
+  vendor: BMC
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: calendar-clock
+  color: "#FE5000"
+  description: BMC's enterprise workload automation platform scheduling batch jobs across mainframe, distributed systems, ETL tools and cloud services (also available as Control-M SaaS / Helix Control-M).
+  typical_legacy_use: Central scheduler for nightly batch, coordinating mainframe JCL, ETL workflows, file transfers and database jobs with calendars, conditions and SLA management.
+  capabilities: [workload-automation, calendars, cross-platform-dependencies, sla-management, managed-file-transfer, jobs-as-code]
+  possible_targets: [databricks-workflows, apache-airflow, cloud-composer, amazon-mwaa, aws-step-functions, google-cloud-scheduler]
+  alternatives: [autosys, tidal, apache-airflow]
+  replaces: [cron]
+  suggested_next: [databricks-workflows, apache-airflow, cloud-composer, amazon-mwaa, aws-step-functions]
+  migration_considerations:
+    - Export job definitions (XML/JSON via Automation API) to build the full dependency graph, including in/out conditions, calendars and resources.
+    - Decide whether Control-M remains the enterprise scheduler (triggering cloud jobs through its integrations) or is replaced per platform.
+    - Map calendars, holiday rules and SLA alerts explicitly; native cloud orchestrators lack rich business calendars.
+    - Cross-application dependencies often span teams; agree ownership before splitting schedules.
+  known_challenges:
+    - Implicit dependencies through shared files or conditions are easy to lose when splitting schedules across tools.
+    - Thousands of jobs with inconsistent naming make automated conversion noisy.
+  risks: [scheduling-dependency-loss, operational-readiness, licensing-overlap]
+  strategies: [retain, replatform, refactor, retire]
+  skills: [Control-M administration, workload scheduling, Airflow or Databricks Workflows]
+  tags: [scheduler, batch, legacy]
+  docs:
+    - title: BMC Control-M
+      url: https://www.bmc.com/it-solutions/control-m.html
+
+- id: autosys
+  name: AutoSys Workload Automation
+  aliases: [autosys, ca autosys, broadcom autosys, autosys workload automation, jil]
+  vendor: Broadcom
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: calendar-clock
+  color: "#CC092F"
+  description: Broadcom's (formerly CA) enterprise job scheduler defining jobs, boxes and conditions in JIL.
+  typical_legacy_use: Schedules batch workloads on UNIX/Windows servers, ETL tools and database jobs, common in financial services.
+  capabilities: [workload-automation, job-dependencies, calendars, box-jobs, file-watchers]
+  possible_targets: [databricks-workflows, apache-airflow, cloud-composer, amazon-mwaa, aws-step-functions, google-cloud-scheduler]
+  alternatives: [control-m, tidal]
+  replaces: [cron]
+  suggested_next: [databricks-workflows, apache-airflow, cloud-composer, amazon-mwaa, aws-step-functions]
+  migration_considerations:
+    - Export JIL definitions and parse boxes, conditions (success/failure/done), calendars and file watchers into a dependency graph.
+    - Jobs frequently call shell scripts that contain logic; inventory those scripts too.
+    - Replicate alerting, restart and on-hold/on-ice operational procedures in the target.
+  known_challenges:
+    - Global variables and cross-instance dependencies are hard to reproduce.
+    - Box-job semantics do not map one-to-one onto DAG task groups.
+  risks: [scheduling-dependency-loss, hidden-business-logic, operational-readiness]
+  strategies: [retain, replatform, refactor, retire]
+  skills: [AutoSys administration, JIL, workload scheduling]
+  tags: [scheduler, batch, legacy]
+  docs:
+    - title: Broadcom TechDocs (AutoSys Workload Automation)
+      url: https://techdocs.broadcom.com/
+
+- id: tidal
+  name: Tidal Workload Automation
+  aliases: [tidal, tidal enterprise scheduler, tidal workload automation]
+  vendor: Tidal by Redwood
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: calendar-clock
+  color: "#00A0DF"
+  description: Enterprise workload automation and job scheduling platform (formerly Cisco Tidal Enterprise Scheduler), now part of Redwood.
+  typical_legacy_use: Schedules ERP, ETL and database batch jobs with calendars and cross-system dependencies.
+  capabilities: [workload-automation, calendars, job-dependencies, erp-adapters]
+  possible_targets: [databricks-workflows, apache-airflow, cloud-composer, amazon-mwaa, aws-step-functions, google-cloud-scheduler]
+  alternatives: [control-m, autosys]
+  replaces: [cron]
+  suggested_next: [databricks-workflows, apache-airflow, cloud-composer, amazon-mwaa, aws-step-functions]
+  migration_considerations:
+    - Export job groups, dependencies, calendars and variables to drive conversion.
+    - Identify adapter-based jobs (SAP, Informatica, database) that need target-native operators.
+    - Confirm the vendor roadmap and support status under Redwood ownership.
+  known_challenges:
+    - Adapter-specific behaviour (e.g. SAP job monitoring) must be rebuilt.
+    - Calendar and time-zone semantics require careful translation.
+  risks: [scheduling-dependency-loss, operational-readiness]
+  strategies: [retain, replatform, refactor, retire]
+  skills: [Tidal administration, workload scheduling]
+  tags: [scheduler, batch, legacy]
+  docs:
+    - title: Tidal Software
+      url: https://www.tidalsoftware.com/
+
+- id: cron
+  name: cron
+  aliases: [cron, crontab, cron jobs, unix cron]
+  vendor: Open source (Unix/Linux)
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: clock
+  color: "#475569"
+  description: The time-based job scheduler built into Unix-like operating systems, driven by per-user and system crontab files.
+  typical_legacy_use: Runs shell scripts, ETL command lines and database jobs on individual servers, often with dependencies managed implicitly by start times.
+  capabilities: [time-based-scheduling]
+  possible_targets: [databricks-workflows, apache-airflow, cloud-composer, amazon-mwaa, aws-step-functions, google-cloud-scheduler]
+  alternatives: [control-m, autosys, tidal]
+  replaces: []
+  suggested_next: [apache-airflow, databricks-workflows, google-cloud-scheduler, aws-step-functions, cloud-composer]
+  migration_considerations:
+    - Discover crontabs across all servers and service accounts; they are rarely centrally documented.
+    - Replace time-offset sequencing with explicit dependencies in the target orchestrator.
+    - Add retries, alerting and logging that cron does not provide.
+  known_challenges:
+    - Implicit dependencies (job B starts 30 minutes after job A) break silently when runtimes change.
+    - Scripts often depend on local files, credentials and environment variables on the host.
+  risks: [scheduling-dependency-loss, hidden-business-logic, security-gap]
+  strategies: [refactor, retire]
+  skills: [Linux administration, shell scripting]
+  tags: [scheduler, unix, legacy]
+  docs:
+    - title: crontab(5) manual page
+      url: https://man7.org/linux/man-pages/man5/crontab.5.html
+
+- id: apache-airflow
+  name: Apache Airflow
+  aliases: [airflow, apache airflow, airflow dags]
+  vendor: Apache Software Foundation
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: wind
+  color: "#017CEE"
+  description: Open-source platform to author, schedule and monitor workflows as Python-defined DAGs, with a large provider ecosystem.
+  typical_legacy_use: Orchestrates data pipelines across warehouses, lakehouses, Spark, dbt and cloud services; frequently the replacement for enterprise schedulers in data teams.
+  capabilities: [workflow-orchestration, python-dags, dependency-management, retries, backfills, provider-operators]
+  possible_targets: [cloud-composer, amazon-mwaa, databricks-workflows]
+  alternatives: [databricks-workflows, aws-step-functions, control-m]
+  replaces: [control-m, autosys, tidal, cron]
+  suggested_next: [dbt, databricks-workflows, google-cloud-monitoring, amazon-cloudwatch, github-actions]
+  migration_considerations:
+    - Choose self-managed (e.g. on Kubernetes) versus managed (Cloud Composer, MWAA) based on operational capacity.
+    - Plan Airflow 2 to Airflow 3 upgrade implications (API, DAG authoring changes) for new builds.
+    - Keep heavy processing out of Airflow workers; trigger external engines instead.
+  known_challenges:
+    - Scheduler and metadata-database scaling require tuning for thousands of DAGs.
+    - Business calendars and SLA monitoring need custom implementation.
+  risks: [operational-readiness, skills-gap, scheduling-dependency-loss]
+  strategies: [replatform, refactor]
+  skills: [Python, Airflow, DevOps]
+  tags: [orchestrator, open-source, python]
+  docs:
+    - title: Apache Airflow documentation
+      url: https://airflow.apache.org/docs/
+
+- id: cloud-composer
+  name: Cloud Composer
+  aliases: [cloud composer, gcp composer, google cloud composer]
+  vendor: Google Cloud
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: wind
+  color: "#4285F4"
+  description: Google Cloud's managed Apache Airflow service.
+  typical_legacy_use: Orchestrates BigQuery, Dataflow, Dataproc and Databricks-on-GCP pipelines, replacing on-premises schedulers in GCP migrations.
+  capabilities: [workflow-orchestration, managed-airflow, gcp-operators, autoscaling]
+  possible_targets: []
+  alternatives: [amazon-mwaa, databricks-workflows, google-cloud-scheduler]
+  replaces: [control-m, autosys, tidal, cron, apache-airflow]
+  suggested_next: [bigquery, google-dataflow, google-dataproc, google-cloud-monitoring, google-secret-manager]
+  migration_considerations:
+    - Choose the Composer version and environment size; environments carry a baseline cost even when idle.
+    - Use Secret Manager as the Airflow secrets backend and private IP environments for security.
+    - Validate Python package dependencies against the Composer image.
+  known_challenges:
+    - Environment upgrades and dependency conflicts need planned maintenance.
+    - Small workloads can be expensive relative to simpler schedulers.
+  risks: [cost-overrun, operational-readiness]
+  strategies: [replatform, refactor]
+  skills: [Airflow, Python, Google Cloud]
+  tags: [orchestrator, gcp, managed]
+  docs:
+    - title: Cloud Composer documentation
+      url: https://cloud.google.com/composer/docs
+
+- id: amazon-mwaa
+  name: Amazon MWAA
+  aliases: [mwaa, amazon mwaa, managed workflows for apache airflow]
+  vendor: Amazon Web Services
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: wind
+  color: "#FF9900"
+  description: Amazon Managed Workflows for Apache Airflow, AWS's managed Airflow service.
+  typical_legacy_use: Orchestrates Glue, EMR, Redshift and Databricks-on-AWS pipelines when replacing on-premises schedulers in AWS migrations.
+  capabilities: [workflow-orchestration, managed-airflow, aws-operators, autoscaling-workers]
+  possible_targets: []
+  alternatives: [cloud-composer, aws-step-functions, databricks-workflows]
+  replaces: [control-m, autosys, tidal, cron, apache-airflow]
+  suggested_next: [aws-glue, amazon-emr, amazon-redshift, amazon-cloudwatch, aws-secrets-manager]
+  migration_considerations:
+    - Choose environment class and worker limits to match concurrency; there is a baseline cost per environment.
+    - DAGs, plugins and requirements are deployed via S3; integrate with CI/CD.
+    - Supported Airflow versions lag upstream; confirm feature availability.
+  known_challenges:
+    - Limited control over the underlying infrastructure compared with self-managed Airflow.
+    - Private networking and VPC endpoint configuration add setup complexity.
+  risks: [cost-overrun, operational-readiness]
+  strategies: [replatform, refactor]
+  skills: [Airflow, Python, AWS]
+  tags: [orchestrator, aws, managed]
+  docs:
+    - title: Amazon MWAA documentation
+      url: https://docs.aws.amazon.com/mwaa/
+
+- id: databricks-workflows
+  name: Databricks Workflows (Lakeflow Jobs)
+  aliases: [databricks workflows, databricks jobs, lakeflow jobs]
+  vendor: Databricks
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [databricks]
+  operational_model: managed
+  icon: workflow
+  color: "#FF3621"
+  description: Databricks' native orchestration service (now branded Lakeflow Jobs) for scheduling multi-task jobs of notebooks, pipelines, SQL, dbt and Python on Databricks.
+  typical_legacy_use: Replaces enterprise schedulers and Airflow for workloads that run predominantly on Databricks, with file-arrival and table-update triggers.
+  capabilities: [workflow-orchestration, task-dependencies, triggers, retries, serverless-jobs, repair-runs]
+  possible_targets: []
+  alternatives: [apache-airflow, cloud-composer, amazon-mwaa, aws-step-functions]
+  replaces: [control-m, autosys, tidal, cron, informatica-powercenter]
+  suggested_next: [lakeflow-declarative-pipelines, databricks-asset-bundles, dbt, unity-catalog, lakehouse-monitoring]
+  migration_considerations:
+    - Best fit when most tasks run on Databricks; cross-platform orchestration may still need an enterprise scheduler or Airflow.
+    - Define jobs as code with Databricks Asset Bundles for environment promotion.
+    - Map legacy calendars and cross-job dependencies onto triggers and job-to-job tasks.
+  known_challenges:
+    - Business calendars and complex holiday rules are not native and require custom handling.
+    - Enterprise-wide visibility across non-Databricks jobs requires integration with existing schedulers.
+  risks: [scheduling-dependency-loss, vendor-lock-in]
+  strategies: [replatform, refactor]
+  skills: [Databricks, Python, CI/CD]
+  tags: [orchestrator, databricks, managed]
+  docs:
+    - title: Lakeflow Jobs documentation
+      url: https://docs.databricks.com/aws/en/jobs/
+
+- id: aws-step-functions
+  name: AWS Step Functions
+  aliases: [step functions, aws step functions, sfn]
+  vendor: Amazon Web Services
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: git-branch
+  color: "#FF4F8B"
+  description: AWS's serverless workflow service that coordinates AWS services and Lambda functions as state machines defined in Amazon States Language.
+  typical_legacy_use: Orchestrates event-driven and batch data workflows (Glue, EMR, Lambda, Batch) on AWS, often triggered by EventBridge schedules.
+  capabilities: [workflow-orchestration, serverless, service-integrations, error-handling, parallel-states]
+  possible_targets: []
+  alternatives: [amazon-mwaa, apache-airflow, databricks-workflows]
+  replaces: [control-m, autosys, tidal, cron]
+  suggested_next: [aws-glue, amazon-emr, amazon-cloudwatch, aws-iam]
+  migration_considerations:
+    - Choose Standard versus Express workflows based on duration and execution-volume patterns.
+    - Use EventBridge Scheduler for time-based triggers; Step Functions itself does not hold calendars.
+    - Express complex dependency graphs carefully; very large graphs are easier to maintain in Airflow.
+  known_challenges:
+    - JSON/ASL definitions become hard to maintain for large job estates.
+    - State transition pricing can surprise high-frequency workloads.
+  risks: [vendor-lock-in, cost-overrun, scheduling-dependency-loss]
+  strategies: [replatform, refactor]
+  skills: [AWS, serverless design, Amazon States Language]
+  tags: [orchestrator, aws, serverless]
+  docs:
+    - title: AWS Step Functions documentation
+      url: https://docs.aws.amazon.com/step-functions/
+
+- id: google-cloud-scheduler
+  name: Cloud Scheduler
+  aliases: [cloud scheduler, google cloud scheduler, gcp scheduler]
+  vendor: Google Cloud
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: clock
+  color: "#4285F4"
+  description: Google Cloud's fully managed cron service that triggers HTTP targets, Pub/Sub topics and App Engine on a schedule.
+  typical_legacy_use: Replaces server crontabs for simple time-based triggers of Cloud Run jobs, Cloud Functions, Workflows or pipeline APIs.
+  capabilities: [time-based-scheduling, serverless, http-triggers, pubsub-triggers, retries]
+  possible_targets: [cloud-composer]
+  alternatives: [cloud-composer, aws-step-functions]
+  replaces: [cron]
+  suggested_next: [google-pubsub, cloud-composer, google-cloud-monitoring, google-iam]
+  migration_considerations:
+    - Suitable for independent scheduled triggers only; it has no dependency management between jobs.
+    - Use service accounts with OIDC/OAuth tokens for authenticated targets.
+    - Escalate to Cloud Composer or Workflows when jobs need sequencing, retries across steps or backfills.
+  known_challenges:
+    - Misused as a dependency orchestrator, it recreates cron-style implicit timing chains.
+    - Job execution status and logs live in the triggered service, so end-to-end monitoring must be assembled separately.
+  risks: [scheduling-dependency-loss, operational-readiness]
+  strategies: [replatform, refactor]
+  skills: [Google Cloud, IAM]
+  tags: [scheduler, gcp, serverless]
+  docs:
+    - title: Cloud Scheduler documentation
+      url: https://cloud.google.com/scheduler/docs

@@ -1,0 +1,335 @@
+# Containers and container orchestration, plus API gateways / API management.
+
+- id: docker
+  name: Docker
+  aliases: [docker, docker containers]
+  vendor: Docker
+  category: containers
+  role: container
+  layer: operations
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: container
+  color: "#2496ED"
+  description: Container platform and image format (OCI) for packaging applications and their dependencies into portable, isolated runtime units.
+  typical_legacy_use: Packages applications, custom ingestion services and legacy tooling so they can be rehosted consistently across on-prem and cloud environments.
+  capabilities: [containerization, image-build, portability, deployment-automation]
+  possible_targets: [kubernetes, gke, amazon-eks, aks]
+  alternatives: []
+  replaces: []
+  suggested_next: [kubernetes, gke, amazon-eks, aks, github-actions]
+  migration_considerations:
+    - Containerise stateless components first; externalise state, configuration and secrets.
+    - Use minimal, scanned base images and pin versions for reproducible builds.
+    - Push images to a private registry (Artifact Registry, ECR, ACR) close to the runtime.
+  known_challenges:
+    - Legacy applications with OS-level dependencies, licensing dongles or local file state are hard to containerise.
+    - Docker Desktop licensing applies to larger organisations.
+  risks: [skills-gap, security-gap]
+  strategies: [rehost, replatform]
+  skills: [Docker, Linux, Container security]
+  tags: [containers, packaging, portability]
+  docs:
+    - title: Docker documentation
+      url: https://docs.docker.com/
+
+- id: kubernetes
+  name: Kubernetes
+  aliases: [kubernetes, k8s]
+  vendor: CNCF
+  category: containers
+  role: container
+  layer: operations
+  environment: any
+  legacy: false
+  clouds: [aws, azure, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: box
+  color: "#326CE5"
+  description: Open-source container orchestration system that automates deployment, scaling, self-healing and networking of containerised workloads.
+  typical_legacy_use: Hosts microservices, APIs, Spark-on-Kubernetes, Airflow and streaming components on a shared, policy-governed compute platform.
+  capabilities: [container-orchestration, autoscaling, self-healing, service-discovery, deployment-automation]
+  possible_targets: [gke, amazon-eks, aks]
+  alternatives: [gke, amazon-eks, aks]
+  replaces: []
+  suggested_next: [gke, amazon-eks, aks, prometheus, terraform]
+  migration_considerations:
+    - Prefer managed Kubernetes (GKE, EKS, AKS) over self-managed control planes for cloud targets.
+    - Define namespaces, RBAC, network policies and resource quotas per team before onboarding workloads.
+    - Use GitOps or CI/CD pipelines to manage manifests and Helm charts.
+    - Integrate workload identity with cloud IAM instead of mounting static credentials.
+  known_challenges:
+    - Steep operational learning curve for networking, storage and upgrades.
+    - Stateful data workloads need careful persistent volume and backup design.
+  risks: [skills-gap, operational-readiness, security-gap]
+  strategies: [rehost, replatform, refactor]
+  skills: [Kubernetes, Helm, Container networking]
+  tags: [containers, orchestration, cncf]
+  docs:
+    - title: Kubernetes documentation
+      url: https://kubernetes.io/docs/
+
+- id: gke
+  name: Google Kubernetes Engine
+  aliases: [gke, google kubernetes engine, gke autopilot]
+  vendor: Google Cloud
+  category: containers
+  role: container
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: box
+  color: "#4285F4"
+  description: Google Cloud's managed Kubernetes service with Standard and Autopilot modes, auto-upgrades, Workload Identity Federation and integrated observability.
+  typical_legacy_use: Runs containerised applications, APIs and data services on GCP, including Spark and Airflow workloads that need custom runtimes.
+  capabilities: [container-orchestration, autoscaling, managed-kubernetes, workload-identity, deployment-automation]
+  possible_targets: []
+  alternatives: [amazon-eks, aks]
+  replaces: [kubernetes]
+  suggested_next: [google-cloud-build, google-iam, google-cloud-monitoring, apigee, google-vpc]
+  migration_considerations:
+    - Choose Autopilot for reduced operations unless node-level customisation is required.
+    - Use private clusters and Workload Identity Federation for GKE to access Google APIs securely.
+    - Plan VPC-native IP ranges for pods and services up front.
+  known_challenges:
+    - IP address exhaustion in VPC-native clusters if ranges are undersized.
+    - Release-channel upgrades require testing of deprecated APIs.
+  risks: [skills-gap, operational-readiness]
+  strategies: [replatform, refactor]
+  skills: [Kubernetes, Google Cloud networking]
+  tags: [containers, kubernetes, gcp]
+  docs:
+    - title: Google Kubernetes Engine documentation
+      url: https://cloud.google.com/kubernetes-engine/docs
+
+- id: amazon-eks
+  name: Amazon EKS
+  aliases: [eks, amazon eks, elastic kubernetes service]
+  vendor: Amazon Web Services
+  category: containers
+  role: container
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: box
+  color: "#FF9900"
+  description: AWS managed Kubernetes service with managed node groups, Fargate and Auto Mode options, and IAM integration via Pod Identity or IRSA.
+  typical_legacy_use: Hosts containerised applications, APIs and data processing (e.g. Spark on EKS, EMR on EKS) in AWS.
+  capabilities: [container-orchestration, autoscaling, managed-kubernetes, workload-identity, deployment-automation]
+  possible_targets: []
+  alternatives: [gke, aks]
+  replaces: [kubernetes]
+  suggested_next: [aws-iam, amazon-cloudwatch, amazon-api-gateway, aws-vpc, terraform]
+  migration_considerations:
+    - Use EKS Pod Identity or IRSA so pods assume IAM roles without static keys.
+    - Plan VPC CNI IP consumption or use prefix delegation for dense clusters.
+    - Use Karpenter or Auto Mode for efficient node scaling.
+  known_challenges:
+    - Kubernetes version support windows require regular cluster upgrades.
+    - Add-on management (CNI, CoreDNS, load balancer controller) adds operational overhead.
+  risks: [skills-gap, operational-readiness, cost-overrun]
+  strategies: [replatform, refactor]
+  skills: [Kubernetes, AWS networking, AWS IAM]
+  tags: [containers, kubernetes, aws]
+  docs:
+    - title: Amazon EKS documentation
+      url: https://docs.aws.amazon.com/eks/
+
+- id: aks
+  name: Azure Kubernetes Service
+  aliases: [aks, azure kubernetes service]
+  vendor: Microsoft
+  category: containers
+  role: container
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: box
+  color: "#0078D4"
+  description: Azure's managed Kubernetes service with a free control plane tier, Entra ID integration, workload identity and Azure CNI networking options.
+  typical_legacy_use: Runs containerised .NET and Java applications, APIs and supporting data services on Azure.
+  capabilities: [container-orchestration, autoscaling, managed-kubernetes, workload-identity, deployment-automation]
+  possible_targets: []
+  alternatives: [gke, amazon-eks]
+  replaces: [kubernetes]
+  suggested_next: [microsoft-entra-id, azure-monitor, azure-api-management, azure-key-vault, azure-vnet]
+  migration_considerations:
+    - Use Microsoft Entra Workload ID for pod access to Azure resources.
+    - Choose network plugin (Azure CNI Overlay vs flat) based on IP availability.
+    - Integrate the Key Vault Secrets Store CSI driver for secrets.
+  known_challenges:
+    - Networking choices are hard to change after cluster creation.
+    - Upgrade cadence and node image updates need planned maintenance windows.
+  risks: [skills-gap, operational-readiness]
+  strategies: [replatform, refactor]
+  skills: [Kubernetes, Azure networking, Entra ID]
+  tags: [containers, kubernetes, azure]
+  docs:
+    - title: Azure Kubernetes Service documentation
+      url: https://learn.microsoft.com/en-us/azure/aks/
+
+- id: apigee
+  name: Apigee
+  aliases: [apigee, apigee x, google apigee]
+  vendor: Google Cloud
+  category: apis
+  role: api
+  layer: serving
+  environment: cloud
+  legacy: false
+  clouds: [gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: plug
+  color: "#4285F4"
+  description: Google Cloud's full-lifecycle API management platform offering proxies, security policies, quotas, analytics, monetisation and a developer portal.
+  typical_legacy_use: Fronts backend services and data APIs with OAuth, rate limiting and analytics, often replacing legacy ESB or API gateway products.
+  capabilities: [api-management, api-gateway, rate-limiting, api-security, api-analytics, developer-portal]
+  possible_targets: []
+  alternatives: [amazon-api-gateway, azure-api-management, kong]
+  replaces: []
+  suggested_next: [gke, google-iam, google-cloud-monitoring, bigquery]
+  migration_considerations:
+    - Inventory existing APIs, policies and consumer contracts before re-creating proxies.
+    - Use Apigee hybrid when runtime must stay on-prem while management runs in Google Cloud.
+    - Connect to backends privately via Private Service Connect or VPC peering.
+  known_challenges:
+    - Translating custom policies from legacy gateways (scripts, callouts) takes manual effort.
+    - Pricing tiers and environment limits need upfront capacity planning.
+  risks: [integration-breakage, cost-overrun, vendor-lock-in]
+  strategies: [repurchase, replatform]
+  skills: [Apigee, API design, OAuth]
+  tags: [api, gateway, gcp]
+  docs:
+    - title: Apigee documentation
+      url: https://cloud.google.com/apigee/docs
+
+- id: amazon-api-gateway
+  name: Amazon API Gateway
+  aliases: [amazon api gateway, aws api gateway]
+  vendor: Amazon Web Services
+  category: apis
+  role: api
+  layer: serving
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: plug
+  color: "#A166FF"
+  description: AWS fully managed service for creating, publishing, securing and monitoring REST, HTTP and WebSocket APIs at scale.
+  typical_legacy_use: Exposes Lambda functions, containers and data services as secured APIs with throttling, authorisers and usage plans.
+  capabilities: [api-gateway, rate-limiting, api-security, request-transformation]
+  possible_targets: []
+  alternatives: [apigee, azure-api-management, kong]
+  replaces: []
+  suggested_next: [aws-iam, amazon-cloudwatch, amazon-eks, aws-vpc]
+  migration_considerations:
+    - Choose HTTP APIs for lower cost and latency, REST APIs when advanced features (usage plans, request validation) are needed.
+    - Use private APIs with VPC endpoints for internal consumers.
+    - Configure authorisers (IAM, Cognito, Lambda, JWT) to replace legacy authentication schemes.
+  known_challenges:
+    - Integration timeout and payload size limits constrain long-running or large data APIs.
+    - Feature differences between REST and HTTP APIs complicate migrations between them.
+  risks: [integration-breakage, performance-regression]
+  strategies: [replatform, refactor]
+  skills: [AWS API Gateway, API design, AWS IAM]
+  tags: [api, gateway, aws, serverless]
+  docs:
+    - title: Amazon API Gateway documentation
+      url: https://docs.aws.amazon.com/apigateway/
+
+- id: azure-api-management
+  name: Azure API Management
+  aliases: [apim, azure api management]
+  vendor: Microsoft
+  category: apis
+  role: api
+  layer: serving
+  environment: cloud
+  legacy: false
+  clouds: [azure, on-prem]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: plug
+  color: "#0078D4"
+  description: Azure's hybrid, multicloud API management platform with gateway, policies, developer portal and analytics, including self-hosted gateways.
+  typical_legacy_use: Publishes backend services and Azure Functions as governed APIs with Entra ID authentication, quotas and transformation policies.
+  capabilities: [api-management, api-gateway, rate-limiting, api-security, developer-portal, request-transformation]
+  possible_targets: []
+  alternatives: [apigee, amazon-api-gateway, kong]
+  replaces: []
+  suggested_next: [microsoft-entra-id, aks, azure-monitor, azure-vnet]
+  migration_considerations:
+    - Select the tier based on VNet integration, SLA and scale requirements; tier changes can require redeployment.
+    - Manage APIs and policies as code (APIOps) through CI/CD.
+    - Use self-hosted gateways for APIs that must run close to on-prem backends.
+  known_challenges:
+    - Provisioning and scaling of classic tiers can be slow.
+    - Complex XML policy expressions are hard to test and maintain.
+  risks: [integration-breakage, cost-overrun]
+  strategies: [repurchase, replatform]
+  skills: [Azure API Management, API design, Entra ID]
+  tags: [api, gateway, azure]
+  docs:
+    - title: Azure API Management documentation
+      url: https://learn.microsoft.com/en-us/azure/api-management/
+
+- id: kong
+  name: Kong Gateway
+  aliases: [kong, kong gateway, kong konnect]
+  vendor: Kong
+  category: apis
+  role: api
+  layer: serving
+  environment: any
+  legacy: false
+  clouds: [aws, azure, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: plug
+  color: "#003459"
+  description: Open-source, cloud-agnostic API gateway built on NGINX/OpenResty with a plugin architecture, available self-managed or via the Kong Konnect SaaS control plane.
+  typical_legacy_use: Provides a consistent API gateway and Kubernetes ingress across multicloud and on-prem environments.
+  capabilities: [api-gateway, rate-limiting, api-security, ingress-controller, plugin-extensibility]
+  possible_targets: []
+  alternatives: [apigee, amazon-api-gateway, azure-api-management]
+  replaces: []
+  suggested_next: [kubernetes, prometheus, opentelemetry]
+  migration_considerations:
+    - Choose between DB-less declarative configuration and database-backed mode.
+    - Manage routes, services and plugins declaratively (decK) through CI/CD.
+    - Run as a Kubernetes ingress controller for containerised backends.
+  known_challenges:
+    - Some enterprise plugins require a paid licence.
+    - Self-managed deployments require high-availability and upgrade planning.
+  risks: [operational-readiness, licensing-overlap]
+  strategies: [retain, replatform]
+  skills: [Kong, API design, Kubernetes]
+  tags: [api, gateway, open-source, multicloud]
+  docs:
+    - title: Kong Gateway documentation
+      url: https://developer.konghq.com/gateway/

@@ -1,0 +1,265 @@
+# IBM mainframe platform, runtimes, languages and data stores.
+- id: ibm-zos
+  name: IBM z/OS
+  aliases: [mainframe, z/os, zos, ibm mainframe, ibm z, system z, mvs]
+  vendor: IBM
+  category: mainframe
+  role: mainframe
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: cpu
+  color: "#7C3AED"
+  description: IBM's 64-bit operating system for IBM Z mainframes, hosting batch (JES/JCL) and online (CICS, IMS) workloads alongside Db2, VSAM and sequential datasets.
+  typical_legacy_use: System of record for core banking, insurance policy administration, airline reservations and government benefits, running nightly batch cycles and high-volume online transactions.
+  capabilities: [batch-processing, online-transaction-processing, high-availability, workload-management, ebcdic-data]
+  possible_targets: [databricks, bigquery, snowflake, java, spring, kubernetes, aws, gcp, azure]
+  alternatives: []
+  replaces: []
+  suggested_next: [cobol, jcl, ibm-db2-zos, vsam, cics, qlik-replicate, flat-files-sftp, control-m]
+  migration_considerations:
+    - Build a full inventory of programs, copybooks, JCL, datasets, schedules and interfaces; mainframe estates commonly contain unused or duplicated assets.
+    - Choose a pattern per workload; offloading data to an analytics platform is often done first while transactional processing stays on the mainframe.
+    - EBCDIC encoding, packed decimal (COMP-3), binary fields and REDEFINES require copybook-driven conversion.
+    - MIPS/MSU consumption by CDC agents and extract jobs must be budgeted with the mainframe capacity team.
+    - Batch windows and upstream/downstream file interfaces define cutover constraints.
+  known_challenges:
+    - Decades of undocumented business rules embedded in COBOL and JCL.
+    - Retiring SMEs and limited availability of mainframe skills.
+    - Performance and throughput guarantees of the platform are hard to match for some batch workloads.
+  risks: [hidden-business-logic, mainframe-encoding, skills-gap, scheduling-dependency-loss, cutover-downtime, regulatory-compliance]
+  strategies: [retain, rehost, replatform, refactor, rearchitect, retire]
+  skills: [z/OS systems programming, COBOL, JCL, Db2 for z/OS, mainframe data conversion]
+  tags: [mainframe, ibm, legacy, batch]
+  docs:
+    - title: IBM z/OS documentation
+      url: https://www.ibm.com/docs/en/zos
+
+- id: cobol
+  name: COBOL
+  aliases: [cobol, enterprise cobol, cobol programs, copybooks, copybook]
+  vendor: IBM
+  category: mainframe
+  role: mainframe
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: file-code
+  color: "#6D28D9"
+  description: Business-oriented programming language; on z/OS typically IBM Enterprise COBOL compiled for batch and CICS/IMS online programs.
+  typical_legacy_use: Implements core business logic such as interest calculation, claims adjudication and billing, reading and writing VSAM, sequential files and Db2 tables.
+  capabilities: [business-logic, batch-processing, fixed-format-records, decimal-arithmetic]
+  possible_targets: [java, spring, dotnet, apache-spark, databricks, dbt]
+  alternatives: []
+  replaces: []
+  suggested_next: [java, spring, databricks, apache-spark, jcl, vsam]
+  migration_considerations:
+    - Copybooks define record layouts and must drive data conversion and schema generation.
+    - Decide between automated code conversion (e.g. COBOL to Java) and business-rule extraction followed by rewrite.
+    - Preserve fixed-point decimal semantics and rounding to avoid financial discrepancies.
+    - Identify dead code and unused programs before estimating conversion effort.
+  known_challenges:
+    - Automated conversion often yields hard-to-maintain code without refactoring.
+    - Logic is spread across programs, copybooks and JCL steps, making boundaries unclear.
+    - Test data and expected results are frequently unavailable for regression testing.
+  risks: [hidden-business-logic, skills-gap, mainframe-encoding, data-quality-regression]
+  strategies: [retain, rehost, refactor, rearchitect, retire]
+  skills: [COBOL, mainframe development, Java, business analysis]
+  tags: [mainframe, language, legacy]
+  docs:
+    - title: IBM Enterprise COBOL for z/OS documentation
+      url: https://www.ibm.com/docs/en/cobol-zos
+
+- id: cics
+  name: IBM CICS Transaction Server
+  aliases: [cics, cics ts, cics transaction server]
+  vendor: IBM
+  category: mainframe
+  role: mainframe
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: terminal
+  color: "#5B21B6"
+  description: IBM's online transaction processing monitor for z/OS, running COBOL, PL/I and Java transactions against VSAM and Db2.
+  typical_legacy_use: Hosts high-volume online transactions (account inquiry, payments, policy updates) driven by 3270 terminals, web services or MQ.
+  capabilities: [online-transaction-processing, transaction-management, 3270-screens, web-services, mq-integration]
+  possible_targets: [java, spring, kubernetes, apigee, amazon-api-gateway, azure-api-management]
+  alternatives: [ims]
+  replaces: []
+  suggested_next: [cobol, ibm-db2-zos, vsam, ibm-mq, java, spring]
+  migration_considerations:
+    - Map transaction boundaries, BMS maps and COMMAREA/channel interfaces before redesign.
+    - Exposing CICS transactions as APIs is a common intermediate step before full rewrite.
+    - Preserve two-phase commit and recovery semantics across Db2, VSAM and MQ resources.
+  known_challenges:
+    - Pseudo-conversational design and 3270 screen flows are tightly coupled to business logic.
+    - Response-time SLAs at mainframe volume are demanding for distributed replacements.
+  risks: [hidden-business-logic, integration-breakage, performance-regression, skills-gap]
+  strategies: [retain, rehost, refactor, rearchitect]
+  skills: [CICS, COBOL, transaction design, API design]
+  tags: [mainframe, oltp, legacy]
+  docs:
+    - title: IBM CICS Transaction Server documentation
+      url: https://www.ibm.com/docs/en/cics-ts
+
+- id: vsam
+  name: VSAM
+  aliases: [vsam, vsam files, ksds, esds]
+  vendor: IBM
+  category: mainframe
+  role: mainframe
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: binary
+  color: "#7C3AED"
+  description: Virtual Storage Access Method, the z/OS file access method for keyed (KSDS), entry-sequenced (ESDS) and relative-record datasets.
+  typical_legacy_use: Primary data store for many COBOL/CICS applications, holding master and transaction records in copybook-defined layouts.
+  capabilities: [keyed-access, sequential-access, fixed-format-records, ebcdic-data]
+  possible_targets: [ibm-db2-zos, postgresql, alloydb, amazon-aurora, databricks, bigquery]
+  alternatives: [ims, ibm-db2-zos]
+  replaces: []
+  suggested_next: [qlik-replicate, flat-files-sftp, landing-zone, databricks, cobol]
+  migration_considerations:
+    - Convert records using copybooks, including COMP-3, binary, signed zoned decimal and REDEFINES/OCCURS DEPENDING ON.
+    - VSAM has no schema or referential constraints; data quality must be profiled before loading into relational or lakehouse targets.
+    - CDC from VSAM requires specialised tooling (e.g. IBM InfoSphere Data Replication, Qlik Replicate with appropriate agents) or batch unloads.
+  known_challenges:
+    - Multiple record types in one dataset complicate normalisation.
+    - Low-values/high-values and invalid packed fields break naive converters.
+  risks: [mainframe-encoding, data-type-mismatch, data-quality-regression, hidden-business-logic]
+  strategies: [retain, replatform, refactor, rearchitect]
+  skills: [VSAM, COBOL copybooks, mainframe data conversion]
+  tags: [mainframe, files, legacy]
+  docs:
+    - title: IBM z/OS DFSMS documentation
+      url: https://www.ibm.com/docs/en/zos
+
+- id: jcl
+  name: JCL
+  aliases: [jcl, job control language, jes, mainframe batch]
+  vendor: IBM
+  category: mainframe
+  role: mainframe
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: file-text
+  color: "#8B5CF6"
+  description: Job Control Language, the scripting language that defines z/OS batch jobs, steps, programs and dataset allocations.
+  typical_legacy_use: Defines nightly batch cycles (sorts, COBOL program steps, utilities, file transfers), usually triggered by a scheduler such as Control-M, CA-7 or TWS.
+  capabilities: [batch-processing, job-steps, dataset-allocation, conditional-execution, procs]
+  possible_targets: [databricks-workflows, apache-airflow, cloud-composer, amazon-mwaa, aws-step-functions, control-m]
+  alternatives: []
+  replaces: []
+  suggested_next: [control-m, databricks-workflows, apache-airflow, cobol, flat-files-sftp]
+  migration_considerations:
+    - Parse JCL and PROCs to build a job/step/dataset dependency graph before converting.
+    - DFSORT/ICETOOL and utility steps often contain transformation logic that must be reimplemented.
+    - Generation data groups (GDGs) and condition codes need equivalents in the target orchestrator.
+  known_challenges:
+    - Dependencies are split between JCL and the external scheduler definitions.
+    - Symbolic parameters and overrides make static analysis incomplete.
+  risks: [scheduling-dependency-loss, hidden-business-logic, skills-gap]
+  strategies: [retain, rehost, refactor, retire]
+  skills: [JCL, z/OS batch, workload scheduling]
+  tags: [mainframe, batch, scheduling, legacy]
+  docs:
+    - title: IBM z/OS MVS JCL documentation
+      url: https://www.ibm.com/docs/en/zos
+
+- id: ibm-db2-zos
+  name: IBM Db2 for z/OS
+  aliases: [db2 z/os, db2 for z/os, db2 zos, mainframe db2]
+  vendor: IBM
+  category: mainframe
+  role: source-database
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#6D28D9"
+  description: IBM's relational database for the z/OS mainframe, serving CICS, IMS and batch COBOL applications.
+  typical_legacy_use: Relational system of record for mainframe applications, accessed via static embedded SQL from COBOL with plans and packages bound per program.
+  capabilities: [oltp, sql, static-sql, stored-procedures, data-sharing, high-availability, ebcdic-data]
+  possible_targets: [databricks, bigquery, snowflake, alloydb, amazon-aurora, azure-sql-database, postgresql]
+  alternatives: [ims, vsam]
+  replaces: []
+  suggested_next: [qlik-replicate, striim, aws-dms, lakeflow-connect, apache-kafka, landing-zone, databricks]
+  migration_considerations:
+    - Log-based CDC (IBM Data Replication, Qlik Replicate, others) reads the Db2 log and consumes mainframe MIPS; size and approve it with the capacity team.
+    - EBCDIC code pages, DECIMAL and timestamp precision need explicit mapping on the target.
+    - Static SQL embedded in COBOL ties schema changes to program rebinds; coordinate schema evolution.
+    - Unload utilities (UNLOAD, HPU) provide bulk history extraction for initial loads.
+  known_challenges:
+    - Licensing and MIPS costs make continuous extraction expensive.
+    - Code-page conversion issues surface late, typically in special characters and packed data.
+  risks: [mainframe-encoding, cdc-lag, data-type-mismatch, cost-overrun, skills-gap]
+  strategies: [retain, replatform, refactor, rearchitect]
+  skills: [Db2 for z/OS DBA, COBOL embedded SQL, mainframe CDC]
+  tags: [mainframe, rdbms, ibm, legacy]
+  docs:
+    - title: IBM Db2 for z/OS documentation
+      url: https://www.ibm.com/docs/en/db2-for-zos
+
+- id: ims
+  name: IBM IMS
+  aliases: [ims, ims db, ims tm, information management system]
+  vendor: IBM
+  category: mainframe
+  role: mainframe
+  layer: sources
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: layers
+  color: "#5B21B6"
+  description: IBM Information Management System, a hierarchical database (IMS DB) and transaction manager (IMS TM) for z/OS.
+  typical_legacy_use: Very high-volume transactional systems in banking, insurance and manufacturing, storing hierarchical segments accessed by DL/I calls from COBOL or PL/I.
+  capabilities: [hierarchical-database, online-transaction-processing, batch-processing, ebcdic-data]
+  possible_targets: [ibm-db2-zos, postgresql, alloydb, amazon-aurora, databricks, bigquery]
+  alternatives: [ibm-db2-zos, cics, vsam]
+  replaces: []
+  suggested_next: [qlik-replicate, striim, flat-files-sftp, landing-zone, cobol]
+  migration_considerations:
+    - Hierarchical segment structures (DBDs, PSBs) must be remodelled into relational or nested structures.
+    - Use copybooks and DBD definitions to drive conversion of segment data.
+    - CDC requires IMS-capable replication tooling; otherwise rely on unloads.
+  known_challenges:
+    - Navigational DL/I access logic is embedded in application code and resists direct translation.
+    - Very few practitioners with deep IMS expertise remain.
+  risks: [hidden-business-logic, mainframe-encoding, skills-gap, data-type-mismatch]
+  strategies: [retain, refactor, rearchitect]
+  skills: [IMS DB/TM, COBOL, data modelling]
+  tags: [mainframe, hierarchical, legacy]
+  docs:
+    - title: IBM IMS documentation
+      url: https://www.ibm.com/docs/en/ims

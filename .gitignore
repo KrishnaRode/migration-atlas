@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Node / Next
+node_modules/
+.next/
+.next-build/
+apps/web/next-env.d.ts
+*.tsbuildinfo
+
+# Local runtime data (projects, knowledge store, graph)
+data/
+
+# Editors / OS / local tooling
+.DS_Store
+.idea/
+.vscode/
+.claude/
+*.log
+.env
+.env.local

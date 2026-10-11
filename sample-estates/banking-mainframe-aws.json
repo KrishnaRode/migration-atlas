@@ -1,0 +1,45 @@
+{
+  "id": "banking-mainframe-aws",
+  "title": "Banking Mainframe Transformation",
+  "subtitle": "DB2 + COBOL + CICS \u2192 AWS",
+  "industry": "Banking",
+  "featured": false,
+  "description": "Core banking runs on IBM z/OS with COBOL and CICS transactions over DB2 for z/OS and VSAM files, batch driven by JCL. We want to modernize onto AWS incrementally, keep the mainframe running during coexistence, and meet strict regulatory and DR requirements.",
+  "project": {
+    "name": "Banking Mainframe Transformation",
+    "description": "DB2 + COBOL + CICS \u2192 AWS",
+    "industry": "Banking",
+    "estate": {
+      "description": "Core banking runs on IBM z/OS with COBOL and CICS transactions over DB2 for z/OS and VSAM files, batch driven by JCL. We want to modernize onto AWS incrementally, keep the mainframe running during coexistence, and meet strict regulatory and DR requirements.",
+      "industry": "Banking",
+      "current_technologies": [
+        "ibm-db2-zos",
+        "cobol",
+        "cics",
+        "vsam",
+        "jcl"
+      ],
+      "target_cloud": "aws",
+      "target_platforms": [],
+      "constraints": [
+        {
+          "id": "minimize-downtime",
+          "priority": "critical"
+        },
+        {
+          "id": "regulatory",
+          "priority": "critical"
+        },
+        {
+          "id": "disaster-recovery",
+          "priority": "high"
+        },
+        {
+          "id": "high-availability",
+          "priority": "high"
+        }
+      ],
+      "data_volume_tb": 60
+    }
+  }
+}

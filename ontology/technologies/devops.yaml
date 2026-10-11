@@ -1,0 +1,261 @@
+# DevOps technologies: CI/CD, infrastructure as code and deployment automation.
+
+- id: terraform
+  name: Terraform
+  aliases: [terraform, hashicorp terraform, tf]
+  vendor: HashiCorp
+  category: devops
+  role: devops
+  layer: operations
+  environment: any
+  legacy: false
+  clouds: [aws, azure, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: git-branch
+  color: "#7B42BC"
+  description: Infrastructure-as-code tool that declaratively provisions and manages cloud, SaaS and data-platform resources through providers, plans and state.
+  typical_legacy_use: Provisions landing zones, networks, IAM, storage and data platforms (Databricks, Snowflake, BigQuery) consistently across environments.
+  capabilities: [infrastructure-as-code, deployment-automation, drift-detection, multicloud-provisioning]
+  possible_targets: []
+  alternatives: [databricks-asset-bundles]
+  replaces: []
+  suggested_next: [github-actions, azure-devops, gitlab-ci, hashicorp-vault]
+  migration_considerations:
+    - Establish remote state with locking and separate state per environment and component.
+    - Build reusable modules for landing zone, networking and data-platform workspaces.
+    - Import existing manually created resources before managing them as code.
+    - Run plan in pull requests and apply from CI/CD with least-privilege credentials.
+  known_challenges:
+    - State drift and manual console changes cause failed or destructive applies.
+    - Licence change (BSL) leads some enterprises to evaluate OpenTofu.
+  risks: [operational-readiness, skills-gap, security-gap]
+  strategies: [refactor, rearchitect]
+  skills: [Terraform, HCL, Cloud architecture]
+  tags: [devops, iac, multicloud]
+  docs:
+    - title: Terraform documentation
+      url: https://developer.hashicorp.com/terraform/docs
+
+- id: github-actions
+  name: GitHub Actions
+  aliases: [github actions, gha, github workflows]
+  vendor: GitHub (Microsoft)
+  category: devops
+  role: devops
+  layer: operations
+  environment: saas
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: rocket
+  color: "#2088FF"
+  description: CI/CD and workflow automation built into GitHub, running YAML-defined workflows on hosted or self-hosted runners.
+  typical_legacy_use: Builds, tests and deploys pipeline code, dbt projects, Terraform and Databricks bundles on pull request and merge events.
+  capabilities: [ci-cd, deployment-automation, workflow-automation, testing]
+  possible_targets: []
+  alternatives: [azure-devops, gitlab-ci, jenkins, google-cloud-build]
+  replaces: [jenkins]
+  suggested_next: [terraform, databricks-asset-bundles, docker]
+  migration_considerations:
+    - Use OIDC federation to cloud providers instead of long-lived secrets.
+    - Protect production deployments with environments, required reviewers and branch protection.
+    - Use self-hosted runners in private networks when deploying to private endpoints.
+  known_challenges:
+    - Third-party actions introduce supply-chain risk unless pinned to commit SHAs.
+    - Hosted-runner minutes and network access limits for private resources.
+  risks: [security-gap, operational-readiness]
+  strategies: [repurchase, refactor]
+  skills: [GitHub Actions, YAML, CI/CD design]
+  tags: [devops, ci-cd, github]
+  docs:
+    - title: GitHub Actions documentation
+      url: https://docs.github.com/actions
+
+- id: azure-devops
+  name: Azure DevOps
+  aliases: [azure devops, ado, azure pipelines, vsts]
+  vendor: Microsoft
+  category: devops
+  role: devops
+  layer: operations
+  environment: saas
+  legacy: false
+  clouds: [azure, any]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: rocket
+  color: "#0078D7"
+  description: Microsoft's suite of Boards, Repos, Pipelines, Test Plans and Artifacts for planning, building and releasing software.
+  typical_legacy_use: Runs CI/CD for Azure Data Factory, Synapse, SQL and Databricks deployments, often alongside work tracking in Boards.
+  capabilities: [ci-cd, deployment-automation, source-control, artifact-management, work-tracking]
+  possible_targets: [github-actions]
+  alternatives: [github-actions, gitlab-ci, jenkins]
+  replaces: []
+  suggested_next: [terraform, microsoft-entra-id, azure-key-vault, databricks-asset-bundles]
+  migration_considerations:
+    - Use workload identity federation service connections instead of client secrets.
+    - Convert classic release pipelines to YAML multi-stage pipelines with environment approvals.
+    - Integrate ADF Git mode and ARM template deployment for data factory promotion.
+  known_challenges:
+    - Classic pipelines are not portable as code and require manual conversion.
+    - Microsoft's strategic investment is shifting toward GitHub, influencing long-term tooling choices.
+  risks: [operational-readiness, vendor-lock-in]
+  strategies: [retain, repurchase]
+  skills: [Azure Pipelines, YAML, Azure administration]
+  tags: [devops, ci-cd, azure]
+  docs:
+    - title: Azure DevOps documentation
+      url: https://learn.microsoft.com/en-us/azure/devops/
+
+- id: gitlab-ci
+  name: GitLab CI/CD
+  aliases: [gitlab ci, gitlab ci/cd, gitlab pipelines]
+  vendor: GitLab
+  category: devops
+  role: devops
+  layer: operations
+  environment: hybrid
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: rocket
+  color: "#FC6D26"
+  description: GitLab's integrated CI/CD system that runs .gitlab-ci.yml pipelines on GitLab Runners, available as SaaS or self-managed.
+  typical_legacy_use: Builds and deploys application, infrastructure and data-pipeline code for organisations standardised on GitLab for source control.
+  capabilities: [ci-cd, deployment-automation, source-control, security-scanning]
+  possible_targets: []
+  alternatives: [github-actions, azure-devops, jenkins]
+  replaces: [jenkins]
+  suggested_next: [terraform, docker, kubernetes]
+  migration_considerations:
+    - Use OIDC ID tokens for cloud authentication rather than CI variables holding keys.
+    - Register runners inside target networks for private deployments.
+    - Use protected environments and branches for production promotion.
+  known_challenges:
+    - Self-managed GitLab instances require upgrade and runner fleet management.
+    - Complex include and rules logic can make pipelines hard to debug.
+  risks: [operational-readiness, security-gap]
+  strategies: [retain, repurchase]
+  skills: [GitLab CI, YAML, CI/CD design]
+  tags: [devops, ci-cd, gitlab]
+  docs:
+    - title: GitLab CI/CD documentation
+      url: https://docs.gitlab.com/ci/
+
+- id: jenkins
+  name: Jenkins
+  aliases: [jenkins, jenkins ci]
+  vendor: Jenkins project (CD Foundation)
+  category: devops
+  role: devops
+  layer: operations
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: git-branch
+  color: "#D24939"
+  description: Open-source automation server with a large plugin ecosystem, using Jenkinsfile pipelines to build, test and deploy software.
+  typical_legacy_use: Runs on-prem build and deployment jobs for ETL code, database scripts and applications, often with many freestyle jobs and shared libraries.
+  capabilities: [ci-cd, deployment-automation, build-automation]
+  possible_targets: [github-actions, gitlab-ci, azure-devops, google-cloud-build]
+  alternatives: [github-actions, gitlab-ci, azure-devops]
+  replaces: []
+  suggested_next: [github-actions, gitlab-ci, terraform]
+  migration_considerations:
+    - Inventory freestyle jobs, plugins and shared libraries before converting to modern pipelines.
+    - Move credentials from the Jenkins credential store to a secrets manager.
+    - Run Jenkins agents in the target cloud temporarily to deploy to private resources during transition.
+  known_challenges:
+    - Plugin sprawl and outdated plugins create security vulnerabilities and upgrade friction.
+    - Freestyle and scripted jobs embed logic that is hard to translate automatically.
+  risks: [hidden-business-logic, security-gap, operational-readiness]
+  strategies: [retain, rehost, repurchase, retire]
+  skills: [Jenkins, Groovy, CI/CD design]
+  tags: [devops, ci-cd, legacy, open-source]
+  docs:
+    - title: Jenkins user documentation
+      url: https://www.jenkins.io/doc/
+
+- id: google-cloud-build
+  name: Google Cloud Build
+  aliases: [cloud build, google cloud build]
+  vendor: Google Cloud
+  category: devops
+  role: devops
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: rocket
+  color: "#4285F4"
+  description: Google Cloud's serverless CI/CD service that executes build steps in containers, with triggers, private pools and integration with Artifact Registry and Cloud Deploy.
+  typical_legacy_use: Builds container images and deploys Dataflow templates, Composer DAGs, Cloud Run services and Terraform for GCP workloads.
+  capabilities: [ci-cd, deployment-automation, build-automation, container-build]
+  possible_targets: []
+  alternatives: [github-actions, gitlab-ci, jenkins]
+  replaces: [jenkins]
+  suggested_next: [terraform, gke, cloud-composer, google-iam]
+  migration_considerations:
+    - Use dedicated, least-privilege service accounts per trigger rather than the default Cloud Build account.
+    - Use private pools to reach resources inside VPC Service Controls perimeters or private networks.
+    - Store artefacts in Artifact Registry with vulnerability scanning enabled.
+  known_challenges:
+    - Limited to GCP-centric workflows; multicloud deployments typically need another CI system.
+    - Complex pipelines can become verbose in cloudbuild.yaml.
+  risks: [vendor-lock-in, security-gap]
+  strategies: [repurchase, replatform]
+  skills: [Google Cloud Build, Containers, YAML]
+  tags: [devops, ci-cd, gcp]
+  docs:
+    - title: Cloud Build documentation
+      url: https://cloud.google.com/build/docs
+
+- id: databricks-asset-bundles
+  name: Databricks Asset Bundles
+  aliases: [databricks asset bundles, dabs, databricks bundles]
+  vendor: Databricks
+  category: devops
+  role: devops
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [databricks]
+  operational_model: managed
+  icon: git-branch
+  color: "#FF3621"
+  description: Databricks infrastructure-as-code format and CLI for defining jobs, pipelines, notebooks, models and other workspace resources in YAML and deploying them across targets.
+  typical_legacy_use: Packages migrated notebooks, Lakeflow pipelines and Databricks Workflows as versioned bundles promoted from dev to test to prod via CI/CD.
+  capabilities: [infrastructure-as-code, deployment-automation, ci-cd, environment-promotion]
+  possible_targets: []
+  alternatives: [terraform]
+  replaces: []
+  suggested_next: [github-actions, azure-devops, databricks-workflows, lakeflow-declarative-pipelines]
+  migration_considerations:
+    - Define targets per environment with service principals running deployments.
+    - Keep workspace-level infrastructure (workspaces, metastores, networking) in Terraform and project resources in bundles.
+    - Parameterise catalogs and schemas so the same bundle deploys to each environment.
+  known_challenges:
+    - Teams moving from notebook-UI development need Git and local IDE workflows.
+    - Coordinating bundle resources with Terraform-managed resources requires clear ownership boundaries.
+  risks: [skills-gap, operational-readiness]
+  strategies: [refactor]
+  skills: [Databricks CLI, YAML, CI/CD design]
+  tags: [devops, iac, databricks]
+  docs:
+    - title: What are Databricks Asset Bundles?
+      url: https://docs.databricks.com/en/dev-tools/bundles/index.html

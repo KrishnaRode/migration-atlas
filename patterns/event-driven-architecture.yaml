@@ -1,0 +1,61 @@
+id: event-driven-architecture
+name: Event-Driven Architecture
+summary: Services publish domain events via a transactional outbox and CDC to Amazon MSK, decoupling consumers, stream processing and analytics.
+description: >-
+  Replaces point-to-point messaging and synchronous integrations with a durable event backbone.
+  Representative implementation on AWS - services write to Aurora with a transactional outbox, Debezium on
+  MSK Connect publishes outbox events to Amazon MSK, Apache Flink enriches streams to an S3 archive, and
+  downstream services and Redshift streaming ingestion consume independently.
+suitable_scenarios:
+  - Modernising IBM MQ or other point-to-point integrations
+  - Microservices requiring reliable event publication without dual writes
+  - Real-time analytics on business events alongside operational consumers
+components:
+  - amazon-api-gateway
+  - java
+  - amazon-aurora
+  - debezium
+  - amazon-msk
+  - apache-flink
+  - dotnet
+  - amazon-s3
+  - amazon-redshift
+  - aws-glue-data-catalog
+  - aws-secrets-manager
+  - amazon-cloudwatch
+benefits:
+  - Loose coupling and independent scaling of producers and consumers
+  - Replayable event log supports new consumers and recovery
+  - Outbox pattern guarantees consistency between state and events
+limitations:
+  - Eventual consistency requires careful UX and business process design
+  - Schema governance and versioning are mandatory
+  - Operational complexity of partitions, consumer lag and ordering guarantees
+tags: [aws, event-driven, kafka, microservices, streaming]
+template:
+  nodes:
+    - {key: apigw, tech: amazon-api-gateway}
+    - {key: svc, tech: java, label: "Order service"}
+    - {key: aurora, tech: amazon-aurora, label: "Service DB + outbox"}
+    - {key: debezium, tech: debezium, label: "Debezium (MSK Connect)"}
+    - {key: msk, tech: amazon-msk}
+    - {key: flink, tech: apache-flink, label: "Flink enrichment"}
+    - {key: consumer, tech: dotnet, label: "Fulfilment service"}
+    - {key: s3, tech: amazon-s3, label: "Event archive"}
+    - {key: redshift, tech: amazon-redshift}
+    - {key: catalog, tech: aws-glue-data-catalog}
+    - {key: secrets, tech: aws-secrets-manager}
+    - {key: cw, tech: amazon-cloudwatch}
+  edges:
+    - {from: apigw, to: svc, mode: api, latency: real-time}
+    - {from: svc, to: aurora, label: "State + outbox in one transaction", mode: query}
+    - {from: aurora, to: debezium, label: "Outbox CDC", mode: cdc, frequency: continuous, latency: near-real-time}
+    - {from: debezium, to: msk, label: "Domain events", mode: streaming, frequency: continuous, latency: real-time, format: avro}
+    - {from: msk, to: consumer, label: "Consumer group", mode: streaming, frequency: continuous, latency: real-time}
+    - {from: msk, to: flink, mode: streaming, frequency: continuous, latency: seconds}
+    - {from: flink, to: s3, label: "Enriched events", mode: streaming, frequency: continuous, latency: minutes, format: parquet}
+    - {from: msk, to: redshift, label: "Streaming ingestion", mode: streaming, frequency: continuous, latency: seconds}
+    - {from: catalog, to: s3, label: "Table metadata", mode: governance, kind: governance}
+    - {from: secrets, to: debezium, label: "Database credentials", kind: security}
+    - {from: msk, to: cw, label: "Consumer lag", kind: monitoring}
+    - {from: flink, to: cw, kind: monitoring}

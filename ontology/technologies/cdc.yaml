@@ -1,0 +1,371 @@
+# Change data capture, replication and incremental ingestion services.
+- id: oracle-goldengate
+  name: Oracle GoldenGate
+  aliases: [goldengate, golden gate, ogg, oracle goldengate]
+  vendor: Oracle
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: git-compare
+  color: "#C74634"
+  description: Oracle's log-based, real-time data replication and CDC product for Oracle and heterogeneous databases (also offered as OCI GoldenGate).
+  typical_legacy_use: Replicates Oracle OLTP changes to reporting databases, DR sites, warehouses or Kafka, and supports zero-downtime database migrations.
+  capabilities: [log-based-cdc, real-time-replication, bidirectional-replication, kafka-handler, heterogeneous-targets]
+  possible_targets: [lakeflow-connect, google-datastream, aws-dms, qlik-replicate, debezium]
+  alternatives: [qlik-replicate, striim, aws-dms, google-datastream, debezium]
+  replaces: []
+  suggested_next: [apache-kafka, landing-zone, delta-bronze, google-cloud-storage, amazon-s3, databricks]
+  migration_considerations:
+    - Requires supplemental logging on source tables and Extract/Replicat process design per workload.
+    - GoldenGate is licensed per processor on source and target hosts; include it in licence planning.
+    - For lakehouse targets, deliver through GoldenGate for Big Data handlers (Kafka, object storage) or switch to a managed CDC service.
+  known_challenges:
+    - Operating trails, checkpoints and lag monitoring requires specialist skills.
+    - DDL replication and large LOB handling need careful configuration.
+  risks: [cdc-lag, licensing-overlap, skills-gap, schema-drift]
+  strategies: [retain, replatform, repurchase, retire]
+  skills: [GoldenGate administration, Oracle DBA]
+  tags: [cdc, replication, oracle]
+  docs:
+    - title: Oracle GoldenGate documentation
+      url: https://docs.oracle.com/en/middleware/goldengate/
+
+- id: lakeflow-connect
+  name: Databricks Lakeflow Connect
+  aliases: [lakeflow connect, databricks lakeflow connect, databricks ingestion connectors, lakeflow ingestion]
+  vendor: Databricks
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [databricks]
+  operational_model: managed
+  icon: git-compare
+  color: "#FF3621"
+  description: Databricks' managed ingestion connectors that load data from databases and SaaS applications into Unity Catalog-governed Delta tables, incrementally where the source supports it.
+  typical_legacy_use: Replaces bespoke extract jobs and third-party CDC tools for landing operational database and SaaS data (e.g. SQL Server, Salesforce, Workday) into the Databricks lakehouse.
+  capabilities: [managed-ingestion, incremental-cdc, saas-connectors, database-connectors, unity-catalog-integration, serverless]
+  possible_targets: []
+  alternatives: [google-datastream, aws-dms, qlik-replicate, oracle-goldengate, striim, debezium]
+  replaces: [oracle-goldengate, qlik-replicate]
+  suggested_next: [delta-bronze, lakeflow-declarative-pipelines, unity-catalog, databricks-workflows, delta-silver]
+  migration_considerations:
+    - Connector coverage and maturity vary by source and change over time; check the current Databricks documentation for availability (GA vs preview) of each source before committing.
+    - Database connectors use a gateway and require source-side CDC/change-tracking configuration and network connectivity to the source.
+    - Ingestion runs on serverless compute in Unity Catalog-enabled workspaces; confirm these prerequisites are in place.
+    - Plan schema evolution handling and the downstream bronze-to-silver pipeline.
+  known_challenges:
+    - Sources not yet supported require an alternative CDC tool or custom ingestion.
+    - Private connectivity from serverless compute to on-premises sources needs network design.
+  risks: [cdc-lag, schema-drift, network-bandwidth, vendor-lock-in]
+  strategies: [replatform, rearchitect]
+  skills: [Databricks, Unity Catalog, CDC concepts]
+  tags: [cdc, ingestion, databricks, managed]
+  docs:
+    - title: Lakeflow Connect documentation
+      url: https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/
+
+- id: google-datastream
+  name: Datastream
+  aliases: [datastream, google datastream, gcp datastream]
+  vendor: Google Cloud
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: git-compare
+  color: "#4285F4"
+  description: Google Cloud's serverless CDC and replication service that streams changes from Oracle, MySQL, PostgreSQL, SQL Server and other sources to BigQuery or Cloud Storage.
+  typical_legacy_use: Near-real-time replication of operational databases into BigQuery or a GCS landing zone for analytics on Google Cloud.
+  capabilities: [log-based-cdc, serverless, backfill, bigquery-direct-write, gcs-delivery]
+  possible_targets: []
+  alternatives: [aws-dms, azure-dms, lakeflow-connect, oracle-goldengate, qlik-replicate, striim, debezium]
+  replaces: [oracle-goldengate, qlik-replicate]
+  suggested_next: [bigquery, google-cloud-storage, landing-zone, google-dataflow, google-cloud-monitoring]
+  migration_considerations:
+    - Confirm source version and configuration requirements (e.g. Oracle LogMiner/archive logging, MySQL binlog, PostgreSQL logical replication).
+    - Choose connectivity (IP allowlisting, forward SSH tunnel or private connectivity) based on security requirements.
+    - Direct-to-BigQuery mode applies changes with configurable staleness; GCS mode writes files for downstream processing.
+  known_challenges:
+    - Unsupported data types or very large LOBs may be skipped or truncated per source rules.
+    - Throughput limits per stream can affect high-volume sources.
+  risks: [cdc-lag, schema-drift, data-type-mismatch, network-bandwidth]
+  strategies: [replatform, rearchitect]
+  skills: [Google Cloud, CDC concepts, BigQuery]
+  tags: [cdc, gcp, serverless]
+  docs:
+    - title: Datastream documentation
+      url: https://cloud.google.com/datastream/docs
+
+- id: aws-dms
+  name: AWS Database Migration Service
+  aliases: [dms, aws dms, database migration service, aws database migration service]
+  vendor: Amazon Web Services
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: git-compare
+  color: "#FF9900"
+  description: AWS's managed service for full-load and ongoing CDC replication between homogeneous and heterogeneous databases, plus S3 and Kinesis/Kafka targets.
+  typical_legacy_use: Database migrations to RDS/Aurora and ongoing replication of Oracle, SQL Server, MySQL, PostgreSQL and Db2 into S3 data lakes and Redshift.
+  capabilities: [full-load, log-based-cdc, heterogeneous-replication, schema-conversion, s3-delivery, serverless-option]
+  possible_targets: []
+  alternatives: [google-datastream, azure-dms, lakeflow-connect, qlik-replicate, oracle-goldengate, debezium]
+  replaces: [oracle-goldengate]
+  suggested_next: [amazon-s3, amazon-aurora, landing-zone, amazon-kinesis, amazon-redshift, amazon-cloudwatch]
+  migration_considerations:
+    - Use DMS Schema Conversion or AWS SCT for heterogeneous schema and code conversion; DMS moves data only.
+    - Size replication instances (or DMS Serverless) for full load and CDC throughput; monitor CDC latency metrics.
+    - LOB handling mode (limited vs full) materially affects performance and completeness.
+  known_challenges:
+    - Secondary indexes, triggers and some constraints are not migrated automatically.
+    - CDC on some sources requires specific privileges or log settings that DBAs may resist.
+  risks: [cdc-lag, data-type-mismatch, cutover-downtime, operational-readiness]
+  strategies: [rehost, replatform]
+  skills: [AWS, database migration, CDC concepts]
+  tags: [cdc, migration, aws]
+  docs:
+    - title: AWS Database Migration Service documentation
+      url: https://docs.aws.amazon.com/dms/
+
+- id: azure-dms
+  name: Azure Database Migration Service
+  aliases: [azure dms, azure database migration service]
+  vendor: Microsoft
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: git-compare
+  color: "#0078D4"
+  description: Azure's managed service for migrating SQL Server, MySQL, PostgreSQL and MongoDB databases to Azure data services, online or offline.
+  typical_legacy_use: Moves on-premises SQL Server databases to Azure SQL Managed Instance, Azure SQL Database or SQL Server on Azure VMs, often via the Azure SQL migration extension.
+  capabilities: [database-migration, online-migration, offline-migration, assessment-integration]
+  possible_targets: []
+  alternatives: [aws-dms, google-datastream, qlik-replicate, striim]
+  replaces: []
+  suggested_next: [azure-sql-database, azure-monitor, azure-data-factory, private-connectivity]
+  migration_considerations:
+    - Azure DMS is a migration service, not a long-running analytics CDC feed; use other tools for continuous lakehouse ingestion.
+    - Run compatibility assessments (Azure Migrate / SQL migration extension) before migration.
+    - Online migrations for SQL Server to Managed Instance rely on log backups; plan the backup share and cutover.
+  known_challenges:
+    - Supported source/target pairs and modes differ by engine; verify the specific scenario.
+    - Self-hosted integration runtime and network access are required for on-premises sources.
+  risks: [cutover-downtime, integration-breakage, operational-readiness]
+  strategies: [rehost, replatform]
+  skills: [Azure, SQL Server, database migration]
+  tags: [migration, azure]
+  docs:
+    - title: Azure Database Migration Service documentation
+      url: https://learn.microsoft.com/en-us/azure/dms/
+
+- id: debezium
+  name: Debezium
+  aliases: [debezium, kafka connect cdc]
+  vendor: Red Hat / Debezium community
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: git-compare
+  color: "#91D443"
+  description: Open-source distributed CDC platform, typically deployed as Kafka Connect source connectors, emitting row-level change events from database logs.
+  typical_legacy_use: Streams changes from MySQL, PostgreSQL, SQL Server, Oracle, Db2 and MongoDB into Kafka for event-driven architectures and lakehouse ingestion.
+  capabilities: [log-based-cdc, kafka-connect, event-streaming, schema-history, incremental-snapshots]
+  possible_targets: []
+  alternatives: [qlik-replicate, striim, oracle-goldengate, aws-dms, google-datastream, lakeflow-connect]
+  replaces: [oracle-goldengate]
+  suggested_next: [apache-kafka, confluent-cloud, amazon-msk, spark-structured-streaming, delta-bronze, landing-zone]
+  migration_considerations:
+    - Requires a Kafka Connect cluster (or Debezium Server) and schema registry strategy; operational ownership must be clear.
+    - Configure source logs (binlog, WAL logical decoding, SQL Server CDC, Oracle LogMiner/XStream) per connector.
+    - Plan initial snapshots versus incremental snapshots for large tables.
+  known_challenges:
+    - Operating Kafka and connectors at scale requires platform engineering skills.
+    - Schema changes and connector restarts need careful offset management to avoid duplicates or gaps.
+  risks: [cdc-lag, schema-drift, operational-readiness, skills-gap]
+  strategies: [replatform, rearchitect]
+  skills: [Kafka Connect, CDC concepts, platform engineering]
+  tags: [cdc, open-source, kafka]
+  docs:
+    - title: Debezium documentation
+      url: https://debezium.io/documentation/
+
+- id: qlik-replicate
+  name: Qlik Replicate
+  aliases: [qlik replicate, attunity, attunity replicate]
+  vendor: Qlik
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: git-compare
+  color: "#009845"
+  description: Log-based CDC and replication product (formerly Attunity Replicate) supporting a wide range of sources including mainframe Db2, IMS and VSAM via agents.
+  typical_legacy_use: Replicates Oracle, SQL Server, Db2 (including z/OS) and SAP data into warehouses, Kafka and cloud data platforms.
+  capabilities: [log-based-cdc, full-load, heterogeneous-replication, mainframe-sources, sap-sources]
+  possible_targets: [lakeflow-connect, google-datastream, aws-dms, debezium]
+  alternatives: [oracle-goldengate, striim, aws-dms, google-datastream, debezium, lakeflow-connect]
+  replaces: [oracle-goldengate]
+  suggested_next: [landing-zone, apache-kafka, delta-bronze, databricks, snowflake, bigquery]
+  migration_considerations:
+    - Broad source support makes it a common choice for mainframe and SAP CDC; confirm licensing per source/target endpoint.
+    - Plan the Replicate server sizing, HA and task design (full load, apply changes, store changes).
+    - Use Qlik Enterprise Manager for monitoring at scale.
+  known_challenges:
+    - Licence costs scale with endpoints and cores.
+    - Some mainframe sources need additional agents and MIPS budget.
+  risks: [cdc-lag, licensing-overlap, cost-overrun]
+  strategies: [retain, replatform, repurchase]
+  skills: [Qlik Replicate administration, CDC concepts]
+  tags: [cdc, replication]
+  docs:
+    - title: Qlik Replicate help
+      url: https://help.qlik.com/en-US/replicate/
+
+- id: striim
+  name: Striim
+  aliases: [striim]
+  vendor: Striim
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: git-compare
+  color: "#00A7E1"
+  description: Real-time data integration platform combining log-based CDC with in-flight streaming SQL transformations, available self-managed or as Striim Cloud.
+  typical_legacy_use: Streams Oracle, SQL Server and other database changes to cloud warehouses, Kafka and object storage with low latency.
+  capabilities: [log-based-cdc, stream-processing, real-time-replication, in-flight-transformation]
+  possible_targets: []
+  alternatives: [oracle-goldengate, qlik-replicate, debezium, google-datastream, aws-dms]
+  replaces: [oracle-goldengate]
+  suggested_next: [apache-kafka, bigquery, snowflake, databricks, landing-zone]
+  migration_considerations:
+    - Decide between Striim Cloud and self-managed deployment based on network and data-residency requirements.
+    - In-flight transformations (TQL) add logic that must be governed and tested like any pipeline code.
+    - Validate supported source versions and target writers for the planned topology.
+  known_challenges:
+    - Smaller talent pool than mainstream tools.
+    - Logic in streaming applications can become a hidden transformation layer.
+  risks: [cdc-lag, hidden-business-logic, vendor-lock-in]
+  strategies: [replatform, rearchitect]
+  skills: [Striim, CDC concepts, streaming SQL]
+  tags: [cdc, streaming]
+  docs:
+    - title: Striim documentation
+      url: https://www.striim.com/docs/
+
+- id: snowpipe
+  name: Snowpipe
+  aliases: [snowpipe, snowpipe streaming]
+  vendor: Snowflake
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [snowflake]
+  operational_model: serverless
+  icon: refresh-cw
+  color: "#29B5E8"
+  description: Snowflake's serverless continuous loading service that ingests files from stages as they arrive (and, via Snowpipe Streaming, rows through an SDK/Kafka connector).
+  typical_legacy_use: Replaces scheduled bulk COPY jobs with event-driven, near-real-time file loading into Snowflake.
+  capabilities: [continuous-file-ingestion, event-notifications, serverless, streaming-ingestion]
+  possible_targets: []
+  alternatives: [databricks-auto-loader]
+  replaces: []
+  suggested_next: [snowflake, dbt, snowflake-horizon]
+  migration_considerations:
+    - Configure cloud event notifications (S3/SQS, GCS Pub/Sub, Azure Event Grid) or REST calls to trigger loads.
+    - Optimal file sizes (roughly 100-250 MB compressed) reduce per-file overhead and cost.
+    - Snowpipe does not provide CDC from databases on its own; pair it with an upstream CDC tool writing files or Kafka.
+  known_challenges:
+    - Load ordering is not guaranteed; downstream logic must handle late or out-of-order files.
+    - Many tiny files increase cost.
+  risks: [cost-overrun, data-quality-regression, vendor-lock-in]
+  strategies: [replatform]
+  skills: [Snowflake, cloud storage eventing]
+  tags: [ingestion, snowflake, serverless]
+  docs:
+    - title: Snowpipe introduction
+      url: https://docs.snowflake.com/en/user-guide/data-load-snowpipe-intro
+
+- id: databricks-auto-loader
+  name: Databricks Auto Loader
+  aliases: [auto loader, autoloader, cloudfiles, databricks auto loader]
+  vendor: Databricks
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [databricks]
+  operational_model: managed
+  icon: refresh-cw
+  color: "#FF3621"
+  description: Databricks' Structured Streaming source (cloudFiles) that incrementally and idempotently ingests new files from cloud object storage, with schema inference and evolution.
+  typical_legacy_use: Picks up files landed by CDC tools, partner feeds or exports in a landing zone and loads them into bronze Delta tables.
+  capabilities: [incremental-file-ingestion, schema-inference, schema-evolution, exactly-once, file-notification-mode]
+  possible_targets: []
+  alternatives: [snowpipe]
+  replaces: []
+  suggested_next: [delta-bronze, lakeflow-declarative-pipelines, unity-catalog, databricks-workflows]
+  migration_considerations:
+    - Choose directory listing or file notification mode based on file volume and cloud permissions.
+    - Define rescued-data and schema evolution behaviour so malformed or new columns are not silently lost.
+    - Use it inside Lakeflow Declarative Pipelines or jobs with checkpoints on durable storage.
+  known_challenges:
+    - Auto Loader ingests files; it does not capture database changes itself and depends on an upstream CDC or export process.
+    - Checkpoint loss forces reprocessing decisions.
+  risks: [schema-drift, data-quality-regression]
+  strategies: [replatform, rearchitect]
+  skills: [Databricks, Spark Structured Streaming]
+  tags: [ingestion, databricks, files]
+  docs:
+    - title: What is Auto Loader?
+      url: https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/

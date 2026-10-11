@@ -1,0 +1,384 @@
+# Reusable migration risk catalogue. Referenced by technologies, mappings and patterns.
+- id: hidden-business-logic
+  title: Hidden business logic
+  description: Critical business rules are embedded in ETL mappings, stored procedures, report formulas, scheduler scripts or COBOL paragraphs rather than documented specifications. Rules that are not discovered during assessment surface late as reconciliation failures or business escalations.
+  category: migration
+  likelihood_drivers:
+    - Decades-old estate with little or no current documentation
+    - Logic spread across stored procedures, ETL expressions and BI calculated fields
+    - Original developers no longer with the organisation
+    - Shell or scheduler scripts performing data manipulation outside the ETL tool
+  mitigations:
+    - Run automated code and metadata scanning to inventory every transformation, procedure and report formula before design
+    - Build a business-rule register with owners and sign-off, traced to target implementation
+    - Use data-driven reconciliation (row, aggregate and column-hash) to expose undocumented behaviour early
+    - Schedule SME walkthroughs for the highest-complexity objects identified by the scanner
+  applies_to: [informatica-powercenter, ibm-datastage, ssis, ab-initio, talend, cobol, oracle-database, teradata, cognos, microstrategy, business-objects, "role:etl", "role:mainframe"]
+
+- id: skills-gap
+  title: Target platform skills gap
+  description: The delivery and run teams lack hands-on experience with the target platform, languages and operating model. This slows delivery, produces non-idiomatic designs and weakens post-cutover support.
+  category: people
+  likelihood_drivers:
+    - Team skilled primarily in proprietary GUI ETL or mainframe languages
+    - Move from SQL-only to code-first engineering (Python, PySpark, Git, CI/CD)
+    - No existing cloud landing zone or platform team
+    - Aggressive timeline with no enablement budget
+  mitigations:
+    - Fund a structured enablement plan with certification paths tied to migration waves
+    - Pair client engineers with experienced practitioners on early waves and rotate ownership
+    - Publish golden-path templates, coding standards and reference pipelines
+    - Establish a platform Centre of Excellence to own patterns and review designs
+  applies_to: [cobol, cics, informatica-powercenter, ibm-datastage, ab-initio, databricks, apache-spark, kubernetes, "role:mainframe", "role:lakehouse"]
+
+- id: data-volume-transfer
+  title: Large-volume data transfer
+  description: Historical data volumes in the hundreds of terabytes or petabytes cannot be moved within the migration window over available links. Transfer time, egress cost and retry handling become schedule-critical.
+  category: data
+  likelihood_drivers:
+    - Multi-hundred-terabyte warehouses or Hadoop clusters
+    - Limited or shared WAN bandwidth to the cloud
+    - Requirement to move full history rather than a retention window
+    - Source systems that cannot tolerate heavy extract load during business hours
+  mitigations:
+    - Size transfer windows early using measured throughput, and use offline appliances where online transfer is infeasible
+    - Prioritise and partition history by business value; archive cold data separately
+    - Use parallel, resumable extract tooling with checksum validation per partition
+    - Combine a one-time bulk load with CDC so history and deltas converge before cutover
+  applies_to: [teradata, netezza, oracle-exadata, greenplum, cloudera-hadoop, hdfs, "role:legacy-warehouse"]
+
+- id: cutover-downtime
+  title: Cutover downtime exceeds tolerance
+  description: The final switch from source to target requires a freeze longer than the business can accept. Untested cutover runbooks and slow final syncs extend outages and increase rollback likelihood.
+  category: operational
+  likelihood_drivers:
+    - 24x7 transactional systems with tight RTO
+    - Big-bang cutover of many interdependent workloads
+    - No CDC path, forcing full reloads at cutover
+    - Rollback procedure not rehearsed
+  mitigations:
+    - Use CDC-based synchronisation so the final cutover is a short delta catch-up
+    - Rehearse cutover end-to-end at least twice with timed runbooks and go/no-go criteria
+    - Cut over in waves by domain or consumer group rather than big-bang
+    - Define and test a rollback path, including reverse replication where feasible
+  applies_to: [oracle-database, sql-server, ibm-db2, ibm-db2-zos, sybase-ase, "role:source-database"]
+
+- id: data-type-mismatch
+  title: Data type and precision mismatch
+  description: Source data types such as Oracle NUMBER, Teradata PERIOD, packed decimals or vendor-specific timestamps have no exact target equivalent. Silent truncation, rounding or timezone shifts corrupt values without failing loads.
+  category: data
+  likelihood_drivers:
+    - Unconstrained NUMBER or DECIMAL columns with mixed precision
+    - Timezone-naive timestamps and vendor date semantics (e.g. Oracle DATE includes time)
+    - Mainframe COMP-3 / zoned decimal fields
+    - Large CLOB/BLOB, XML or spatial columns
+  mitigations:
+    - Generate an explicit type-mapping matrix per source and review edge cases with data owners
+    - Profile actual value ranges and precision before choosing target types
+    - Add column-level checksum and boundary-value reconciliation to the test suite
+    - Standardise timestamps to UTC with explicit timezone handling rules
+  applies_to: [oracle-database, teradata, netezza, ibm-db2, sybase-ase, vsam, ibm-db2-zos, "role:source-database", "role:legacy-warehouse"]
+
+- id: sql-dialect-conversion
+  title: SQL dialect conversion errors
+  description: Proprietary SQL syntax and semantics (QUALIFY, CONNECT BY, MERGE variants, implicit casts, NULL and collation behaviour) do not translate one-to-one. Automated converters produce SQL that runs but returns different results.
+  category: migration
+  likelihood_drivers:
+    - Heavy use of vendor-specific functions and hints
+    - Thousands of views, macros or BTEQ/ad-hoc scripts
+    - Case-sensitivity and collation differences between platforms
+    - Reliance on implicit type coercion
+  mitigations:
+    - Use a proven SQL translator and track conversion coverage per object class
+    - Maintain a pattern library of known semantic differences with tested rewrites
+    - Validate converted SQL by comparing result sets on representative data, not just compilation
+    - Route unconvertible constructs to a tracked manual backlog with complexity scores
+  applies_to: [teradata, oracle-database, netezza, sql-server, sybase-ase, greenplum, oracle-exadata, ibm-db2]
+
+- id: stored-procedure-rewrite
+  title: Stored procedure rewrite complexity
+  description: Procedural code in PL/SQL, T-SQL or SQL PL relies on cursors, packages, exception handling and session state that set-based or distributed engines do not support directly. Rewriting is labour-intensive and a major source of defects.
+  category: migration
+  likelihood_drivers:
+    - Large PL/SQL package estates with inter-package dependencies
+    - Row-by-row cursor processing and dynamic SQL
+    - Use of autonomous transactions, global temporary tables or DBMS_* packages
+    - Procedures called from applications, ETL and schedulers
+  mitigations:
+    - Classify procedures by pattern (set-based, cursor loop, orchestration, utility) and choose target idiom per class
+    - Refactor row-by-row logic into set-based SQL or DataFrame operations rather than line-by-line translation
+    - Use assisted conversion tooling for the first pass and enforce unit tests per procedure
+    - Retire procedures with no callers identified via usage logs
+  applies_to: [oracle-database, sql-server, ibm-db2, sybase-ase, oracle-exadata, teradata]
+
+- id: performance-regression
+  title: Performance regression on target
+  description: Workloads tuned for the source engine (indexes, hints, appliance-specific distribution) run slower or cost more on the target. SLAs for batch windows, dashboards or APIs are missed after cutover.
+  category: operational
+  likelihood_drivers:
+    - Queries relying on indexes or optimiser hints with no target equivalent
+    - Poor partitioning, clustering or file-size layout on the lakehouse
+    - Lift-and-shift of row-by-row logic onto distributed engines
+    - High-concurrency BI workloads not sized on the target
+  mitigations:
+    - Benchmark representative workloads on the target before wave commitment
+    - Apply target-native optimisation (partitioning, liquid clustering, materialised views, caching)
+    - Define performance acceptance criteria per workload and test them in parallel run
+    - Right-size compute and enable autoscaling with concurrency testing
+  applies_to: [teradata, netezza, oracle-exadata, databricks, bigquery, snowflake, "role:warehouse", "role:lakehouse"]
+
+- id: licensing-overlap
+  title: Licensing overlap during transition
+  description: Legacy licences and support contracts continue while target platform consumption ramps up. Dual running cost and contractual renewal dates can erode the business case.
+  category: commercial
+  likelihood_drivers:
+    - Multi-year enterprise agreements with fixed renewal dates
+    - Long parallel-run periods
+    - Appliance hardware support tied to licence terms
+    - No decommissioning plan linked to migration waves
+  mitigations:
+    - Map migration waves to licence renewal and termination dates
+    - Negotiate short-term or step-down licences for the transition period
+    - Track decommissioning as a first-class milestone with owners
+    - Include overlap cost explicitly in the business case
+  applies_to: [oracle-database, teradata, informatica-powercenter, ibm-datastage, ab-initio, cognos, microstrategy, business-objects, control-m, autosys, ibm-zos]
+
+- id: vendor-lock-in
+  title: Vendor lock-in on target
+  description: Heavy use of proprietary target features ties the organisation to a single vendor's pricing and roadmap. Future portability and negotiating leverage are reduced.
+  category: commercial
+  likelihood_drivers:
+    - Proprietary storage formats or closed SQL extensions
+    - Serverless services without open-source equivalents
+    - No abstraction over orchestration or semantic layers
+  mitigations:
+    - Prefer open table formats (Delta Lake, Apache Iceberg) and open-source engines where practical
+    - Keep transformation logic in portable frameworks such as dbt or Spark SQL
+    - Document an exit strategy and portability assessment for each strategic service
+  applies_to: [snowflake, bigquery, azure-synapse, microsoft-fabric, databricks, amazon-redshift, "role:warehouse"]
+
+- id: cdc-lag
+  title: CDC replication lag
+  description: Change data capture falls behind source commit rates during peaks, batch windows or log retention gaps. Consumers see stale data and cutover catch-up time becomes unpredictable.
+  category: data
+  likelihood_drivers:
+    - High redo/transaction log generation rates
+    - Large transactions or bulk updates on source
+    - Insufficient source log retention or supplemental logging
+    - Under-provisioned replication or network capacity
+  mitigations:
+    - Measure peak log generation rates and size CDC capacity with headroom
+    - Configure supplemental logging and log retention to cover worst-case outages
+    - Monitor end-to-end lag with alerts and SLOs per table
+    - Plan re-snapshot procedures for tables that fall out of sync
+  applies_to: [oracle-goldengate, lakeflow-connect, google-datastream, aws-dms, azure-dms, debezium, qlik-replicate, striim, "role:cdc"]
+
+- id: schema-drift
+  title: Uncontrolled schema drift
+  description: Source schemas change during migration through new columns, type changes or renamed tables. Pipelines fail or silently drop data when drift is not detected and handled.
+  category: data
+  likelihood_drivers:
+    - Source applications still under active development
+    - SaaS or semi-structured sources with evolving payloads
+    - No schema registry or contract between producers and consumers
+  mitigations:
+    - Enable schema evolution with explicit rescue columns at the bronze/raw layer
+    - Introduce data contracts and schema registry for event sources
+    - Alert on schema changes and route them through change control
+    - Freeze or coordinate source schema changes during cutover windows
+  applies_to: [databricks-auto-loader, lakeflow-connect, apache-kafka, salesforce, sap-erp, google-datastream, "role:cdc", "role:streaming"]
+
+- id: data-quality-regression
+  title: Data quality regression
+  description: Target outputs differ from legacy results because of conversion defects, ordering, rounding or missed filters. Without systematic reconciliation the business loses trust in the new platform.
+  category: data
+  likelihood_drivers:
+    - No automated reconciliation framework
+    - Quality checks implicit in legacy ETL not carried forward
+    - Late involvement of business data owners in testing
+  mitigations:
+    - Implement automated reconciliation (counts, aggregates, column hashes) for every migrated object
+    - Codify data-quality expectations in pipelines with quarantine handling
+    - Agree tolerance thresholds and sign-off criteria with data owners before testing
+    - Track reconciliation results on a shared dashboard through parallel run
+  applies_to: [reconciliation-framework, great-expectations, google-dvt, "role:etl", "role:warehouse", "role:lakehouse"]
+
+- id: security-gap
+  title: Security control gap
+  description: Controls present in the legacy estate (network isolation, row-level security, masking, privileged access) are not replicated on the target. Sensitive data is exposed during or after migration.
+  category: security
+  likelihood_drivers:
+    - Public endpoints enabled by default on managed services
+    - Credentials embedded in scripts and ETL connections
+    - Row/column-level security implemented in legacy database views
+    - Data staged in intermediate buckets without encryption policies
+  mitigations:
+    - Inventory legacy security controls and map each to a target control before migration
+    - Centralise secrets in a managed vault and remove embedded credentials
+    - Enforce private connectivity, customer-managed keys and least-privilege IAM
+    - Run security review and penetration testing before production cutover
+  applies_to: [google-secret-manager, aws-secrets-manager, azure-key-vault, hashicorp-vault, private-connectivity, "role:security", "role:object-storage"]
+
+- id: lineage-loss
+  title: Lineage loss
+  description: End-to-end lineage maintained by legacy ETL metadata or manual documentation is not reconstructed on the target. Impact analysis, audit and regulatory reporting become harder.
+  category: governance
+  likelihood_drivers:
+    - Lineage held only in proprietary ETL repositories
+    - Hand-coded pipelines without lineage capture
+    - Multiple tools across ingestion, transformation and BI
+  mitigations:
+    - Choose target tooling with automatic lineage capture (e.g. Unity Catalog, Dataplex, Purview)
+    - Export legacy lineage metadata and load it into the target catalog for transition
+    - Make lineage completeness an acceptance criterion for each wave
+  applies_to: [informatica-powercenter, ibm-datastage, ab-initio, unity-catalog, google-dataplex, microsoft-purview, collibra, "role:governance"]
+
+- id: scheduling-dependency-loss
+  title: Scheduling dependency loss
+  description: Job dependencies, calendars, file watchers and cross-application conditions in enterprise schedulers are lost or simplified during conversion. Jobs run out of order or miss business calendars.
+  category: operational
+  likelihood_drivers:
+    - Thousands of jobs with cross-folder or cross-application conditions
+    - Custom business calendars and holiday rules
+    - File-watcher and resource-based triggers
+    - Dependencies on jobs that remain on-premises
+  mitigations:
+    - Export and parse scheduler definitions into a dependency graph before conversion
+    - Map calendars, conditions and resources explicitly to target constructs
+    - Run converted DAGs in shadow mode against legacy schedules and compare execution order
+    - Design hybrid triggers for dependencies that span legacy and cloud during coexistence
+  applies_to: [control-m, autosys, tidal, cron, jcl, "role:orchestrator"]
+
+- id: report-parity
+  title: Report parity gaps
+  description: Migrated reports and dashboards do not match legacy output in values, formatting, drill paths or bursting behaviour. Business users reject the new BI platform.
+  category: migration
+  likelihood_drivers:
+    - Complex semantic layers (Framework Manager, universes, MicroStrategy schema objects)
+    - Pixel-perfect operational or regulatory reports
+    - Scheduled bursting and distribution lists
+    - Large report estates with low usage visibility
+  mitigations:
+    - Rationalise the report estate using usage statistics before conversion
+    - Rebuild the semantic model first and validate key metrics against legacy
+    - Run side-by-side comparisons with business sign-off per report family
+    - Identify reports needing a paginated-reporting solution
+  applies_to: [cognos, microstrategy, business-objects, tableau, power-bi, looker, qlik, "role:bi"]
+
+- id: mainframe-encoding
+  title: Mainframe encoding and record format issues
+  description: EBCDIC code pages, packed decimal, binary fields and variable-length records with REDEFINES and OCCURS DEPENDING ON are mis-decoded when moved off the mainframe. Corrupted numeric and text values propagate downstream.
+  category: data
+  likelihood_drivers:
+    - COBOL copybooks with REDEFINES and OCCURS DEPENDING ON
+    - Multiple or national EBCDIC code pages
+    - COMP-3 and binary fields in VSAM or sequential files
+    - Missing or outdated copybooks
+  mitigations:
+    - Drive all file conversion from verified copybooks with a copybook-aware parser
+    - Validate decoded data against mainframe-side control totals
+    - Agree code-page mappings and handling of unmappable characters
+    - Transfer files in binary mode and decode on the target, never via text-mode FTP
+  applies_to: [vsam, cobol, ibm-zos, ibm-db2-zos, ims, jcl, "role:mainframe"]
+
+- id: cost-overrun
+  title: Cloud cost overrun
+  description: Consumption-based target costs exceed the business case because of unoptimised workloads, idle compute or uncontrolled ad-hoc queries. Finance pressure can stall later waves.
+  category: commercial
+  likelihood_drivers:
+    - Lift-and-shift of inefficient jobs
+    - No budgets, quotas or auto-termination policies
+    - Unrestricted ad-hoc query access to on-demand pricing
+  mitigations:
+    - Establish FinOps tagging, budgets and alerts from day one
+    - Enforce auto-termination, cluster policies and serverless where appropriate
+    - Review top-cost workloads each sprint and optimise
+    - Model costs per workload before migration and track actuals against forecast
+  applies_to: [databricks, bigquery, snowflake, microsoft-fabric, amazon-redshift, azure-synapse, "role:warehouse", "role:lakehouse"]
+
+- id: parallel-run-cost
+  title: Parallel run cost and duration
+  description: Running legacy and target platforms side by side for validation doubles operational cost and effort. Parallel runs that drift beyond plan erode the business case and team capacity.
+  category: commercial
+  likelihood_drivers:
+    - Undefined exit criteria for parallel run
+    - Manual comparison of outputs
+    - Regulatory requirement for extended dual running
+  mitigations:
+    - Define measurable exit criteria and maximum duration per wave
+    - Automate output comparison to shorten validation cycles
+    - Scope parallel run to critical outputs rather than all objects
+  applies_to: [reconciliation-framework, "role:legacy-warehouse", "role:mainframe"]
+
+- id: integration-breakage
+  title: Downstream integration breakage
+  description: Consumers of the legacy platform (applications, extracts, APIs, file feeds) break when endpoints, formats or timings change. Unknown consumers are discovered only after cutover.
+  category: operational
+  likelihood_drivers:
+    - Undocumented point-to-point feeds and direct database connections
+    - Hard-coded hostnames and JDBC/ODBC strings
+    - Message formats or file layouts changing during migration
+  mitigations:
+    - Discover consumers from connection logs, network flows and query history
+    - Provide compatibility views, DNS aliases or adapter layers during transition
+    - Agree interface contracts and notify consumers with migration timelines
+    - Include consumer integration tests in each wave's exit criteria
+  applies_to: [ibm-mq, weblogic, websphere, cics, oracle-database, sql-server, "role:streaming", "role:application"]
+
+- id: governance-gap
+  title: Governance gap
+  description: Data ownership, classification, access policies and catalog coverage are not established on the target before data lands. Data sprawl and inconsistent access control follow.
+  category: governance
+  likelihood_drivers:
+    - Governance tooling deferred to a later phase
+    - No data classification or ownership model
+    - Multiple workspaces or projects without central policy
+  mitigations:
+    - Deploy the catalog and access model (e.g. Unity Catalog, Dataplex) before the first data lands
+    - Classify and tag sensitive data automatically at ingestion
+    - Assign data owners and stewards per domain with documented responsibilities
+  applies_to: [unity-catalog, google-dataplex, microsoft-purview, aws-lake-formation, collibra, alation, "role:governance", "role:lakehouse"]
+
+- id: regulatory-compliance
+  title: Regulatory and data residency compliance
+  description: Migration must satisfy regulations such as GDPR, HIPAA, PCI DSS, SOX or local data-residency rules. Non-compliant data placement, retention or audit trails create legal exposure.
+  category: security
+  likelihood_drivers:
+    - Regulated industry (banking, insurance, healthcare, public sector)
+    - Cross-border data movement or region restrictions
+    - Audit evidence held in legacy systems being retired
+  mitigations:
+    - Engage compliance and legal early to define residency, retention and audit requirements
+    - Select regions and services that meet certification requirements
+    - Preserve or migrate audit logs and evidence before decommissioning
+    - Apply masking or tokenisation to regulated data in non-production environments
+  applies_to: [ibm-zos, oracle-database, "role:governance", "role:security", "role:source-database"]
+
+- id: network-bandwidth
+  title: Network bandwidth constraints
+  description: Hybrid connectivity cannot sustain bulk transfer, CDC and hybrid query traffic simultaneously. Throttled links extend migration timelines and degrade coexistence performance.
+  category: operational
+  likelihood_drivers:
+    - VPN-only connectivity for large data volumes
+    - Shared links with production application traffic
+    - Long lead times for dedicated interconnects
+  mitigations:
+    - Order dedicated interconnect early and size it from measured transfer and CDC volumes
+    - Apply QoS and schedule bulk transfers outside business peaks
+    - Compress and filter data at source; use offline transfer for history
+  applies_to: [google-cloud-interconnect, aws-direct-connect, azure-expressroute, site-to-site-vpn, "role:network", "role:cdc"]
+
+- id: operational-readiness
+  title: Operational readiness gap
+  description: Monitoring, alerting, runbooks, on-call and support processes are not in place when workloads go live. Incidents take longer to detect and resolve than on the legacy platform.
+  category: operational
+  likelihood_drivers:
+    - Run team not involved during build
+    - No SLOs or alert routing defined for new pipelines
+    - Support model dependent on the migration partner
+  mitigations:
+    - Define SLOs, dashboards and alerting as part of each wave's definition of done
+    - Write and rehearse runbooks for common failure modes
+    - Transition knowledge to the run team through shadowing and reverse-shadowing
+    - Conduct an operational readiness review before each production cutover
+  applies_to: [google-cloud-monitoring, amazon-cloudwatch, azure-monitor, datadog, "role:observability", "role:orchestrator"]

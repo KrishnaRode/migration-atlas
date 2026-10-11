@@ -1,0 +1,82 @@
+id: gcp-databricks-reference
+name: GCP Databricks Lakehouse Reference
+summary: Oracle to Databricks on Google Cloud with Lakeflow Connect CDC, a GCS-backed medallion lakehouse and governed BI serving.
+description: >-
+  Reference architecture for migrating an on-premises Oracle estate to Databricks on Google Cloud.
+  Lakeflow Connect captures an initial snapshot and ongoing changes into a landing zone on Google Cloud
+  Storage, which feeds Delta bronze, silver and gold layers served through Databricks SQL to Tableau and
+  Looker; Unity Catalog governs every layer, Databricks Asset Bundles deploy pipelines and jobs through
+  CI/CD, and a reconciliation framework validates parity against Oracle during parallel run.
+suitable_scenarios:
+  - Oracle data warehouse or reporting database exit onto Google Cloud
+  - Organisations standardising on Databricks while running on GCP
+  - Programmes requiring near-real-time replication with auditable parity against the source
+  - Mixed BI estates that must keep Tableau while adopting Looker
+components:
+  - oracle-database
+  - lakeflow-connect
+  - landing-zone
+  - delta-bronze
+  - delta-silver
+  - delta-gold
+  - databricks-sql
+  - tableau
+  - looker
+  - unity-catalog
+  - google-secret-manager
+  - google-cloud-monitoring
+  - databricks-asset-bundles
+  - reconciliation-framework
+  - databricks-workflows
+benefits:
+  - Managed CDC from Oracle without operating replication servers
+  - Open Delta format on customer-owned GCS buckets avoids storage lock-in
+  - Single governance plane (Unity Catalog) for tables, lineage and access across all layers
+  - Repeatable, version-controlled deployments with Databricks Asset Bundles
+  - Built-in parity evidence from automated reconciliation
+limitations:
+  - Requires private connectivity (Interconnect or VPN) from the Oracle data centre to GCP
+  - Oracle supplemental logging and log retention must be configured by source DBAs
+  - Lakeflow Connect source coverage and data-type support should be verified per Oracle version
+  - PL/SQL logic must still be converted separately into silver/gold transformations
+tags: [gcp, databricks, oracle, cdc, lakehouse, medallion, reference]
+template:
+  nodes:
+    - {key: src, tech: oracle-database, label: "Oracle Database (on-prem)"}
+    - {key: cdc, tech: lakeflow-connect, label: "Lakeflow Connect (snapshot + CDC)"}
+    - {key: landing, tech: landing-zone, label: "Landing Zone (GCS)"}
+    - {key: bronze, tech: delta-bronze, label: "Bronze (raw history)"}
+    - {key: silver, tech: delta-silver, label: "Silver (cleansed, conformed)"}
+    - {key: gold, tech: delta-gold, label: "Gold (business marts)"}
+    - {key: dbsql, tech: databricks-sql, label: "Databricks SQL Warehouse"}
+    - {key: tableau, tech: tableau}
+    - {key: looker, tech: looker}
+    - {key: uc, tech: unity-catalog}
+    - {key: secrets, tech: google-secret-manager}
+    - {key: monitoring, tech: google-cloud-monitoring}
+    - {key: dab, tech: databricks-asset-bundles, label: "Asset Bundles (CI/CD)"}
+    - {key: recon, tech: reconciliation-framework}
+    - {key: workflows, tech: databricks-workflows}
+  edges:
+    - {from: src, to: cdc, label: "Redo log CDC", mode: cdc, frequency: continuous, latency: near-real-time}
+    - {from: cdc, to: landing, label: "Staged change files", mode: cdc, frequency: continuous, latency: near-real-time, format: parquet}
+    - {from: landing, to: bronze, label: "Apply changes", mode: streaming, frequency: continuous, latency: minutes, format: delta}
+    - {from: bronze, to: silver, label: "Cleanse, dedupe, SCD2", mode: streaming, frequency: continuous, latency: minutes, format: delta}
+    - {from: silver, to: gold, label: "Business aggregates", mode: batch, frequency: hourly, latency: hourly, format: delta}
+    - {from: gold, to: dbsql, mode: query}
+    - {from: dbsql, to: tableau, label: "ODBC/JDBC (live)", mode: query, latency: interactive}
+    - {from: dbsql, to: looker, label: "JDBC (live)", mode: query, latency: interactive}
+    - {from: src, to: recon, label: "Source counts and checksums", mode: query, frequency: daily}
+    - {from: gold, to: recon, label: "Target counts and checksums", mode: query, frequency: daily}
+    - {from: workflows, to: cdc, label: "Trigger ingestion", mode: control, kind: control}
+    - {from: workflows, to: silver, label: "Run pipeline", mode: control, kind: control}
+    - {from: workflows, to: gold, label: "Run pipeline", mode: control, kind: control}
+    - {from: workflows, to: recon, label: "Run reconciliation", mode: control, kind: control}
+    - {from: dab, to: workflows, label: "Deploy jobs and pipelines", mode: control, kind: control}
+    - {from: uc, to: bronze, mode: governance, kind: governance}
+    - {from: uc, to: silver, mode: governance, kind: governance}
+    - {from: uc, to: gold, mode: governance, kind: governance}
+    - {from: uc, to: dbsql, label: "Access policies and lineage", mode: governance, kind: governance}
+    - {from: secrets, to: cdc, label: "Oracle credentials", kind: security}
+    - {from: workflows, to: monitoring, label: "Job metrics and alerts", kind: monitoring}
+    - {from: cdc, to: monitoring, label: "Replication lag", kind: monitoring}

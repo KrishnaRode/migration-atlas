@@ -1,0 +1,383 @@
+# Connection intelligence.
+#
+# Each rule matches `from` and `to` as one of:
+#   tech:<id>     a specific technology
+#   stage:<x>     a lake zone (landing, bronze, silver, gold, raw, staging, curated)
+#   role:<x>      a technology role (see docs/ontology.md)
+#   "*"           anything
+# The most specific match wins: tech > stage > role > "*", scored on both ends.
+# Users are never blocked from experimenting — INVALID is reserved for flows that are
+# technically nonsensical; everything else explains itself.
+
+default:
+  status: UNKNOWN
+  reason: Migration Atlas has no rule for this pair yet. It may be fine — check the flow semantics.
+
+rules:
+  # ---------------------------------------------------------------- sources
+  - {from: role:source-database, to: role:cdc, status: VALID, kind: data, mode: cdc,
+     reason: Change data capture reads the database log and streams inserts/updates/deletes with minimal source impact.}
+  - {from: role:legacy-warehouse, to: role:cdc, status: VALID_WITH_WARNING, kind: data, mode: cdc,
+     reason: Log-based CDC on MPP warehouses is limited; bulk export plus incremental extracts is more common.,
+     suggestion: Consider a one-time historical export to object storage plus scheduled incremental loads.}
+  - {from: role:source-database, to: role:etl, status: VALID, kind: data, mode: batch,
+     reason: Batch extraction by an ETL tool is a classic ingestion path.}
+  - {from: role:legacy-warehouse, to: role:etl, status: VALID, kind: data, mode: batch,
+     reason: ETL tools commonly extract from warehouse appliances in batch.}
+  - {from: role:source-database, to: role:streaming, status: VALID_WITH_WARNING, kind: data, mode: streaming,
+     reason: Databases do not publish events natively — this needs a CDC connector (e.g. Debezium) in between.,
+     suggestion: Insert a CDC component between the database and the streaming platform.}
+  - {from: role:source-database, to: role:object-storage, status: VALID_WITH_WARNING, kind: data, mode: batch,
+     reason: Direct dumps to storage work for historical loads but lose change tracking.,
+     suggestion: Use CDC or ETL for ongoing loads; keep direct export for the one-time historical migration.}
+  - {from: role:legacy-warehouse, to: role:object-storage, status: VALID, kind: data, mode: batch,
+     reason: Bulk export of warehouse tables to object storage is the standard historical-migration path.}
+  - {from: role:source-database, to: stage:landing, status: VALID_WITH_WARNING, kind: data, mode: batch,
+     reason: Exports straight into a landing zone suit historical loads; ongoing change capture needs CDC.}
+  - {from: role:legacy-warehouse, to: stage:landing, status: VALID, kind: data, mode: batch,
+     reason: Historical warehouse exports usually land in a landing zone first.}
+  - {from: role:source-database, to: role:bi, status: UNUSUAL, kind: data, mode: query,
+     reason: Reporting straight off an operational database is legacy practice and loads the source.,
+     suggestion: Serve BI from the curated layer of the target platform instead.}
+  - {from: role:source-database, to: role:lakehouse, status: VALID_WITH_WARNING, kind: data, mode: batch,
+     reason: Direct JDBC reads from a lakehouse work but bypass a governed ingestion path.,
+     suggestion: Prefer managed CDC/ingestion connectors with a bronze landing layer.}
+  - {from: role:source-database, to: role:warehouse, status: VALID_WITH_WARNING, kind: data, mode: batch,
+     reason: Direct loads work for small tables but skip change capture and a raw layer.}
+  - {from: role:mainframe, to: role:cdc, status: VALID_WITH_WARNING, kind: data, mode: cdc,
+     reason: Mainframe CDC needs specialised connectors (DB2 z/OS log readers, VSAM capture) and EBCDIC conversion.}
+  - {from: role:mainframe, to: role:etl, status: VALID, kind: data, mode: file,
+     reason: Mainframe datasets are commonly unloaded to files and processed by ETL; mind EBCDIC and packed decimals.}
+  - {from: role:mainframe, to: role:mainframe, status: VALID, kind: data,
+     reason: Mainframe runtime components interoperate (e.g. CICS transactions over VSAM, JCL running COBOL).}
+  - {from: role:mainframe, to: role:streaming, status: VALID_WITH_WARNING, kind: data, mode: streaming,
+     reason: Possible via MQ bridges or mainframe CDC connectors, which must be licensed and tuned.}
+  - {from: role:mainframe, to: role:object-storage, status: VALID_WITH_WARNING, kind: data, mode: file,
+     reason: File transfer of unloaded datasets works for history; copybook-driven conversion is required.}
+  - {from: role:application, to: role:source-database, status: VALID, kind: data, mode: api,
+     reason: Applications read and write their operational database.}
+  - {from: role:application, to: role:streaming, status: VALID, kind: data, mode: streaming,
+     reason: Applications publishing domain events is the core of event-driven integration.}
+  - {from: role:application, to: role:api, status: VALID, kind: data, mode: api,
+     reason: APIs expose application capabilities to consumers.}
+  - {from: role:file-source, to: role:etl, status: VALID, kind: data, mode: file,
+     reason: File and SaaS sources are routinely picked up by ETL tools.}
+  - {from: role:file-source, to: role:object-storage, status: VALID, kind: data, mode: file,
+     reason: Landing files in object storage is the usual first hop.}
+  - {from: role:file-source, to: stage:landing, status: VALID, kind: data, mode: file,
+     reason: Files arrive in the landing zone for incremental pickup.}
+  - {from: role:file-source, to: role:cdc, status: VALID, kind: data,
+     reason: Managed ingestion connectors pull SaaS and file sources incrementally.}
+
+  # ---------------------------------------------------------------- ingestion
+  - {from: role:cdc, to: role:object-storage, status: VALID, kind: data, mode: cdc,
+     reason: CDC tools commonly write change records to object storage for downstream pickup.}
+  - {from: role:cdc, to: stage:landing, status: VALID, kind: data, mode: cdc,
+     reason: Change records land in the landing zone before being merged into the raw layer.}
+  - {from: role:cdc, to: stage:bronze, status: VALID, kind: data, mode: cdc,
+     reason: Managed CDC can write directly into bronze Delta tables.}
+  - {from: role:cdc, to: stage:raw, status: VALID, kind: data, mode: cdc,
+     reason: Change records are applied to the raw layer.}
+  - {from: role:cdc, to: stage:silver, status: VALID_WITH_WARNING, kind: data, mode: cdc,
+     reason: Skipping bronze loses the replayable raw history of changes.,
+     suggestion: Land CDC output in bronze, then merge into silver.}
+  - {from: role:cdc, to: stage:gold, status: UNUSUAL, kind: data, mode: cdc,
+     reason: Raw change records rarely match business-level gold models.}
+  - {from: role:cdc, to: role:streaming, status: VALID, kind: data, mode: cdc,
+     reason: Publishing change events to a streaming backbone enables multiple consumers.}
+  - {from: role:cdc, to: role:warehouse, status: VALID, kind: data, mode: cdc,
+     reason: Replication into a warehouse raw schema is a common CDC target.}
+  - {from: role:cdc, to: role:lakehouse, status: VALID, kind: data, mode: cdc,
+     reason: CDC into the lakehouse ingestion layer.}
+  - {from: role:cdc, to: role:source-database, status: VALID, kind: data, mode: cdc,
+     reason: Database-to-database replication (e.g. for OLTP replatforming) is a classic CDC use.}
+  - {from: role:cdc, to: role:bi, status: INVALID, kind: data,
+     reason: Change records are not a reportable dataset — they must be applied to tables first.}
+  - {from: role:streaming, to: role:stream-processing, status: VALID, kind: data, mode: streaming,
+     reason: Stream processors consume from the streaming backbone.}
+  - {from: role:streaming, to: role:object-storage, status: VALID, kind: data, mode: streaming,
+     reason: Sink connectors persist events to object storage.}
+  - {from: role:streaming, to: stage:landing, status: VALID, kind: data, mode: streaming,
+     reason: Events are persisted into the landing zone.}
+  - {from: role:streaming, to: stage:bronze, status: VALID, kind: data, mode: streaming,
+     reason: Streaming ingestion into bronze is the standard streaming-lakehouse entry point.}
+  - {from: role:streaming, to: stage:raw, status: VALID, kind: data, mode: streaming,
+     reason: Events streamed into the raw layer.}
+  - {from: role:streaming, to: role:lakehouse, status: VALID, kind: data, mode: streaming,
+     reason: Lakehouse streaming readers consume topics directly.}
+  - {from: role:streaming, to: role:warehouse, status: VALID, kind: data, mode: streaming,
+     reason: Warehouses support streaming ingestion (e.g. subscriptions, Snowpipe Streaming).}
+  - {from: role:streaming, to: role:processing, status: VALID, kind: data, mode: streaming,
+     reason: Processing engines consume event streams.}
+  - {from: role:streaming, to: role:streaming, status: VALID_WITH_WARNING, kind: data, mode: streaming,
+     reason: Bridging two messaging systems is sometimes needed during coexistence but adds latency and operational load.}
+  - {from: role:streaming, to: role:bi, status: UNUSUAL, kind: data,
+     reason: Raw event streams rarely feed BI directly; materialise into curated tables first.}
+  - {from: role:stream-processing, to: stage:bronze, status: VALID, kind: data, mode: streaming,
+     reason: Stream processors write into the raw/bronze layer.}
+  - {from: role:stream-processing, to: stage:silver, status: VALID, kind: data, mode: streaming,
+     reason: Stream processors can cleanse and conform directly into silver.}
+  - {from: role:stream-processing, to: role:warehouse, status: VALID, kind: data, mode: streaming,
+     reason: Streaming pipelines commonly write into the warehouse.}
+  - {from: role:stream-processing, to: role:object-storage, status: VALID, kind: data, mode: streaming,
+     reason: Processed streams persisted to object storage.}
+  - {from: role:stream-processing, to: "*", status: VALID_WITH_WARNING, kind: data, mode: streaming,
+     reason: Plausible streaming sink — confirm the target supports streaming writes.}
+
+  # ---------------------------------------------------------------- storage / zones
+  - {from: role:object-storage, to: stage:landing, status: VALID, kind: data,
+     reason: The landing zone lives on cloud object storage.}
+  - {from: role:object-storage, to: stage:bronze, status: VALID, kind: data, mode: batch,
+     reason: Incremental file ingestion (e.g. Auto Loader) moves files from storage into bronze.}
+  - {from: role:object-storage, to: stage:raw, status: VALID, kind: data, mode: batch,
+     reason: Files are loaded from storage into the raw layer.}
+  - {from: role:object-storage, to: role:cdc, status: VALID, kind: data, mode: batch,
+     reason: File-ingestion services read newly arrived files from object storage.}
+  - {from: role:object-storage, to: role:lakehouse, status: VALID, kind: data,
+     reason: Lakehouses read open-format data on object storage.}
+  - {from: role:object-storage, to: role:warehouse, status: VALID, kind: data, mode: batch,
+     reason: Warehouses bulk-load or externally query object storage.}
+  - {from: role:object-storage, to: role:processing, status: VALID, kind: data,
+     reason: Batch engines read from object storage.}
+  - {from: role:object-storage, to: role:etl, status: VALID, kind: data,
+     reason: ETL tools read staged files.}
+  - {from: role:object-storage, to: role:stream-processing, status: VALID, kind: data,
+     reason: Stream processors can tail files on object storage.}
+  - {from: role:object-storage, to: role:bi, status: UNUSUAL, kind: data,
+     reason: BI tools need a query engine; raw files are not a serving layer.,
+     suggestion: Add a SQL serving layer between storage and BI.}
+  - {from: stage:landing, to: stage:bronze, status: VALID, kind: data, mode: batch,
+     reason: Landing files are ingested incrementally into bronze tables.}
+  - {from: stage:landing, to: stage:raw, status: VALID, kind: data, mode: batch,
+     reason: Landing files load into the raw layer.}
+  - {from: stage:landing, to: role:cdc, status: VALID, kind: data,
+     reason: File-ingestion tools pick up new files from the landing zone.}
+  - {from: stage:landing, to: role:lakehouse, status: VALID, kind: data,
+     reason: The lakehouse ingests from the landing zone.}
+  - {from: stage:landing, to: role:warehouse, status: VALID, kind: data,
+     reason: Warehouse loads from the landing zone.}
+  - {from: stage:landing, to: stage:silver, status: VALID_WITH_WARNING, kind: data,
+     reason: Skipping bronze/raw removes the replayable copy of source data.}
+  - {from: stage:landing, to: role:bi, status: INVALID, kind: data,
+     reason: Landing files are unvalidated raw data and cannot be queried as a reporting source.}
+  - {from: stage:bronze, to: stage:silver, status: VALID, kind: data, mode: batch,
+     reason: Bronze → Silver cleanses, deduplicates and conforms raw data.}
+  - {from: stage:silver, to: stage:gold, status: VALID, kind: data, mode: batch,
+     reason: Silver → Gold builds business-level aggregates and dimensional models.}
+  - {from: stage:bronze, to: stage:gold, status: VALID_WITH_WARNING, kind: data,
+     reason: Skipping silver pushes cleansing logic into gold models and duplicates it.,
+     suggestion: Add a silver layer for conformed, deduplicated data.}
+  - {from: stage:raw, to: stage:staging, status: VALID, kind: data,
+     reason: Raw → Staging standardises types and applies light cleansing.}
+  - {from: stage:staging, to: stage:curated, status: VALID, kind: data,
+     reason: Staging → Curated builds business-ready models.}
+  - {from: stage:raw, to: stage:curated, status: VALID_WITH_WARNING, kind: data,
+     reason: Skipping staging mixes cleansing and modelling logic.}
+  - {from: stage:gold, to: stage:bronze, status: INVALID, kind: data,
+     reason: Data flows forward through the medallion layers; writing gold back into bronze breaks lineage and replayability.}
+  - {from: stage:gold, to: stage:silver, status: UNUSUAL, kind: data,
+     reason: Backward flow between layers is unusual and complicates lineage.}
+  - {from: stage:silver, to: stage:bronze, status: INVALID, kind: data,
+     reason: Bronze must remain an immutable copy of source data.}
+  - {from: stage:curated, to: stage:raw, status: INVALID, kind: data,
+     reason: Backward flow into the raw layer breaks replayability.}
+  - {from: stage:gold, to: role:serving, status: VALID, kind: data, mode: query,
+     reason: Gold tables are served through a SQL endpoint.}
+  - {from: stage:curated, to: role:serving, status: VALID, kind: data, mode: query,
+     reason: Curated models are exposed via the serving layer.}
+  - {from: stage:gold, to: role:bi, status: VALID, kind: data, mode: query,
+     reason: BI reads business-ready gold tables (through a SQL endpoint).}
+  - {from: stage:curated, to: role:bi, status: VALID, kind: data, mode: query,
+     reason: BI consumes curated models.}
+  - {from: stage:silver, to: role:bi, status: VALID_WITH_WARNING, kind: data, mode: query,
+     reason: Silver is conformed but not business-modelled; a curated/gold serving layer is usually preferred for BI.,
+     suggestion: Build gold models for reporting and point BI at them.}
+  - {from: stage:silver, to: role:serving, status: VALID_WITH_WARNING, kind: data, mode: query,
+     reason: Serving silver directly is possible for exploration; production reporting usually reads gold.}
+  - {from: stage:bronze, to: role:bi, status: UNUSUAL, kind: data,
+     reason: Bronze holds raw, unvalidated data; reporting on it exposes quality issues to users.,
+     suggestion: Report from gold; keep bronze for replay and audit.}
+  - {from: stage:raw, to: role:bi, status: UNUSUAL, kind: data,
+     reason: Raw data is unvalidated; report from curated models.}
+  - {from: stage:gold, to: role:ml, status: VALID, kind: data,
+     reason: ML features are commonly built from gold/curated data.}
+  - {from: stage:silver, to: role:ml, status: VALID, kind: data,
+     reason: Feature engineering frequently starts from conformed silver data.}
+  - {from: stage:gold, to: role:api, status: VALID, kind: data, mode: api,
+     reason: Data products can be exposed through APIs.}
+  - {from: role:lake-layer, to: role:lake-layer, status: VALID_WITH_WARNING, kind: data,
+     reason: Zones from different conventions are being mixed; keep one zone model per platform.}
+  - {from: role:lake-layer, to: role:processing, status: VALID, kind: data,
+     reason: Processing engines read lake zones.}
+  - {from: role:lake-layer, to: role:transformation, status: VALID, kind: data,
+     reason: Transformation frameworks read from lake zones.}
+  - {from: role:lake-layer, to: role:warehouse, status: VALID, kind: data,
+     reason: Warehouses load or query lake zones.}
+
+  # ---------------------------------------------------------------- platforms / processing
+  - {from: role:lakehouse, to: role:lake-layer, status: VALID, kind: data,
+     reason: The lakehouse platform reads and writes its storage zones.}
+  - {from: role:lakehouse, to: role:serving, status: VALID, kind: data, mode: query,
+     reason: Lakehouse tables are exposed through SQL serving endpoints.}
+  - {from: role:lakehouse, to: role:bi, status: VALID_WITH_WARNING, kind: data, mode: query,
+     reason: BI usually connects through a SQL serving endpoint rather than the platform as a whole.,
+     suggestion: Add a SQL warehouse / serving node between the platform and BI.}
+  - {from: role:lakehouse, to: role:ml, status: VALID, kind: data,
+     reason: Lakehouse data feeds model training.}
+  - {from: role:warehouse, to: role:bi, status: VALID, kind: data, mode: query,
+     reason: Warehouses are queried directly by BI tools.}
+  - {from: role:warehouse, to: role:serving, status: VALID, kind: data, mode: query,
+     reason: The warehouse serves SQL consumers.}
+  - {from: role:warehouse, to: role:lake-layer, status: VALID, kind: data,
+     reason: The warehouse hosts its own raw/staging/curated zones.}
+  - {from: role:warehouse, to: role:ml, status: VALID, kind: data,
+     reason: Warehouse data feeds ML platforms.}
+  - {from: role:warehouse, to: role:transformation, status: VALID, kind: data,
+     reason: In-warehouse transformation frameworks run on the warehouse.}
+  - {from: role:warehouse, to: role:warehouse, status: VALID_WITH_WARNING, kind: data,
+     reason: Warehouse-to-warehouse flows are typical during migration (historical copy) but rarely long-term.}
+  - {from: role:legacy-warehouse, to: role:warehouse, status: VALID_WITH_WARNING, kind: data, mode: batch,
+     reason: Direct transfer services exist (e.g. BigQuery Data Transfer), but large volumes need staging and validation.}
+  - {from: role:legacy-warehouse, to: role:lakehouse, status: VALID_WITH_WARNING, kind: data, mode: batch,
+     reason: Direct reads work for history; plan bandwidth, partitioning and reconciliation.}
+  - {from: role:legacy-warehouse, to: role:bi, status: VALID, kind: data, mode: query,
+     reason: Today's reporting path — keep it until BI is repointed.}
+  - {from: role:processing, to: role:lake-layer, status: VALID, kind: data,
+     reason: Batch engines write lake zones.}
+  - {from: role:processing, to: role:object-storage, status: VALID, kind: data,
+     reason: Batch engines write results to object storage.}
+  - {from: role:processing, to: role:warehouse, status: VALID, kind: data,
+     reason: Batch engines load warehouses.}
+  - {from: role:processing, to: role:serving, status: VALID, kind: data,
+     reason: Processed outputs are exposed through serving.}
+  - {from: role:transformation, to: role:lake-layer, status: VALID, kind: data,
+     reason: Transformation frameworks build the downstream zones.}
+  - {from: role:transformation, to: role:warehouse, status: VALID, kind: data,
+     reason: In-warehouse transformations materialise models.}
+  - {from: role:transformation, to: role:lakehouse, status: VALID, kind: data,
+     reason: Transformations run on the lakehouse.}
+  - {from: role:transformation, to: role:serving, status: VALID, kind: data,
+     reason: Transformed models are published to serving.}
+  - {from: role:transformation, to: role:bi, status: VALID_WITH_WARNING, kind: data,
+     reason: BI should read the models a transformation produces, not the framework itself.}
+  - {from: role:etl, to: role:object-storage, status: VALID, kind: data, mode: batch,
+     reason: ETL tools write extracts to cloud storage.}
+  - {from: role:etl, to: role:lake-layer, status: VALID, kind: data, mode: batch,
+     reason: ETL loads into lake zones.}
+  - {from: role:etl, to: role:warehouse, status: VALID, kind: data, mode: batch,
+     reason: ETL loads warehouses — the classic pattern.}
+  - {from: role:etl, to: role:legacy-warehouse, status: VALID, kind: data, mode: batch,
+     reason: Today's load path into the warehouse appliance.}
+  - {from: role:etl, to: role:lakehouse, status: VALID, kind: data, mode: batch,
+     reason: ETL can load lakehouse tables.}
+  - {from: role:etl, to: role:source-database, status: VALID, kind: data, mode: batch,
+     reason: ETL loads operational or reporting databases.}
+  - {from: role:etl, to: role:bi, status: UNUSUAL, kind: data,
+     reason: ETL tools prepare data; BI should read from a warehouse or serving layer.}
+  - {from: role:etl, to: role:etl, status: VALID_WITH_WARNING, kind: data,
+     reason: Chaining two ETL tools usually indicates coexistence during migration — plan to retire one.}
+  - {from: role:serving, to: role:bi, status: VALID, kind: data, mode: query,
+     reason: BI tools query the SQL serving layer.}
+  - {from: role:serving, to: role:api, status: VALID, kind: data, mode: api,
+     reason: Serving endpoints back data APIs.}
+  - {from: role:serving, to: role:ml, status: VALID, kind: data,
+     reason: ML workloads read through the serving layer.}
+  - {from: role:bi, to: "*", status: UNUSUAL, kind: data,
+     reason: BI tools are consumption endpoints; outbound data flows from BI are rare.}
+  - {from: role:ml, to: role:serving, status: VALID, kind: data,
+     reason: Model outputs are published for consumption.}
+  - {from: role:ml, to: role:api, status: VALID, kind: data, mode: api,
+     reason: Models are served behind APIs.}
+  - {from: role:api, to: role:application, status: VALID, kind: data, mode: api,
+     reason: Applications consume APIs.}
+
+  # ---------------------------------------------------------------- control plane
+  - {from: role:orchestrator, to: role:etl, status: VALID, kind: control, mode: control,
+     reason: Schedulers trigger and monitor ETL jobs.}
+  - {from: role:orchestrator, to: role:processing, status: VALID, kind: control, mode: control,
+     reason: Orchestrators trigger batch processing jobs.}
+  - {from: role:orchestrator, to: role:transformation, status: VALID, kind: control, mode: control,
+     reason: Orchestrators run transformation pipelines on schedule or on dependency.}
+  - {from: role:orchestrator, to: role:lakehouse, status: VALID, kind: control, mode: control,
+     reason: Orchestrators trigger lakehouse jobs.}
+  - {from: role:orchestrator, to: role:warehouse, status: VALID, kind: control, mode: control,
+     reason: Orchestrators run warehouse SQL jobs.}
+  - {from: role:orchestrator, to: role:cdc, status: VALID, kind: control, mode: control,
+     reason: Orchestrators can start, pause or monitor replication tasks.}
+  - {from: role:orchestrator, to: role:lake-layer, status: VALID_WITH_WARNING, kind: control, mode: control,
+     reason: Orchestrators schedule the pipelines that build a zone — they do not move the data themselves.,
+     suggestion: Connect the orchestrator to the pipeline/job that writes this layer.}
+  - {from: role:orchestrator, to: role:object-storage, status: VALID_WITH_WARNING, kind: control,
+     reason: This orchestrator is primarily a workload scheduler, not a data transport mechanism. It can trigger file movement, but data should flow through an ingestion or transfer service.,
+     suggestion: Route data through CDC/ETL/transfer tooling and keep the orchestrator as a control-plane edge.}
+  - {from: role:orchestrator, to: role:source-database, status: VALID_WITH_WARNING, kind: control,
+     reason: Orchestrators can run database jobs, but they are not a data path.}
+  - {from: role:orchestrator, to: role:legacy-warehouse, status: VALID_WITH_WARNING, kind: control,
+     reason: Schedulers trigger warehouse scripts (e.g. BTEQ) — a control dependency, not a data flow.}
+  - {from: role:orchestrator, to: role:mainframe, status: VALID, kind: control, mode: control,
+     reason: Enterprise schedulers commonly drive mainframe batch (JCL).}
+  - {from: role:orchestrator, to: role:bi, status: VALID_WITH_WARNING, kind: control,
+     reason: Triggering report refreshes is possible; it is a control dependency only.}
+  - {from: role:orchestrator, to: role:orchestrator, status: VALID_WITH_WARNING, kind: control,
+     reason: Two schedulers in one flow usually means coexistence during migration; define which one owns each dependency.}
+  - {from: role:orchestrator, to: role:data-quality, status: VALID, kind: control, mode: control,
+     reason: Orchestrators run reconciliation and quality checks as pipeline steps.}
+  - {from: "*", to: role:orchestrator, status: UNUSUAL, kind: control,
+     reason: Data does not flow into an orchestrator; it controls other components.,
+     suggestion: Reverse the edge so the orchestrator points at what it schedules.}
+
+  # ---------------------------------------------------------------- cross-cutting
+  - {from: role:governance, to: "*", status: VALID, kind: governance, mode: governance,
+     reason: Governance applies catalog, lineage and access policy to this component.}
+  - {from: "*", to: role:governance, status: VALID_WITH_WARNING, kind: governance, mode: governance,
+     reason: Governance relationships usually point from the catalog to what it governs; metadata harvesting in this direction is fine.}
+  - {from: role:data-quality, to: "*", status: VALID, kind: data, mode: batch,
+     reason: Reconciliation and quality checks compare or validate this component's data.}
+  - {from: "*", to: role:data-quality, status: VALID, kind: data, mode: batch,
+     reason: Data is sampled or counted by the quality/reconciliation component.}
+  - {from: role:security, to: "*", status: VALID, kind: security, mode: control,
+     reason: Security services provide secrets, keys or identity to this component.}
+  - {from: "*", to: role:security, status: VALID_WITH_WARNING, kind: security,
+     reason: Security relationships usually point from the security service to the consumer.}
+  - {from: role:observability, to: "*", status: VALID, kind: monitoring, mode: control,
+     reason: Observability collects metrics, logs and alerts from this component.}
+  - {from: "*", to: role:observability, status: VALID, kind: monitoring,
+     reason: The component emits telemetry to the observability stack.}
+  - {from: role:devops, to: "*", status: VALID, kind: control, mode: control,
+     reason: CI/CD and IaC deploy and version this component.}
+  - {from: role:network, to: "*", status: VALID, kind: security,
+     reason: Network connectivity enables traffic to this component.}
+  - {from: "*", to: role:network, status: VALID, kind: security,
+     reason: Traffic traverses this network path.}
+  - {from: role:cloud-platform, to: "*", status: VALID, kind: control,
+     reason: The cloud platform hosts this component.}
+  - {from: "*", to: role:cloud-platform, status: UNUSUAL, kind: control,
+     reason: A cloud platform is a hosting boundary, not a data destination. Connect to a specific service instead.}
+  - {from: role:container, to: role:application, status: VALID, kind: control,
+     reason: Containers host application workloads.}
+  - {from: role:application, to: role:container, status: VALID, kind: control,
+     reason: The application is packaged and run on containers.}
+
+  # ---------------------------------------------------------------- nonsensical
+  - {from: role:bi, to: role:source-database, status: INVALID, kind: data,
+     reason: BI tools consume data — they are not a data source for an operational database.}
+  - {from: role:bi, to: role:cdc, status: INVALID, kind: data,
+     reason: There is no change log to capture from a BI tool.}
+
+  # ---------------------------------------------------------------- tech-specific
+  - {from: tech:unity-catalog, to: "*", status: VALID, kind: governance, mode: governance,
+     reason: Unity Catalog governs tables, volumes, models and access for Databricks workloads.}
+  - {from: tech:databricks-auto-loader, to: stage:bronze, status: VALID, kind: data, mode: streaming,
+     reason: Auto Loader incrementally ingests new files into bronze Delta tables.}
+  - {from: tech:lakeflow-connect, to: stage:bronze, status: VALID, kind: data, mode: cdc,
+     reason: Lakeflow Connect writes ingested source data into Delta tables governed by Unity Catalog.}
+  - {from: tech:databricks-sql, to: role:bi, status: VALID, kind: data, mode: query,
+     reason: BI tools connect to Databricks SQL warehouses over JDBC/ODBC.}
+  - {from: role:resilience, to: "*", status: VALID, kind: control, mode: control,
+     reason: Protects this component (replication, backup or retry handling).}
+  - {from: "*", to: role:resilience, status: VALID, kind: control,
+     reason: Failed or replicated data is handed to the resilience mechanism.}
+  - {from: role:lakehouse, to: role:transformation, status: VALID, kind: control, mode: control,
+     reason: The platform runs these transformation pipelines.}
+  - {from: role:warehouse, to: role:serving, status: VALID, kind: data, mode: query,
+     reason: The warehouse serves SQL consumers.}

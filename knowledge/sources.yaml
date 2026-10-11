@@ -1,0 +1,427 @@
+# Migration Atlas — documentation source registry.
+#
+# Only the sources listed here may ever be ingested. There is no broad crawling:
+# the ingester fetches the explicit seed_urls (plus, at most, same-prefix links up to
+# max_pages), refuses any URL outside allowed_prefixes, honours robots.txt when
+# respect_robots is true, and sleeps rate_limit_seconds between requests.
+# Every source ships disabled; a user must opt in by setting enabled: true.
+#
+# doc_type: official-docs | github-docs | migration-guide
+# technologies: ids from docs/ontology-ids.md only.
+
+# ---------------------------------------------------------------- Google Cloud
+- id: google-cloud-data-docs
+  vendor: Google Cloud
+  product: Google Cloud data and analytics services
+  doc_type: official-docs
+  enabled: false
+  base_url: https://cloud.google.com/
+  allowed_prefixes:
+    - https://cloud.google.com/datastream/docs/
+    - https://cloud.google.com/pubsub/docs/
+    - https://cloud.google.com/dataflow/docs/
+    - https://cloud.google.com/composer/docs
+    - https://cloud.google.com/dataplex/docs/
+    - https://cloud.google.com/secret-manager/docs/
+    - https://cloud.google.com/monitoring/docs/
+    - https://cloud.google.com/storage/docs/
+  seed_urls:
+    - https://cloud.google.com/datastream/docs/overview
+    - https://cloud.google.com/pubsub/docs/overview
+    - https://cloud.google.com/dataflow/docs/overview
+    - https://cloud.google.com/composer/docs
+    - https://cloud.google.com/dataplex/docs/introduction
+    - https://cloud.google.com/secret-manager/docs/overview
+    - https://cloud.google.com/monitoring/docs/monitoring-overview
+    - https://cloud.google.com/storage/docs/introduction
+  rate_limit_seconds: 2.0
+  max_pages: 40
+  respect_robots: true
+  technologies: [gcp, google-datastream, google-pubsub, google-dataflow, cloud-composer, google-dataplex, google-secret-manager, google-cloud-monitoring, google-cloud-storage]
+  terms_note: Google Cloud documentation is subject to Google's site terms and content licence; ingest for private reference only and keep attribution links.
+
+- id: google-bigquery-migration
+  vendor: Google Cloud
+  product: BigQuery Migration Service
+  doc_type: migration-guide
+  enabled: false
+  base_url: https://cloud.google.com/bigquery/docs/
+  allowed_prefixes:
+    - https://cloud.google.com/bigquery/docs/
+  seed_urls:
+    - https://cloud.google.com/bigquery/docs/migration-intro
+    - https://cloud.google.com/bigquery/docs/migration/teradata-overview
+    - https://cloud.google.com/bigquery/docs/migration/teradata
+    - https://cloud.google.com/bigquery/docs/migration/teradata-sql
+    - https://cloud.google.com/bigquery/docs/batch-sql-translator
+    - https://cloud.google.com/bigquery/docs/interactive-sql-translator
+    - https://cloud.google.com/bigquery/docs/migration-assessment
+  rate_limit_seconds: 2.0
+  max_pages: 25
+  respect_robots: true
+  technologies: [bigquery, teradata, google-dvt]
+  terms_note: Google Cloud documentation is subject to Google's site terms; keep attribution links and do not redistribute copied text.
+
+# ---------------------------------------------------------------- AWS
+- id: aws-data-docs
+  vendor: AWS
+  product: AWS data and analytics services
+  doc_type: official-docs
+  enabled: false
+  base_url: https://docs.aws.amazon.com/
+  allowed_prefixes:
+    - https://docs.aws.amazon.com/dms/latest/
+    - https://docs.aws.amazon.com/AmazonS3/latest/userguide/
+    - https://docs.aws.amazon.com/redshift/latest/
+    - https://docs.aws.amazon.com/glue/latest/dg/
+    - https://docs.aws.amazon.com/lake-formation/latest/dg/
+    - https://docs.aws.amazon.com/whitepapers/latest/building-data-lakes/
+  seed_urls:
+    - https://docs.aws.amazon.com/dms/latest/userguide/Welcome.html
+    - https://docs.aws.amazon.com/dms/latest/userguide/CHAP_BestPractices.html
+    - https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html
+    - https://docs.aws.amazon.com/redshift/latest/mgmt/welcome.html
+    - https://docs.aws.amazon.com/redshift/latest/dg/c_designing-tables-best-practices.html
+    - https://docs.aws.amazon.com/glue/latest/dg/what-is-glue.html
+    - https://docs.aws.amazon.com/lake-formation/latest/dg/what-is-lake-formation.html
+    - https://docs.aws.amazon.com/whitepapers/latest/building-data-lakes/building-data-lake-aws.html
+  rate_limit_seconds: 2.0
+  max_pages: 40
+  respect_robots: true
+  technologies: [aws, aws-dms, amazon-s3, amazon-redshift, aws-glue, aws-glue-data-catalog, aws-lake-formation]
+  terms_note: AWS documentation is subject to the AWS Site Terms; ingest for internal reference and link back to the source page.
+
+# ---------------------------------------------------------------- Microsoft Azure
+- id: microsoft-learn-data
+  vendor: Microsoft
+  product: Microsoft Azure and Microsoft Fabric data services
+  doc_type: official-docs
+  enabled: false
+  base_url: https://learn.microsoft.com/en-us/
+  allowed_prefixes:
+    - https://learn.microsoft.com/en-us/azure/data-factory/
+    - https://learn.microsoft.com/en-us/azure/event-hubs/
+    - https://learn.microsoft.com/en-us/azure/storage/blobs/
+    - https://learn.microsoft.com/en-us/azure/synapse-analytics/
+    - https://learn.microsoft.com/en-us/fabric/
+    - https://learn.microsoft.com/en-us/purview/
+  seed_urls:
+    - https://learn.microsoft.com/en-us/azure/data-factory/introduction
+    - https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-about
+    - https://learn.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-introduction
+    - https://learn.microsoft.com/en-us/azure/synapse-analytics/overview-what-is
+    - https://learn.microsoft.com/en-us/fabric/fundamentals/microsoft-fabric-overview
+    - https://learn.microsoft.com/en-us/purview/purview
+  rate_limit_seconds: 2.0
+  max_pages: 40
+  respect_robots: true
+  technologies: [azure, azure-data-factory, azure-event-hubs, adls-gen2, azure-synapse, microsoft-fabric, microsoft-purview]
+  terms_note: Microsoft Learn content is subject to Microsoft's terms of use; keep attribution and do not republish copied text.
+
+# ---------------------------------------------------------------- Databricks
+- id: databricks-docs
+  vendor: Databricks
+  product: Databricks Data Intelligence Platform
+  doc_type: official-docs
+  enabled: false
+  base_url: https://docs.databricks.com/
+  allowed_prefixes:
+    - https://docs.databricks.com/aws/en/
+  seed_urls:
+    - https://docs.databricks.com/aws/en/data-governance/unity-catalog/
+    - https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/
+    - https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/
+    - https://docs.databricks.com/aws/en/lakehouse/medallion
+    - https://docs.databricks.com/aws/en/delta/
+    - https://docs.databricks.com/aws/en/jobs/
+    - https://docs.databricks.com/aws/en/dlt/
+    - https://docs.databricks.com/aws/en/compute/sql-warehouse/
+    - https://docs.databricks.com/aws/en/dev-tools/bundles/
+  rate_limit_seconds: 2.0
+  max_pages: 25
+  respect_robots: true
+  technologies: [databricks, unity-catalog, lakeflow-connect, databricks-auto-loader, delta-lake, databricks-workflows, lakeflow-declarative-pipelines, databricks-sql, databricks-asset-bundles]
+  terms_note: Databricks documentation is subject to the Databricks website terms of use; ingest for internal reference only and link back.
+
+# ---------------------------------------------------------------- Snowflake
+- id: snowflake-docs
+  vendor: Snowflake
+  product: Snowflake AI Data Cloud
+  doc_type: official-docs
+  enabled: false
+  base_url: https://docs.snowflake.com/
+  allowed_prefixes:
+    - https://docs.snowflake.com/en/
+  seed_urls:
+    - https://docs.snowflake.com/en/user-guide/intro-key-concepts
+    - https://docs.snowflake.com/en/user-guide/warehouses-overview
+    - https://docs.snowflake.com/en/user-guide/data-load-overview
+    - https://docs.snowflake.com/en/user-guide/data-load-snowpipe-intro
+    - https://docs.snowflake.com/en/user-guide/data-time-travel
+    - https://docs.snowflake.com/en/user-guide/tables-clustering-micropartitions
+  rate_limit_seconds: 2.0
+  max_pages: 25
+  respect_robots: true
+  technologies: [snowflake, snowpipe, snowflake-horizon]
+  terms_note: Snowflake documentation is subject to Snowflake's site terms; keep attribution and avoid redistribution.
+
+# ---------------------------------------------------------------- Oracle
+- id: oracle-docs
+  vendor: Oracle
+  product: Oracle Database and Oracle GoldenGate
+  doc_type: official-docs
+  enabled: false
+  base_url: https://docs.oracle.com/en/
+  allowed_prefixes:
+    - https://docs.oracle.com/en/database/oracle/oracle-database/
+    - https://docs.oracle.com/en/middleware/goldengate/
+  seed_urls:
+    - https://docs.oracle.com/en/database/oracle/oracle-database/19/index.html
+    - https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html
+    - https://docs.oracle.com/en/database/oracle/oracle-database/19/lnpls/index.html
+    - https://docs.oracle.com/en/database/oracle/oracle-database/19/sutil/index.html
+    - https://docs.oracle.com/en/middleware/goldengate/index.html
+  rate_limit_seconds: 3.0
+  max_pages: 25
+  respect_robots: true
+  technologies: [oracle-database, oracle-exadata, oracle-goldengate]
+  terms_note: Oracle documentation is copyrighted and governed by Oracle's terms of use; ingest only for private reference and link back.
+
+# ---------------------------------------------------------------- Teradata
+- id: teradata-docs
+  vendor: Teradata
+  product: Teradata Vantage
+  doc_type: official-docs
+  enabled: false
+  base_url: https://docs.teradata.com/
+  allowed_prefixes:
+    - https://docs.teradata.com/
+  seed_urls:
+    - https://docs.teradata.com/
+  rate_limit_seconds: 3.0
+  max_pages: 15
+  respect_robots: true
+  technologies: [teradata]
+  terms_note: The Teradata docs portal is largely JavaScript-rendered and governed by Teradata's terms; add specific page URLs you are licensed to use and keep attribution.
+
+# ---------------------------------------------------------------- Informatica
+- id: informatica-docs
+  vendor: Informatica
+  product: Informatica PowerCenter and Intelligent Data Management Cloud
+  doc_type: official-docs
+  enabled: false
+  base_url: https://docs.informatica.com/
+  allowed_prefixes:
+    - https://docs.informatica.com/data-integration/
+    - https://docs.informatica.com/integration-cloud/
+  seed_urls:
+    - https://docs.informatica.com/data-integration/powercenter.html
+  rate_limit_seconds: 3.0
+  max_pages: 15
+  respect_robots: true
+  technologies: [informatica-powercenter, informatica-idmc]
+  terms_note: Some Informatica documentation requires a support login and is licensed to customers; ingest only public pages and respect Informatica's terms.
+
+# ---------------------------------------------------------------- IBM
+- id: ibm-docs
+  vendor: IBM
+  product: IBM z/OS, CICS, Db2, Netezza, DataStage, MQ
+  doc_type: official-docs
+  enabled: false
+  base_url: https://www.ibm.com/docs/en/
+  allowed_prefixes:
+    - https://www.ibm.com/docs/en/
+  seed_urls:
+    - https://www.ibm.com/docs/en/zos
+    - https://www.ibm.com/docs/en/cics-ts
+    - https://www.ibm.com/docs/en/db2-for-zos
+    - https://www.ibm.com/docs/en/db2
+    - https://www.ibm.com/docs/en/netezza
+    - https://www.ibm.com/docs/en/ibm-mq
+  rate_limit_seconds: 3.0
+  max_pages: 25
+  respect_robots: true
+  technologies: [ibm-zos, cics, ibm-db2-zos, ibm-db2, netezza, ibm-mq, ibm-datastage, cobol, jcl, vsam]
+  terms_note: IBM Documentation is subject to IBM's terms of use; product landing slugs change between releases, so verify seed URLs before enabling.
+
+# ---------------------------------------------------------------- SAP
+- id: sap-help
+  vendor: SAP
+  product: SAP S/4HANA, SAP BW/4HANA, SAP Datasphere
+  doc_type: official-docs
+  enabled: false
+  base_url: https://help.sap.com/docs/
+  allowed_prefixes:
+    - https://help.sap.com/docs/
+  seed_urls:
+    - https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE
+    - https://help.sap.com/docs/SAP_DATASPHERE
+    - https://help.sap.com/docs/SAP_BW4HANA
+  rate_limit_seconds: 3.0
+  max_pages: 15
+  respect_robots: true
+  technologies: [sap-erp]
+  terms_note: SAP Help Portal content is governed by SAP's terms of use; the portal is JavaScript-heavy, so verify pages render before ingestion.
+
+# ---------------------------------------------------------------- PostgreSQL
+- id: postgresql-docs
+  vendor: PostgreSQL Global Development Group
+  product: PostgreSQL
+  doc_type: official-docs
+  enabled: false
+  base_url: https://www.postgresql.org/docs/current/
+  allowed_prefixes:
+    - https://www.postgresql.org/docs/current/
+  seed_urls:
+    - https://www.postgresql.org/docs/current/datatype.html
+    - https://www.postgresql.org/docs/current/plpgsql.html
+    - https://www.postgresql.org/docs/current/logical-replication.html
+    - https://www.postgresql.org/docs/current/app-pgdump.html
+    - https://www.postgresql.org/docs/current/sql-copy.html
+    - https://www.postgresql.org/docs/current/plpgsql-porting.html
+  rate_limit_seconds: 2.0
+  max_pages: 25
+  respect_robots: true
+  technologies: [postgresql, alloydb, cloud-sql, amazon-aurora]
+  terms_note: PostgreSQL documentation is released under the PostgreSQL licence; keep the copyright notice and attribution.
+
+# ---------------------------------------------------------------- Apache Software Foundation
+- id: apache-kafka-docs
+  vendor: Apache Software Foundation
+  product: Apache Kafka
+  doc_type: official-docs
+  enabled: false
+  base_url: https://kafka.apache.org/
+  allowed_prefixes:
+    - https://kafka.apache.org/
+  seed_urls:
+    - https://kafka.apache.org/intro
+    - https://kafka.apache.org/documentation/
+    - https://kafka.apache.org/quickstart
+  rate_limit_seconds: 2.0
+  max_pages: 10
+  respect_robots: true
+  technologies: [apache-kafka, confluent-cloud, amazon-msk]
+  terms_note: Apache Kafka documentation is licensed under the Apache License 2.0; keep attribution to the ASF.
+
+- id: apache-airflow-docs
+  vendor: Apache Software Foundation
+  product: Apache Airflow
+  doc_type: official-docs
+  enabled: false
+  base_url: https://airflow.apache.org/docs/
+  allowed_prefixes:
+    - https://airflow.apache.org/docs/apache-airflow/stable/
+  seed_urls:
+    - https://airflow.apache.org/docs/apache-airflow/stable/index.html
+    - https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/overview.html
+    - https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html
+    - https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/executor/index.html
+    - https://airflow.apache.org/docs/apache-airflow/stable/best-practices.html
+  rate_limit_seconds: 2.0
+  max_pages: 25
+  respect_robots: true
+  technologies: [apache-airflow, cloud-composer, amazon-mwaa]
+  terms_note: Apache Airflow documentation is licensed under the Apache License 2.0; keep attribution to the ASF.
+
+- id: apache-spark-docs
+  vendor: Apache Software Foundation
+  product: Apache Spark
+  doc_type: official-docs
+  enabled: false
+  base_url: https://spark.apache.org/docs/latest/
+  allowed_prefixes:
+    - https://spark.apache.org/docs/latest/
+  seed_urls:
+    - https://spark.apache.org/docs/latest/index.html
+    - https://spark.apache.org/docs/latest/sql-programming-guide.html
+    - https://spark.apache.org/docs/latest/sql-ref-ansi-compliance.html
+    - https://spark.apache.org/docs/latest/sql-performance-tuning.html
+    - https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html
+    - https://spark.apache.org/docs/latest/sql-migration-guide.html
+  rate_limit_seconds: 2.0
+  max_pages: 25
+  respect_robots: true
+  technologies: [apache-spark, spark-structured-streaming]
+  terms_note: Apache Spark documentation is licensed under the Apache License 2.0; keep attribution to the ASF.
+
+# ---------------------------------------------------------------- Kubernetes
+- id: kubernetes-docs
+  vendor: Cloud Native Computing Foundation
+  product: Kubernetes
+  doc_type: official-docs
+  enabled: false
+  base_url: https://kubernetes.io/docs/
+  allowed_prefixes:
+    - https://kubernetes.io/docs/
+  seed_urls:
+    - https://kubernetes.io/docs/concepts/overview/
+    - https://kubernetes.io/docs/concepts/workloads/controllers/job/
+    - https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
+    - https://kubernetes.io/docs/concepts/configuration/secret/
+    - https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  rate_limit_seconds: 2.0
+  max_pages: 25
+  respect_robots: true
+  technologies: [kubernetes, gke, amazon-eks, aks]
+  terms_note: Kubernetes documentation is licensed CC BY 4.0; keep attribution to The Kubernetes Authors.
+
+# ---------------------------------------------------------------- dbt
+- id: dbt-docs
+  vendor: dbt Labs
+  product: dbt
+  doc_type: official-docs
+  enabled: false
+  base_url: https://docs.getdbt.com/
+  allowed_prefixes:
+    - https://docs.getdbt.com/docs/
+    - https://docs.getdbt.com/reference/
+  seed_urls:
+    - https://docs.getdbt.com/docs/introduction
+    - https://docs.getdbt.com/docs/build/models
+    - https://docs.getdbt.com/docs/build/sources
+    - https://docs.getdbt.com/docs/build/incremental-models
+    - https://docs.getdbt.com/docs/build/snapshots
+    - https://docs.getdbt.com/docs/build/data-tests
+  rate_limit_seconds: 2.0
+  max_pages: 25
+  respect_robots: true
+  technologies: [dbt]
+  terms_note: dbt documentation is subject to dbt Labs' terms; keep attribution and link back.
+
+# ---------------------------------------------------------------- GitHub-hosted docs (raw markdown)
+- id: dbt-docs-github
+  vendor: dbt Labs
+  product: dbt (docs.getdbt.com source repository)
+  doc_type: github-docs
+  enabled: false
+  base_url: https://github.com/dbt-labs/docs.getdbt.com
+  allowed_prefixes:
+    - https://raw.githubusercontent.com/dbt-labs/docs.getdbt.com/current/website/docs/
+  seed_urls:
+    - https://raw.githubusercontent.com/dbt-labs/docs.getdbt.com/current/website/docs/docs/introduction.md
+    - https://raw.githubusercontent.com/dbt-labs/docs.getdbt.com/current/website/docs/docs/build/incremental-models.md
+    - https://raw.githubusercontent.com/dbt-labs/docs.getdbt.com/current/website/docs/docs/build/snapshots.md
+  rate_limit_seconds: 1.0
+  max_pages: 10
+  respect_robots: true
+  technologies: [dbt]
+  terms_note: Raw markdown from the public docs repository; follow the repository licence and keep attribution. File paths move between releases, so verify before enabling.
+
+- id: kubernetes-website-github
+  vendor: Cloud Native Computing Foundation
+  product: Kubernetes (kubernetes/website repository)
+  doc_type: github-docs
+  enabled: false
+  base_url: https://github.com/kubernetes/website
+  allowed_prefixes:
+    - https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/
+  seed_urls:
+    - https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/workloads/controllers/job.md
+    - https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/workloads/controllers/cron-jobs.md
+    - https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/configuration/secret.md
+  rate_limit_seconds: 1.0
+  max_pages: 10
+  respect_robots: true
+  technologies: [kubernetes]
+  terms_note: Kubernetes docs are CC BY 4.0; keep attribution to The Kubernetes Authors.

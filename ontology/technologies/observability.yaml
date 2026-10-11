@@ -1,0 +1,297 @@
+# Observability technologies: monitoring, logging, alerting, metrics and tracing.
+
+- id: google-cloud-monitoring
+  name: Google Cloud Monitoring
+  aliases: [cloud monitoring, google cloud monitoring, stackdriver monitoring]
+  vendor: Google Cloud
+  category: observability
+  role: observability
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: gauge
+  color: "#4285F4"
+  description: Google Cloud's managed metrics, dashboards, uptime checks and alerting service, including Managed Service for Prometheus.
+  typical_legacy_use: Monitors BigQuery, Dataflow, Pub/Sub, Composer and GKE workloads with service metrics, SLOs and alerting policies routed to on-call channels.
+  capabilities: [monitoring, metrics, alerting, dashboards, slo-monitoring, uptime-checks]
+  possible_targets: []
+  alternatives: [datadog, prometheus, grafana]
+  replaces: []
+  suggested_next: [google-cloud-logging, opentelemetry, grafana]
+  migration_considerations:
+    - Define SLOs for migrated pipelines (freshness, latency, failure rate) and alert on them rather than raw metrics.
+    - Use metrics scopes to monitor multiple projects from a central operations project.
+    - Recreate legacy job-failure alerts from schedulers as alerting policies with notification channels.
+  known_challenges:
+    - Custom and high-cardinality metrics can drive unexpected cost.
+    - Pipeline-level business metrics (row counts, lag) must be emitted explicitly.
+  risks: [operational-readiness, cost-overrun]
+  strategies: [replatform]
+  skills: [Google Cloud operations, SRE practices]
+  tags: [observability, monitoring, gcp]
+  docs:
+    - title: Cloud Monitoring documentation
+      url: https://cloud.google.com/monitoring/docs
+
+- id: google-cloud-logging
+  name: Google Cloud Logging
+  aliases: [cloud logging, google cloud logging, stackdriver logging]
+  vendor: Google Cloud
+  category: observability
+  role: observability
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: activity
+  color: "#4285F4"
+  description: Google Cloud's managed log ingestion, storage, search and routing service, including audit logs, log-based metrics and Log Analytics on BigQuery.
+  typical_legacy_use: Centralises application, pipeline and Cloud Audit Logs, routing them via sinks to log buckets, BigQuery or SIEM tools for compliance retention.
+  capabilities: [logging, audit-logging, log-analytics, log-based-metrics, alerting]
+  possible_targets: []
+  alternatives: [datadog, azure-monitor, amazon-cloudwatch]
+  replaces: []
+  suggested_next: [google-cloud-monitoring, bigquery, google-pubsub]
+  migration_considerations:
+    - Enable Data Access audit logs for sensitive datasets; they are off by default for most services.
+    - Design aggregated sinks at organisation or folder level for central retention.
+    - Set retention and exclusion filters to control ingestion cost.
+  known_challenges:
+    - Verbose debug logging from migrated jobs can create large ingestion bills.
+    - Correlating logs across services requires consistent trace and job identifiers.
+  risks: [operational-readiness, cost-overrun, regulatory-compliance]
+  strategies: [replatform]
+  skills: [Google Cloud operations, Log analysis]
+  tags: [observability, logging, gcp]
+  docs:
+    - title: Cloud Logging documentation
+      url: https://cloud.google.com/logging/docs
+
+- id: amazon-cloudwatch
+  name: Amazon CloudWatch
+  aliases: [cloudwatch, amazon cloudwatch, aws cloudwatch]
+  vendor: Amazon Web Services
+  category: observability
+  role: observability
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: gauge
+  color: "#E7157B"
+  description: AWS monitoring and observability service for metrics, logs, alarms, dashboards and events across AWS resources and applications.
+  typical_legacy_use: Collects metrics and logs from Glue, EMR, Lambda, Redshift and MWAA, with alarms routed through SNS to operations teams.
+  capabilities: [monitoring, logging, alerting, metrics, dashboards, tracing]
+  possible_targets: []
+  alternatives: [datadog, prometheus, grafana]
+  replaces: []
+  suggested_next: [opentelemetry, grafana, aws-iam]
+  migration_considerations:
+    - Standardise log groups, retention and metric namespaces per workload and environment.
+    - Use cross-account observability to aggregate metrics and logs in a central monitoring account.
+    - Recreate scheduler-based failure notifications as CloudWatch alarms or EventBridge rules.
+  known_challenges:
+    - Log ingestion and custom metrics pricing grows quickly without retention policies.
+    - Metric granularity and query capabilities differ from dedicated APM tools.
+  risks: [operational-readiness, cost-overrun]
+  strategies: [replatform]
+  skills: [AWS operations, SRE practices]
+  tags: [observability, monitoring, logging, aws]
+  docs:
+    - title: Amazon CloudWatch documentation
+      url: https://docs.aws.amazon.com/cloudwatch/
+
+- id: azure-monitor
+  name: Azure Monitor
+  aliases: [azure monitor, log analytics, application insights]
+  vendor: Microsoft
+  category: observability
+  role: observability
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: gauge
+  color: "#0078D4"
+  description: Azure's full-stack monitoring platform combining metrics, Log Analytics workspaces (KQL), Application Insights tracing and alerting.
+  typical_legacy_use: Collects diagnostics from Data Factory, Synapse, Databricks, AKS and VMs into Log Analytics, with alerts and action groups for operations.
+  capabilities: [monitoring, logging, alerting, metrics, tracing, dashboards]
+  possible_targets: []
+  alternatives: [datadog, grafana, prometheus]
+  replaces: []
+  suggested_next: [grafana, opentelemetry, microsoft-entra-id]
+  migration_considerations:
+    - Configure diagnostic settings on every data service to send logs to a central Log Analytics workspace.
+    - Use Azure Policy to enforce diagnostic settings at scale.
+    - Translate legacy monitoring rules into KQL-based log alerts and metric alerts with action groups.
+  known_challenges:
+    - Log Analytics ingestion cost requires table plans, commitment tiers and data collection rules.
+    - Workspace design (centralised vs per-team) affects access control and query performance.
+  risks: [operational-readiness, cost-overrun]
+  strategies: [replatform]
+  skills: [Azure operations, KQL]
+  tags: [observability, monitoring, logging, azure]
+  docs:
+    - title: Azure Monitor documentation
+      url: https://learn.microsoft.com/en-us/azure/azure-monitor/
+
+- id: datadog
+  name: Datadog
+  aliases: [datadog, dd]
+  vendor: Datadog
+  category: observability
+  role: observability
+  layer: operations
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: chart-line
+  color: "#632CA6"
+  description: SaaS observability platform unifying infrastructure metrics, logs, APM traces, data-jobs monitoring and alerting across clouds and on-premises.
+  typical_legacy_use: Provides a single pane of glass for hybrid estates during migration, monitoring legacy servers alongside cloud data services via agents and integrations.
+  capabilities: [monitoring, logging, alerting, metrics, tracing, apm, dashboards]
+  possible_targets: []
+  alternatives: [google-cloud-monitoring, amazon-cloudwatch, azure-monitor, grafana]
+  replaces: []
+  suggested_next: [opentelemetry, kubernetes, terraform]
+  migration_considerations:
+    - Enable cloud integrations and agents in both legacy and target environments to compare performance during parallel run.
+    - Tag consistently (env, service, team, migration wave) to slice dashboards and costs.
+    - Manage monitors and dashboards as code via the Terraform provider.
+  known_challenges:
+    - Host, custom metric and log-volume pricing can escalate during parallel run.
+    - Overlap with cloud-native monitoring tools can create duplicated alerting.
+  risks: [cost-overrun, licensing-overlap]
+  strategies: [retain, repurchase]
+  skills: [Datadog, SRE practices]
+  tags: [observability, saas, apm, multicloud]
+  docs:
+    - title: Datadog documentation
+      url: https://docs.datadoghq.com/
+
+- id: prometheus
+  name: Prometheus
+  aliases: [prometheus, promql]
+  vendor: CNCF
+  category: observability
+  role: observability
+  layer: operations
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: activity
+  color: "#E6522C"
+  description: Open-source CNCF time-series monitoring system with a pull-based scrape model, PromQL query language and Alertmanager.
+  typical_legacy_use: Monitors Kubernetes clusters, Kafka, Spark and custom services via exporters, often paired with Grafana for dashboards.
+  capabilities: [monitoring, metrics, alerting, time-series]
+  possible_targets: [google-cloud-monitoring, amazon-cloudwatch, azure-monitor]
+  alternatives: [datadog, google-cloud-monitoring, amazon-cloudwatch]
+  replaces: []
+  suggested_next: [grafana, kubernetes, opentelemetry]
+  migration_considerations:
+    - Consider managed Prometheus offerings (Google, AWS, Azure) to avoid operating long-term storage.
+    - Migrate recording rules and alert rules as code alongside workloads.
+    - Control label cardinality on migrated exporters.
+  known_challenges:
+    - Long-term retention and high availability need Thanos, Cortex/Mimir or a managed service.
+    - Not designed for logs or traces; needs complementary tools.
+  risks: [operational-readiness, skills-gap]
+  strategies: [retain, replatform]
+  skills: [Prometheus, PromQL, Kubernetes]
+  tags: [observability, metrics, open-source, cncf]
+  docs:
+    - title: Prometheus documentation
+      url: https://prometheus.io/docs/introduction/overview/
+
+- id: grafana
+  name: Grafana
+  aliases: [grafana, grafana cloud]
+  vendor: Grafana Labs
+  category: observability
+  role: observability
+  layer: operations
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: chart-line
+  color: "#F46800"
+  description: Open-source visualisation and alerting platform that queries metrics, logs and traces from many data sources such as Prometheus, CloudWatch, Azure Monitor and Loki.
+  typical_legacy_use: Provides shared operational dashboards across heterogeneous monitoring back ends, often for hybrid estates during migration.
+  capabilities: [monitoring, dashboards, alerting, metrics, visualization]
+  possible_targets: []
+  alternatives: [datadog, google-cloud-monitoring, azure-monitor]
+  replaces: []
+  suggested_next: [prometheus, opentelemetry, amazon-cloudwatch, azure-monitor]
+  migration_considerations:
+    - Provision data sources and dashboards as code to keep environments consistent.
+    - Build side-by-side legacy vs target dashboards to evidence performance parity during parallel run.
+    - Decide between self-hosted Grafana, Grafana Cloud or cloud-managed Grafana services.
+  known_challenges:
+    - Dashboard sprawl without ownership conventions.
+    - Alerting configuration differs between legacy and unified alerting versions.
+  risks: [operational-readiness]
+  strategies: [retain, replatform]
+  skills: [Grafana, PromQL, Dashboard design]
+  tags: [observability, dashboards, open-source]
+  docs:
+    - title: Grafana documentation
+      url: https://grafana.com/docs/grafana/latest/
+
+- id: opentelemetry
+  name: OpenTelemetry
+  aliases: [opentelemetry, otel]
+  vendor: CNCF
+  category: observability
+  role: observability
+  layer: operations
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: activity
+  color: "#425CC7"
+  description: Vendor-neutral CNCF standard, SDKs and Collector for generating and exporting traces, metrics and logs to any observability back end.
+  typical_legacy_use: Instruments applications and pipelines once and exports telemetry to Datadog, Cloud Monitoring, CloudWatch or Prometheus, avoiding vendor-specific agents.
+  capabilities: [tracing, metrics, logging, telemetry-collection, instrumentation]
+  possible_targets: []
+  alternatives: [datadog]
+  replaces: []
+  suggested_next: [prometheus, grafana, datadog, google-cloud-monitoring]
+  migration_considerations:
+    - Deploy the OpenTelemetry Collector as an agent or gateway to decouple instrumentation from back ends.
+    - Propagate trace context across services and pipeline stages for end-to-end visibility.
+    - Use semantic conventions so telemetry is consistent across teams.
+  known_challenges:
+    - Signal maturity varies by language SDK; logs support lags traces and metrics in some SDKs.
+    - Sampling strategy must balance cost against diagnostic fidelity.
+  risks: [skills-gap, operational-readiness]
+  strategies: [refactor]
+  skills: [OpenTelemetry, Distributed tracing]
+  tags: [observability, tracing, open-standard, cncf]
+  docs:
+    - title: OpenTelemetry documentation
+      url: https://opentelemetry.io/docs/

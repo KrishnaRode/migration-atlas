@@ -1,0 +1,72 @@
+id: cdc-modernization
+name: CDC Modernization
+summary: Log-based change data capture from operational databases into BigQuery on Google Cloud.
+description: >-
+  Replaces nightly extracts with continuous log-based replication. Representative implementation on Google
+  Cloud - Datastream captures changes from Oracle and MySQL into Cloud Storage, a Dataflow template merges
+  them into BigQuery replica tables, and Dataform builds curated models; Google DVT continuously validates
+  parity with the sources.
+suitable_scenarios:
+  - Reducing source load and batch windows from full extracts
+  - Near-real-time reporting on operational data
+  - Zero- or low-downtime database migration with a long coexistence period
+  - Feeding multiple downstream consumers from one change stream
+components:
+  - oracle-database
+  - mysql
+  - google-datastream
+  - google-cloud-storage
+  - google-dataflow
+  - bigquery
+  - dataform
+  - looker
+  - cloud-composer
+  - google-dataplex
+  - google-secret-manager
+  - google-cloud-monitoring
+  - google-dvt
+  - private-connectivity
+benefits:
+  - Captures inserts, updates and deletes with minimal source impact
+  - Serverless, autoscaling replication and merge
+  - Raw change files on GCS provide a replayable audit trail
+  - Shortens cutover to a final delta catch-up
+limitations:
+  - Requires supplemental/binary logging and adequate log retention on sources
+  - Some data types and DDL changes need manual handling
+  - Merge cost and frequency must be tuned for large, high-churn tables
+tags: [gcp, cdc, bigquery, replication, near-real-time]
+template:
+  nodes:
+    - {key: ora, tech: oracle-database}
+    - {key: mysql, tech: mysql}
+    - {key: ds, tech: google-datastream}
+    - {key: gcs, tech: google-cloud-storage, label: "Change files (GCS)"}
+    - {key: dataflow, tech: google-dataflow, label: "Datastream-to-BigQuery merge"}
+    - {key: bq, tech: bigquery}
+    - {key: dataform, tech: dataform}
+    - {key: looker, tech: looker}
+    - {key: composer, tech: cloud-composer}
+    - {key: dataplex, tech: google-dataplex}
+    - {key: sm, tech: google-secret-manager}
+    - {key: psc, tech: private-connectivity, label: "Private connectivity"}
+    - {key: mon, tech: google-cloud-monitoring}
+    - {key: dvt, tech: google-dvt}
+  edges:
+    - {from: ora, to: ds, label: "LogMiner CDC", mode: cdc, frequency: continuous, latency: near-real-time}
+    - {from: mysql, to: ds, label: "Binlog CDC", mode: cdc, frequency: continuous, latency: near-real-time}
+    - {from: ds, to: gcs, mode: cdc, frequency: continuous, latency: near-real-time, format: avro}
+    - {from: gcs, to: dataflow, label: "Pub/Sub notifications on new files", mode: streaming, frequency: continuous}
+    - {from: dataflow, to: bq, label: "Staging + MERGE to replica", mode: streaming, frequency: continuous, latency: minutes}
+    - {from: dataform, to: bq, label: "Curated models (ELT)", mode: batch, frequency: hourly}
+    - {from: bq, to: looker, mode: query, latency: interactive}
+    - {from: ora, to: dvt, label: "Source validation queries", mode: query, frequency: daily}
+    - {from: bq, to: dvt, label: "Target validation queries", mode: query, frequency: daily}
+    - {from: composer, to: dataform, label: "Run workflow", mode: control, kind: control}
+    - {from: composer, to: dvt, label: "Run validation", mode: control, kind: control}
+    - {from: dataplex, to: bq, mode: governance, kind: governance}
+    - {from: dataplex, to: gcs, mode: governance, kind: governance}
+    - {from: sm, to: ds, label: "Source credentials", kind: security}
+    - {from: psc, to: ds, label: "Private path to sources", kind: security}
+    - {from: ds, to: mon, label: "Freshness and throughput", kind: monitoring}
+    - {from: dataflow, to: mon, kind: monitoring}

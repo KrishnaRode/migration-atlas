@@ -1,0 +1,37 @@
+{
+  "id": "media-netezza-bigquery",
+  "title": "Netezza Exit to BigQuery",
+  "subtitle": "Netezza + Informatica + Tableau \u2192 BigQuery",
+  "industry": "Media",
+  "featured": false,
+  "description": "Our Netezza appliance (90 TB) reaches end of support next year. Informatica PowerCenter loads it and Tableau dashboards sit on top. We want a serverless BigQuery platform with lower licensing cost.",
+  "project": {
+    "name": "Netezza Exit to BigQuery",
+    "description": "Netezza + Informatica + Tableau \u2192 BigQuery",
+    "industry": "Media",
+    "estate": {
+      "description": "Our Netezza appliance (90 TB) reaches end of support next year. Informatica PowerCenter loads it and Tableau dashboards sit on top. We want a serverless BigQuery platform with lower licensing cost.",
+      "industry": "Media",
+      "current_technologies": [
+        "netezza",
+        "informatica-powercenter",
+        "tableau"
+      ],
+      "target_cloud": "gcp",
+      "target_platforms": [
+        "bigquery"
+      ],
+      "constraints": [
+        {
+          "id": "reduce-licensing",
+          "priority": "high"
+        },
+        {
+          "id": "maximize-managed",
+          "priority": "high"
+        }
+      ],
+      "data_volume_tb": 90
+    }
+  }
+}

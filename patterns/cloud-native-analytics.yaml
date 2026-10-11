@@ -1,0 +1,71 @@
+id: cloud-native-analytics
+name: Cloud-Native Analytics
+summary: Serverless analytics on Google Cloud combining CDC, streaming and file ingestion into BigQuery with Looker and Vertex AI consumption.
+description: >-
+  A fully managed, serverless analytics platform built from cloud-native services rather than migrated
+  tools. Representative implementation on Google Cloud - Datastream, Pub/Sub with Dataflow, and Cloud Storage
+  loads feed BigQuery, Dataform manages SQL transformations, and Looker and Vertex AI consume governed data
+  catalogued by Dataplex.
+suitable_scenarios:
+  - Greenfield analytics or rearchitecture of on-premises warehouses
+  - Teams preferring serverless operations with minimal infrastructure management
+  - Combined BI and ML use cases on one platform
+components:
+  - java
+  - cloud-sql
+  - flat-files-sftp
+  - google-pubsub
+  - google-dataflow
+  - google-datastream
+  - google-cloud-storage
+  - bigquery
+  - dataform
+  - looker
+  - vertex-ai
+  - cloud-composer
+  - google-dataplex
+  - google-secret-manager
+  - google-cloud-monitoring
+benefits:
+  - No cluster management; pay-per-use or reserved capacity
+  - Native integration across ingestion, warehouse, BI and ML
+  - Unified batch and streaming with Dataflow
+limitations:
+  - Deep coupling to Google Cloud services
+  - On-demand query pricing needs governance to avoid cost spikes
+  - Complex procedural logic fits less naturally than in Spark
+tags: [gcp, serverless, bigquery, analytics, ml]
+template:
+  nodes:
+    - {key: app, tech: java, label: "Application events"}
+    - {key: cloudsql, tech: cloud-sql, label: "Cloud SQL (OLTP)"}
+    - {key: sftp, tech: flat-files-sftp, label: "Partner files"}
+    - {key: pubsub, tech: google-pubsub}
+    - {key: dataflow, tech: google-dataflow}
+    - {key: ds, tech: google-datastream}
+    - {key: gcs, tech: google-cloud-storage}
+    - {key: bq, tech: bigquery}
+    - {key: dataform, tech: dataform}
+    - {key: looker, tech: looker}
+    - {key: vertex, tech: vertex-ai}
+    - {key: composer, tech: cloud-composer}
+    - {key: dataplex, tech: google-dataplex}
+    - {key: sm, tech: google-secret-manager}
+    - {key: mon, tech: google-cloud-monitoring}
+  edges:
+    - {from: app, to: pubsub, mode: streaming, frequency: continuous, latency: real-time, format: json}
+    - {from: pubsub, to: dataflow, mode: streaming, frequency: continuous, latency: seconds}
+    - {from: dataflow, to: bq, label: "Storage Write API", mode: streaming, frequency: continuous, latency: seconds}
+    - {from: cloudsql, to: ds, mode: cdc, frequency: continuous, latency: near-real-time}
+    - {from: ds, to: bq, label: "Direct BigQuery destination", mode: cdc, frequency: continuous, latency: minutes}
+    - {from: sftp, to: gcs, mode: file, frequency: daily, format: csv}
+    - {from: gcs, to: bq, label: "Load jobs", mode: batch, frequency: daily}
+    - {from: dataform, to: bq, label: "SQL transformations", mode: batch, frequency: hourly}
+    - {from: bq, to: looker, mode: query, latency: interactive}
+    - {from: bq, to: vertex, label: "Training and feature data", mode: query, frequency: daily}
+    - {from: composer, to: dataform, label: "Run workflow", mode: control, kind: control}
+    - {from: dataplex, to: bq, mode: governance, kind: governance}
+    - {from: dataplex, to: gcs, mode: governance, kind: governance}
+    - {from: sm, to: ds, label: "Database credentials", kind: security}
+    - {from: dataflow, to: mon, kind: monitoring}
+    - {from: composer, to: mon, kind: monitoring}

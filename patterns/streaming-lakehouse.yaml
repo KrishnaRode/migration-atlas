@@ -1,0 +1,65 @@
+id: streaming-lakehouse
+name: Streaming Lakehouse
+summary: Continuous event ingestion into streaming Delta tables on Azure Databricks for low-latency analytics.
+description: >-
+  Events published by applications to Azure Event Hubs are consumed continuously by Lakeflow Declarative
+  Pipelines into streaming bronze, silver and gold Delta tables. Representative implementation on Azure;
+  the same shape applies with Kafka or Pub/Sub on other clouds, with Unity Catalog governing tables and
+  Power BI reading curated results through Databricks SQL.
+suitable_scenarios:
+  - Operational dashboards requiring seconds-to-minutes freshness
+  - IoT, clickstream or transaction event analytics
+  - Replacing micro-batch ETL with continuous processing
+  - Feeding real-time features to ML models
+components:
+  - java
+  - azure-event-hubs
+  - lakeflow-declarative-pipelines
+  - delta-bronze
+  - delta-silver
+  - delta-gold
+  - databricks-sql
+  - power-bi
+  - unity-catalog
+  - azure-key-vault
+  - azure-monitor
+  - databricks-workflows
+benefits:
+  - Low end-to-end latency with exactly-once processing into Delta
+  - Declarative expectations enforce data quality inline
+  - Same tables serve streaming and batch consumers
+  - Kafka-compatible Event Hubs endpoint eases producer migration
+limitations:
+  - Continuously running compute increases baseline cost
+  - Requires schema contracts and handling for late or out-of-order events
+  - Stateful aggregations need watermark tuning and state-store sizing
+tags: [azure, databricks, streaming, lakehouse, real-time]
+template:
+  nodes:
+    - {key: app, tech: java, label: "Producer applications"}
+    - {key: eh, tech: azure-event-hubs}
+    - {key: ldp, tech: lakeflow-declarative-pipelines, label: "Streaming pipeline"}
+    - {key: bronze, tech: delta-bronze}
+    - {key: silver, tech: delta-silver}
+    - {key: gold, tech: delta-gold}
+    - {key: dbsql, tech: databricks-sql}
+    - {key: pbi, tech: power-bi}
+    - {key: uc, tech: unity-catalog}
+    - {key: kv, tech: azure-key-vault}
+    - {key: mon, tech: azure-monitor}
+    - {key: wf, tech: databricks-workflows}
+  edges:
+    - {from: app, to: eh, label: "Publish events (Kafka protocol)", mode: streaming, frequency: continuous, latency: real-time, format: avro}
+    - {from: eh, to: ldp, mode: streaming, frequency: continuous, latency: seconds}
+    - {from: ldp, to: bronze, label: "Raw streaming table", mode: streaming, frequency: continuous, latency: seconds, format: delta}
+    - {from: bronze, to: silver, label: "Parse, validate, dedupe", mode: streaming, frequency: continuous, latency: seconds, format: delta}
+    - {from: silver, to: gold, label: "Windowed aggregates", mode: streaming, frequency: continuous, latency: minutes, format: delta}
+    - {from: gold, to: dbsql, mode: query}
+    - {from: dbsql, to: pbi, label: "DirectQuery", mode: query, latency: interactive}
+    - {from: wf, to: ldp, label: "Start and monitor pipeline", mode: control, kind: control}
+    - {from: uc, to: bronze, mode: governance, kind: governance}
+    - {from: uc, to: silver, mode: governance, kind: governance}
+    - {from: uc, to: gold, mode: governance, kind: governance}
+    - {from: kv, to: ldp, label: "Event Hubs connection secret", kind: security}
+    - {from: eh, to: mon, label: "Throughput and consumer lag", kind: monitoring}
+    - {from: wf, to: mon, kind: monitoring}

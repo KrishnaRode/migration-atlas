@@ -1,0 +1,177 @@
+# Building blocks the deterministic generator assembles target architectures from.
+# Every value is a technology id. Lists are ordered by preference.
+# The generator never invents components — it only picks from here and from each
+# technology's own `possible_targets` / `suggested_next`.
+
+clouds:
+  gcp:
+    name: Google Cloud
+    tech: gcp
+    object_storage: google-cloud-storage
+    streaming: google-pubsub
+    cdc: [google-datastream]
+    stream_processing: google-dataflow
+    etl: [google-dataflow, google-cloud-data-fusion]
+    orchestration: cloud-composer
+    scheduler: google-cloud-scheduler
+    secrets: google-secret-manager
+    key_management: google-cloud-kms
+    identity: google-iam
+    monitoring: google-cloud-monitoring
+    logging: google-cloud-logging
+    ci_cd: google-cloud-build
+    hybrid_network: google-cloud-interconnect
+    network: google-vpc
+    network_security: vpc-service-controls
+    governance: google-dataplex
+    bi: looker
+    warehouse: bigquery
+    ml: vertex-ai
+    kubernetes: gke
+    api: apigee
+    oltp: alloydb
+    hadoop: google-dataproc
+  aws:
+    name: Amazon Web Services
+    tech: aws
+    object_storage: amazon-s3
+    streaming: amazon-kinesis
+    managed_kafka: amazon-msk
+    cdc: [aws-dms]
+    stream_processing: apache-flink
+    etl: [aws-glue]
+    orchestration: amazon-mwaa
+    scheduler: aws-step-functions
+    secrets: aws-secrets-manager
+    key_management: aws-kms
+    identity: aws-iam
+    monitoring: amazon-cloudwatch
+    logging: amazon-cloudwatch
+    ci_cd: github-actions
+    hybrid_network: aws-direct-connect
+    network: aws-vpc
+    network_security: private-connectivity
+    governance: aws-lake-formation
+    bi: amazon-quicksight
+    warehouse: amazon-redshift
+    ml: amazon-sagemaker
+    kubernetes: amazon-eks
+    api: amazon-api-gateway
+    oltp: amazon-aurora
+    hadoop: amazon-emr
+  azure:
+    name: Microsoft Azure
+    tech: azure
+    object_storage: adls-gen2
+    streaming: azure-event-hubs
+    cdc: [azure-dms]
+    stream_processing: azure-stream-analytics
+    etl: [azure-data-factory]
+    orchestration: azure-data-factory
+    scheduler: azure-data-factory
+    secrets: azure-key-vault
+    key_management: azure-key-vault
+    identity: microsoft-entra-id
+    monitoring: azure-monitor
+    logging: azure-monitor
+    ci_cd: azure-devops
+    hybrid_network: azure-expressroute
+    network: azure-vnet
+    network_security: private-connectivity
+    governance: microsoft-purview
+    bi: power-bi
+    warehouse: azure-synapse
+    ml: azure-machine-learning
+    kubernetes: aks
+    api: azure-api-management
+    oltp: azure-sql-database
+    hadoop: databricks
+
+# How each data platform lays out storage zones and which native services it brings.
+# `zones` are lake-layer technology ids in flow order; the first zone sits on the
+# cloud's object storage.
+data_platforms:
+  databricks:
+    name: Databricks
+    tech: databricks
+    clouds: [aws, azure, gcp]
+    kind: lakehouse
+    zones: [landing-zone, delta-bronze, delta-silver, delta-gold]
+    cdc: [lakeflow-connect]
+    file_ingestion: databricks-auto-loader
+    transformation: lakeflow-declarative-pipelines
+    orchestration: databricks-workflows
+    serving: databricks-sql
+    governance: unity-catalog
+    data_quality: lakehouse-monitoring
+    ml: mlflow
+    ci_cd: databricks-asset-bundles
+    stream_processing: spark-structured-streaming
+  bigquery:
+    name: BigQuery
+    tech: bigquery
+    clouds: [gcp]
+    kind: warehouse
+    zones: [landing-zone, raw-layer, staging-layer, curated-layer]
+    cdc: [google-datastream]
+    transformation: dataform
+    orchestration: cloud-composer
+    serving: bigquery
+    governance: google-dataplex
+    ml: vertex-ai
+    stream_processing: google-dataflow
+  snowflake:
+    name: Snowflake
+    tech: snowflake
+    clouds: [aws, azure, gcp]
+    kind: warehouse
+    zones: [landing-zone, raw-layer, staging-layer, curated-layer]
+    cdc: [snowpipe]
+    file_ingestion: snowpipe
+    transformation: dbt
+    orchestration: apache-airflow
+    serving: snowflake
+    governance: snowflake-horizon
+  amazon-redshift:
+    name: Amazon Redshift
+    tech: amazon-redshift
+    clouds: [aws]
+    kind: warehouse
+    zones: [landing-zone, raw-layer, staging-layer, curated-layer]
+    cdc: [aws-dms]
+    transformation: dbt
+    orchestration: amazon-mwaa
+    serving: amazon-redshift
+    governance: aws-lake-formation
+    ml: amazon-sagemaker
+  azure-synapse:
+    name: Azure Synapse
+    tech: azure-synapse
+    clouds: [azure]
+    kind: warehouse
+    zones: [landing-zone, raw-layer, staging-layer, curated-layer]
+    cdc: [azure-dms]
+    transformation: dbt
+    orchestration: azure-data-factory
+    serving: azure-synapse
+    governance: microsoft-purview
+    ml: azure-machine-learning
+  microsoft-fabric:
+    name: Microsoft Fabric
+    tech: microsoft-fabric
+    clouds: [azure]
+    kind: lakehouse
+    zones: [landing-zone, raw-layer, staging-layer, curated-layer]
+    cdc: [azure-dms]
+    transformation: dbt
+    orchestration: azure-data-factory
+    serving: microsoft-fabric
+    governance: microsoft-purview
+    ml: azure-machine-learning
+
+# When the estate is not primarily analytics (e.g. mainframe / application estates),
+# the generator still needs a default data platform per cloud.
+default_data_platform:
+  gcp: bigquery
+  aws: amazon-redshift
+  azure: microsoft-fabric

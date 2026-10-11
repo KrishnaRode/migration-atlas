@@ -1,0 +1,376 @@
+# Hyperscaler platforms (cloud-platform role) and cloud networking / hybrid connectivity.
+
+- id: gcp
+  name: Google Cloud
+  aliases: [google cloud, gcp, google cloud platform]
+  vendor: Google Cloud
+  category: cloud-platforms
+  role: cloud-platform
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: cloud
+  color: "#4285F4"
+  description: Google's public cloud platform, offering serverless analytics (BigQuery), streaming (Pub/Sub, Dataflow), AI (Vertex AI) and global networking.
+  typical_legacy_use: Chosen as the target for data-warehouse and analytics modernisation, especially Teradata, Netezza and Hadoop migrations to BigQuery and Dataproc.
+  capabilities: [cloud-platform, compute, object-storage, analytics, identity, networking, managed-services]
+  possible_targets: []
+  alternatives: [aws, azure]
+  replaces: []
+  suggested_next: [google-cloud-storage, google-pubsub, bigquery, google-dataflow, cloud-composer, google-secret-manager, google-cloud-monitoring, google-dataplex, google-iam, google-cloud-interconnect]
+  migration_considerations:
+    - Establish a landing zone (organisation, folders, projects, Shared VPC, IAM, logging) before migrating workloads.
+    - Plan hybrid connectivity (Cloud Interconnect or HA VPN) and bandwidth for bulk data transfer.
+    - Use VPC Service Controls and CMEK where data residency or exfiltration controls are required.
+    - Model costs for BigQuery (on-demand vs editions) and egress early.
+  known_challenges:
+    - Teams need retraining on GCP IAM, networking and serverless operating models.
+    - Mapping legacy security zones to projects and perimeters requires architectural decisions.
+  risks: [skills-gap, cost-overrun, vendor-lock-in, network-bandwidth]
+  strategies: [rehost, replatform, refactor, rearchitect]
+  skills: [Google Cloud architecture, Cloud networking, Google Cloud IAM]
+  tags: [cloud, hyperscaler, gcp]
+  docs:
+    - title: Google Cloud documentation
+      url: https://cloud.google.com/docs
+
+- id: aws
+  name: Amazon Web Services
+  aliases: [amazon web services, aws]
+  vendor: Amazon Web Services
+  category: cloud-platforms
+  role: cloud-platform
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: cloud
+  color: "#FF9900"
+  description: Amazon's public cloud platform with the broadest catalogue of compute, storage, database, analytics (S3, Glue, Redshift, EMR) and AI services.
+  typical_legacy_use: Chosen as the target for data-centre exits and data-lake modernisation, typically centred on S3 with Glue, EMR, Redshift and Athena.
+  capabilities: [cloud-platform, compute, object-storage, analytics, identity, networking, managed-services]
+  possible_targets: []
+  alternatives: [gcp, azure]
+  replaces: []
+  suggested_next: [amazon-s3, amazon-kinesis, amazon-redshift, aws-glue, amazon-mwaa, aws-secrets-manager, amazon-cloudwatch, aws-lake-formation, aws-iam, aws-direct-connect]
+  migration_considerations:
+    - Build a multi-account landing zone (AWS Organizations, Control Tower, SCPs) before migrating workloads.
+    - Plan Direct Connect or Site-to-Site VPN capacity, and offline transfer (Snowball) for very large volumes.
+    - Standardise encryption with KMS and centralise logging with CloudTrail and CloudWatch.
+    - Use migration programmes and tooling (AWS DMS, Application Migration Service) per workload.
+  known_challenges:
+    - Service sprawl makes reference-architecture choices difficult without strong standards.
+    - Data egress and cross-AZ transfer costs are often underestimated.
+  risks: [skills-gap, cost-overrun, vendor-lock-in, network-bandwidth]
+  strategies: [rehost, replatform, refactor, rearchitect]
+  skills: [AWS architecture, AWS networking, AWS IAM]
+  tags: [cloud, hyperscaler, aws]
+  docs:
+    - title: AWS documentation
+      url: https://docs.aws.amazon.com/
+
+- id: azure
+  name: Microsoft Azure
+  aliases: [microsoft azure, azure]
+  vendor: Microsoft
+  category: cloud-platforms
+  role: cloud-platform
+  layer: operations
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: cloud
+  color: "#0078D4"
+  description: Microsoft's public cloud platform, integrating with Entra ID and Microsoft 365, and offering analytics through Fabric, Synapse, Data Factory and Azure Databricks.
+  typical_legacy_use: Chosen by Microsoft-centric enterprises to modernise SQL Server, SSIS and on-prem BI estates into ADLS, Data Factory, Fabric and Power BI.
+  capabilities: [cloud-platform, compute, object-storage, analytics, identity, networking, managed-services]
+  possible_targets: []
+  alternatives: [gcp, aws]
+  replaces: []
+  suggested_next: [adls-gen2, azure-event-hubs, azure-synapse, azure-data-factory, azure-key-vault, azure-monitor, microsoft-purview, microsoft-entra-id, azure-expressroute, microsoft-fabric]
+  migration_considerations:
+    - Deploy an Azure landing zone (management groups, subscriptions, hub-and-spoke networking, Azure Policy) first.
+    - Plan ExpressRoute or VPN capacity and private endpoints for PaaS data services.
+    - Leverage Azure Hybrid Benefit for existing Windows Server and SQL Server licences.
+    - Align identity with Entra ID and use managed identities for service-to-service access.
+  known_challenges:
+    - Overlapping analytics services (Synapse, Fabric, Databricks) complicate target-platform decisions.
+    - Private endpoint and DNS design for PaaS services is a frequent source of delays.
+  risks: [skills-gap, cost-overrun, vendor-lock-in, network-bandwidth]
+  strategies: [rehost, replatform, refactor, rearchitect]
+  skills: [Azure architecture, Azure networking, Entra ID]
+  tags: [cloud, hyperscaler, azure]
+  docs:
+    - title: Azure documentation
+      url: https://learn.microsoft.com/en-us/azure/
+
+- id: google-cloud-interconnect
+  name: Google Cloud Interconnect
+  aliases: [cloud interconnect, google cloud interconnect, dedicated interconnect, partner interconnect]
+  vendor: Google Cloud
+  category: cloud-networking
+  role: network
+  layer: security
+  environment: hybrid
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: network
+  color: "#4285F4"
+  description: Google Cloud's private, high-bandwidth hybrid connectivity via Dedicated Interconnect (10/100 Gbps circuits) or Partner Interconnect through service providers.
+  typical_legacy_use: Connects on-prem data centres to GCP VPCs for bulk data migration, CDC replication and ongoing hybrid workloads with predictable latency.
+  capabilities: [hybrid-connectivity, private-connectivity, network-boundary, high-bandwidth]
+  possible_targets: []
+  alternatives: [site-to-site-vpn]
+  replaces: []
+  suggested_next: [google-vpc, vpc-service-controls, google-cloud-storage, google-datastream]
+  migration_considerations:
+    - Size bandwidth from data-transfer volumes and CDC throughput, with redundant connections for the 99.99% SLA topology.
+    - Provisioning (cross-connects, LOAs) can take weeks; start early in the programme.
+    - Use Cloud Router with BGP and plan non-overlapping IP ranges with on-prem.
+  known_challenges:
+    - Lead times for physical circuits often delay migration waves.
+    - Interconnect traffic is not encrypted by default; use MACsec or HA VPN over Interconnect where required.
+  risks: [network-bandwidth, cutover-downtime, security-gap]
+  strategies: [relocate, rehost, replatform]
+  skills: [Google Cloud networking, BGP, Network engineering]
+  tags: [network, hybrid, gcp]
+  docs:
+    - title: Cloud Interconnect documentation
+      url: https://cloud.google.com/network-connectivity/docs/interconnect
+
+- id: aws-direct-connect
+  name: AWS Direct Connect
+  aliases: [direct connect, aws direct connect, dx]
+  vendor: Amazon Web Services
+  category: cloud-networking
+  role: network
+  layer: security
+  environment: hybrid
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: network
+  color: "#8C4FFF"
+  description: AWS dedicated network connection service linking on-premises networks to AWS over private circuits at Direct Connect locations.
+  typical_legacy_use: Provides consistent, private connectivity for migrating large data volumes and running hybrid workloads between data centres and AWS VPCs.
+  capabilities: [hybrid-connectivity, private-connectivity, network-boundary, high-bandwidth]
+  possible_targets: []
+  alternatives: [site-to-site-vpn]
+  replaces: []
+  suggested_next: [aws-vpc, private-connectivity, amazon-s3, aws-dms]
+  migration_considerations:
+    - Use Direct Connect gateways and Transit Gateway to reach multiple VPCs and Regions.
+    - Design for resilience with connections at multiple locations, or a VPN backup.
+    - Plan bandwidth for initial bulk load, CDC and parallel-run reconciliation traffic.
+  known_challenges:
+    - Physical provisioning through partners can take weeks to months.
+    - Direct Connect is not encrypted by default; MACsec or VPN over DX is needed for encryption.
+  risks: [network-bandwidth, cutover-downtime, security-gap]
+  strategies: [relocate, rehost, replatform]
+  skills: [AWS networking, BGP, Network engineering]
+  tags: [network, hybrid, aws]
+  docs:
+    - title: AWS Direct Connect documentation
+      url: https://docs.aws.amazon.com/directconnect/
+
+- id: azure-expressroute
+  name: Azure ExpressRoute
+  aliases: [expressroute, azure expressroute]
+  vendor: Microsoft
+  category: cloud-networking
+  role: network
+  layer: security
+  environment: hybrid
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: network
+  color: "#0078D4"
+  description: Azure private connectivity service that extends on-premises networks into Microsoft cloud over connections facilitated by connectivity providers.
+  typical_legacy_use: Connects data centres to Azure hub VNets for data migration, hybrid data integration and access to PaaS services via private peering.
+  capabilities: [hybrid-connectivity, private-connectivity, network-boundary, high-bandwidth]
+  possible_targets: []
+  alternatives: [site-to-site-vpn]
+  replaces: []
+  suggested_next: [azure-vnet, private-connectivity, adls-gen2, azure-data-factory]
+  migration_considerations:
+    - Choose SKU (Standard, Premium) and bandwidth based on regional reach and migration throughput.
+    - Deploy redundant circuits or a VPN failover path for production workloads.
+    - Integrate with hub-and-spoke or Virtual WAN topologies and private DNS.
+  known_challenges:
+    - Provider provisioning lead times can delay migration waves.
+    - Traffic is not encrypted by default; MACsec (ExpressRoute Direct) or IPsec over ExpressRoute may be required.
+  risks: [network-bandwidth, cutover-downtime, security-gap]
+  strategies: [relocate, rehost, replatform]
+  skills: [Azure networking, BGP, Network engineering]
+  tags: [network, hybrid, azure]
+  docs:
+    - title: Azure ExpressRoute documentation
+      url: https://learn.microsoft.com/en-us/azure/expressroute/
+
+- id: site-to-site-vpn
+  name: Site-to-Site VPN
+  aliases: [site to site vpn, ipsec vpn, s2s vpn, ha vpn]
+  vendor: Generic
+  category: cloud-networking
+  role: network
+  layer: security
+  environment: hybrid
+  legacy: false
+  clouds: [aws, azure, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: network
+  color: "#0D9488"
+  description: Encrypted IPsec tunnels over the internet between on-premises networks and cloud VPCs/VNets (Google Cloud HA VPN, AWS Site-to-Site VPN, Azure VPN Gateway).
+  typical_legacy_use: Provides quick-to-provision hybrid connectivity for early migration waves, low-volume integration or as backup to dedicated circuits.
+  capabilities: [hybrid-connectivity, encryption, network-boundary]
+  possible_targets: [google-cloud-interconnect, aws-direct-connect, azure-expressroute]
+  alternatives: [google-cloud-interconnect, aws-direct-connect, azure-expressroute]
+  replaces: []
+  suggested_next: [google-vpc, aws-vpc, azure-vnet, private-connectivity]
+  migration_considerations:
+    - Validate throughput; per-tunnel bandwidth is limited (typically around 1.25 Gbps), so bulk migration may need multiple tunnels or dedicated circuits.
+    - Deploy redundant tunnels and BGP dynamic routing for availability.
+    - Use as a fast-start or backup path while dedicated interconnects are provisioned.
+  known_challenges:
+    - Internet-based latency and throughput variability affects CDC lag and large transfers.
+    - Overlapping IP ranges between on-prem and cloud require NAT or readdressing.
+  risks: [network-bandwidth, cdc-lag, data-volume-transfer]
+  strategies: [rehost, replatform]
+  skills: [Network engineering, IPsec, BGP]
+  tags: [network, hybrid, vpn]
+  docs:
+    - title: Cloud VPN overview
+      url: https://cloud.google.com/network-connectivity/docs/vpn/concepts/overview
+    - title: What is AWS Site-to-Site VPN?
+      url: https://docs.aws.amazon.com/vpn/latest/s2svpn/VPC_VPN.html
+
+- id: google-vpc
+  name: Google Cloud VPC
+  aliases: [google vpc, gcp vpc, shared vpc]
+  vendor: Google Cloud
+  category: cloud-networking
+  role: network
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: network
+  color: "#4285F4"
+  description: Google Cloud's global software-defined virtual network with regional subnets, firewall policies, Cloud NAT, Private Google Access and Shared VPC.
+  typical_legacy_use: Provides the network foundation for GCP data platforms, with Shared VPC host projects serving many service projects.
+  capabilities: [network-boundary, private-connectivity, firewall, network-segmentation]
+  possible_targets: []
+  alternatives: [aws-vpc, azure-vnet]
+  replaces: []
+  suggested_next: [google-cloud-interconnect, vpc-service-controls, private-connectivity, site-to-site-vpn]
+  migration_considerations:
+    - Use Shared VPC to centralise network administration across projects.
+    - Plan IP ranges (including GKE secondary ranges) that do not overlap on-prem networks.
+    - Enable Private Google Access and Private Service Connect for managed services.
+  known_challenges:
+    - VPC peering is non-transitive, complicating hub-and-spoke designs.
+    - Firewall rule sprawl without hierarchical firewall policies.
+  risks: [security-gap, integration-breakage]
+  strategies: [replatform, rearchitect]
+  skills: [Google Cloud networking]
+  tags: [network, vpc, gcp]
+  docs:
+    - title: VPC documentation
+      url: https://cloud.google.com/vpc/docs
+
+- id: aws-vpc
+  name: Amazon VPC
+  aliases: [aws vpc, amazon vpc, amazon virtual private cloud]
+  vendor: Amazon Web Services
+  category: cloud-networking
+  role: network
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: network
+  color: "#8C4FFF"
+  description: AWS logically isolated virtual network with subnets, route tables, security groups, NACLs, gateway and interface endpoints.
+  typical_legacy_use: Hosts data-platform compute (EMR, Glue connections, Redshift, MWAA) in private subnets with endpoints to S3 and other services.
+  capabilities: [network-boundary, private-connectivity, firewall, network-segmentation]
+  possible_targets: []
+  alternatives: [google-vpc, azure-vnet]
+  replaces: []
+  suggested_next: [aws-direct-connect, private-connectivity, site-to-site-vpn, aws-iam]
+  migration_considerations:
+    - Use Transit Gateway for hub-and-spoke connectivity across many VPCs and accounts.
+    - Plan CIDR allocation with IPAM to avoid overlaps with on-prem and other VPCs.
+    - Add S3 gateway endpoints and interface endpoints to keep data traffic private and reduce NAT costs.
+  known_challenges:
+    - NAT gateway data-processing charges for large data movement.
+    - Security group and NACL complexity across many accounts.
+  risks: [security-gap, cost-overrun]
+  strategies: [replatform, rearchitect]
+  skills: [AWS networking]
+  tags: [network, vpc, aws]
+  docs:
+    - title: Amazon VPC documentation
+      url: https://docs.aws.amazon.com/vpc/
+
+- id: azure-vnet
+  name: Azure Virtual Network
+  aliases: [azure vnet, vnet, azure virtual network]
+  vendor: Microsoft
+  category: cloud-networking
+  role: network
+  layer: security
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: network
+  color: "#0078D4"
+  description: Azure's private network construct with subnets, network security groups, service endpoints, private endpoints and peering.
+  typical_legacy_use: Hosts VNet-injected data services (Databricks, managed integration runtimes, SQL Managed Instance) in hub-and-spoke topologies.
+  capabilities: [network-boundary, private-connectivity, firewall, network-segmentation]
+  possible_targets: []
+  alternatives: [google-vpc, aws-vpc]
+  replaces: []
+  suggested_next: [azure-expressroute, private-connectivity, site-to-site-vpn, azure-key-vault]
+  migration_considerations:
+    - Adopt a hub-and-spoke or Virtual WAN topology with Azure Firewall for centralised egress.
+    - Size subnets for VNet-injected services such as Azure Databricks, which need dedicated subnets.
+    - Design private DNS zones for private endpoints and on-prem resolution.
+  known_challenges:
+    - Subnet sizing mistakes are disruptive to fix after services are deployed.
+    - Private endpoint DNS integration with on-prem DNS is a common blocker.
+  risks: [security-gap, integration-breakage]
+  strategies: [replatform, rearchitect]
+  skills: [Azure networking]
+  tags: [network, vnet, azure]
+  docs:
+    - title: Azure Virtual Network documentation
+      url: https://learn.microsoft.com/en-us/azure/virtual-network/

@@ -1,0 +1,373 @@
+# Batch ETL / data integration tooling, legacy and cloud-native.
+- id: informatica-powercenter
+  name: Informatica PowerCenter
+  aliases: [powercenter, informatica, infa pc, informatica powercenter, infa]
+  vendor: Informatica
+  category: etl
+  role: etl
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: workflow
+  color: "#FF4D00"
+  description: Informatica's on-premises, metadata-driven batch ETL platform built around mappings, sessions and workflows.
+  typical_legacy_use: Enterprise-standard ETL loading the EDW and data marts from Oracle, SQL Server, mainframe and flat-file sources, scheduled by its own workflow manager or Control-M/AutoSys.
+  capabilities: [batch-etl, data-transformation, workflow-orchestration, pushdown-optimization, metadata-repository]
+  possible_targets: [lakeflow-declarative-pipelines, dbt, informatica-idmc, apache-spark, google-dataflow, azure-data-factory, aws-glue, databricks-workflows]
+  alternatives: [ibm-datastage, talend, ab-initio, ssis, pentaho]
+  replaces: []
+  suggested_next: [lakeflow-declarative-pipelines, dbt, informatica-idmc, databricks-workflows, apache-airflow, landing-zone]
+  migration_considerations:
+    - Export repository metadata (XML) to inventory mappings, mapplets, reusable transformations, parameter files and workflows; size by complexity, not count.
+    - Identify pushdown, SQL overrides, stored-procedure and lookup-heavy mappings; these carry business logic outside the visual design.
+    - Decide between modernising to IDMC (lift with PowerCenter-to-cloud conversion tooling) and re-engineering to Spark/SQL-based pipelines.
+    - Map workflow control logic (decision tasks, event waits, worklets) onto the target orchestrator.
+    - Plan licence and support timelines for PowerCenter against the migration schedule.
+  known_challenges:
+    - Custom Java transformations and stored-procedure calls need manual rewrite.
+    - SQL overrides in Source Qualifiers use source-database dialects that must also be converted.
+    - Parameter files and environment-specific connections are scattered across servers.
+  risks: [hidden-business-logic, skills-gap, scheduling-dependency-loss, lineage-loss, licensing-overlap]
+  strategies: [retain, rehost, replatform, refactor, rearchitect, retire]
+  skills: [Informatica development, SQL, Spark/SQL pipeline development]
+  tags: [etl, batch, legacy]
+  docs:
+    - title: Informatica PowerCenter documentation
+      url: https://docs.informatica.com/data-integration/powercenter.html
+
+- id: ibm-datastage
+  name: IBM DataStage
+  aliases: [datastage, ibm datastage, infosphere datastage, ds jobs]
+  vendor: IBM
+  category: etl
+  role: etl
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: workflow
+  color: "#1F70C1"
+  description: IBM's parallel ETL engine (part of InfoSphere Information Server, now also offered in Cloud Pak for Data), using parallel and server jobs orchestrated by sequences.
+  typical_legacy_use: High-volume batch ETL in banking, telco and insurance, loading Teradata, Db2, Netezza or Oracle warehouses.
+  capabilities: [batch-etl, parallel-processing, data-transformation, job-sequencing]
+  possible_targets: [lakeflow-declarative-pipelines, dbt, apache-spark, google-dataflow, azure-data-factory, aws-glue, databricks-workflows]
+  alternatives: [informatica-powercenter, ab-initio, talend, ssis]
+  replaces: []
+  suggested_next: [lakeflow-declarative-pipelines, dbt, databricks-workflows, apache-airflow, landing-zone]
+  migration_considerations:
+    - Export job designs (DSX/ISX) to inventory parallel jobs, shared containers, routines and sequences.
+    - Transformer stage derivations, BASIC routines and custom operators need careful translation.
+    - Partitioning and sort strategies designed for the parallel engine should be redesigned rather than copied.
+  known_challenges:
+    - Server jobs and BASIC routines embed procedural logic.
+    - Job sequences frequently shell out to scripts that hold extra logic.
+  risks: [hidden-business-logic, skills-gap, scheduling-dependency-loss, lineage-loss]
+  strategies: [retain, replatform, refactor, rearchitect, retire]
+  skills: [DataStage development, SQL, Spark]
+  tags: [etl, batch, legacy, ibm]
+  docs:
+    - title: IBM InfoSphere Information Server documentation
+      url: https://www.ibm.com/docs/en/iis
+
+- id: ssis
+  name: SQL Server Integration Services (SSIS)
+  aliases: [ssis, sql server integration services, integration services, dtsx]
+  vendor: Microsoft
+  category: etl
+  role: etl
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, azure]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: workflow
+  color: "#CC2927"
+  description: Microsoft's ETL component of SQL Server, building packages of control-flow and data-flow tasks.
+  typical_legacy_use: Loads SQL Server data marts and warehouses from files, Oracle and other databases, scheduled through SQL Server Agent.
+  capabilities: [batch-etl, data-transformation, control-flow, script-tasks]
+  possible_targets: [azure-data-factory, microsoft-fabric, lakeflow-declarative-pipelines, dbt, databricks-workflows]
+  alternatives: [informatica-powercenter, talend, ibm-datastage, pentaho]
+  replaces: []
+  suggested_next: [azure-data-factory, lakeflow-declarative-pipelines, dbt, databricks-workflows, microsoft-fabric]
+  migration_considerations:
+    - Azure Data Factory's Azure-SSIS Integration Runtime can rehost packages as an interim step before re-engineering.
+    - Inventory Script Tasks/Components (C#/VB.NET), which contain custom logic.
+    - Collect package configurations, environments and SQL Agent schedules together to retain dependencies.
+  known_challenges:
+    - Package logic often depends on T-SQL procedures in the source database.
+    - Third-party SSIS components may not be supported in the target runtime.
+  risks: [hidden-business-logic, stored-procedure-rewrite, scheduling-dependency-loss]
+  strategies: [retain, rehost, replatform, refactor, retire]
+  skills: [SSIS, T-SQL, Azure Data Factory]
+  tags: [etl, batch, legacy, microsoft]
+  docs:
+    - title: SQL Server Integration Services documentation
+      url: https://learn.microsoft.com/en-us/sql/integration-services/sql-server-integration-services
+
+- id: talend
+  name: Talend Data Integration
+  aliases: [talend, talend open studio, talend di, qlik talend]
+  vendor: Qlik (Talend)
+  category: etl
+  role: etl
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: workflow
+  color: "#FF6D70"
+  description: Java code-generating data integration tool (Studio, Data Integration and Data Fabric editions), now part of Qlik.
+  typical_legacy_use: Batch ETL jobs designed in Talend Studio and deployed as generated Java jobs, scheduled via the Talend Administration Center, TMC or external schedulers.
+  capabilities: [batch-etl, data-transformation, java-code-generation, big-data-jobs]
+  possible_targets: [lakeflow-declarative-pipelines, dbt, apache-spark, azure-data-factory, aws-glue, google-dataflow]
+  alternatives: [informatica-powercenter, pentaho, ssis, ibm-datastage]
+  replaces: []
+  suggested_next: [lakeflow-declarative-pipelines, dbt, databricks-workflows, apache-airflow]
+  migration_considerations:
+    - The free Talend Open Studio was retired in 2024; confirm the licensing and support status of the installed edition.
+    - Inventory tJava/tJavaRow components and routines, which carry custom code.
+    - Context variables and job hierarchies (parent/child jobs) must be mapped to target parameters and orchestration.
+  known_challenges:
+    - Generated Java code is hard to review, so logic extraction relies on the Studio designs.
+    - Product direction after the Qlik acquisition adds roadmap uncertainty.
+  risks: [hidden-business-logic, skills-gap, licensing-overlap]
+  strategies: [retain, replatform, refactor, retire]
+  skills: [Talend development, Java, SQL]
+  tags: [etl, batch, legacy]
+  docs:
+    - title: Talend documentation (Qlik)
+      url: https://help.talend.com/
+
+- id: ab-initio
+  name: Ab Initio
+  aliases: [ab initio, abinitio]
+  vendor: Ab Initio Software
+  category: etl
+  role: etl
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: workflow
+  color: "#2E3192"
+  description: High-performance parallel data processing platform built around graphs executed on the Co>Operating System, with Conduct>It and the EME metadata repository.
+  typical_legacy_use: Very high-volume batch ETL in large banks, insurers and telcos, often processing mainframe files and loading Teradata.
+  capabilities: [batch-etl, parallel-processing, data-transformation, metadata-repository, mainframe-file-processing]
+  possible_targets: [lakeflow-declarative-pipelines, apache-spark, dbt, google-dataflow, databricks-workflows]
+  alternatives: [informatica-powercenter, ibm-datastage]
+  replaces: []
+  suggested_next: [lakeflow-declarative-pipelines, apache-spark, databricks-workflows, dbt, reconciliation-framework]
+  migration_considerations:
+    - Documentation and tooling are proprietary and access-controlled; plan for vendor-mediated metadata export from the EME.
+    - DML record formats and transform functions encode business rules and mainframe layouts.
+    - Validate output parity on large volumes with automated reconciliation.
+  known_challenges:
+    - Scarce skills outside the incumbent team and limited public documentation.
+    - Performance expectations set by the parallel engine must be matched on Spark.
+  risks: [hidden-business-logic, skills-gap, performance-regression, lineage-loss]
+  strategies: [retain, refactor, rearchitect, retire]
+  skills: [Ab Initio development, Spark, SQL]
+  tags: [etl, batch, legacy, parallel]
+  docs:
+    - title: Ab Initio (vendor site)
+      url: https://www.abinitio.com/
+
+- id: pentaho
+  name: Pentaho Data Integration
+  aliases: [pentaho, pentaho data integration, pdi, kettle]
+  vendor: Hitachi Vantara
+  category: etl
+  role: etl
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: workflow
+  color: "#005C9E"
+  description: Hitachi Vantara's ETL tool (formerly Kettle), designing transformations and jobs in Spoon and running them with Pan/Kitchen or a server.
+  typical_legacy_use: Mid-market batch ETL loading MySQL/PostgreSQL warehouses and data marts, scheduled via cron or the Pentaho server.
+  capabilities: [batch-etl, data-transformation, job-orchestration]
+  possible_targets: [dbt, lakeflow-declarative-pipelines, azure-data-factory, aws-glue, google-cloud-data-fusion, apache-airflow]
+  alternatives: [talend, ssis, informatica-powercenter]
+  replaces: []
+  suggested_next: [dbt, lakeflow-declarative-pipelines, apache-airflow, databricks-workflows]
+  migration_considerations:
+    - Inventory .ktr/.kjb files and JavaScript/Java steps carrying custom logic.
+    - Kitchen/Pan invocations from cron hold the operational schedule; capture them.
+    - Confirm the edition (community vs enterprise) and support status.
+  known_challenges:
+    - JavaScript steps and variables make logic hard to trace.
+    - File-repository deployments lack versioning and environment separation.
+  risks: [hidden-business-logic, scheduling-dependency-loss]
+  strategies: [retain, refactor, retire]
+  skills: [Pentaho development, SQL]
+  tags: [etl, batch, legacy]
+  docs:
+    - title: Pentaho documentation
+      url: https://docs.pentaho.com/
+
+- id: azure-data-factory
+  name: Azure Data Factory
+  aliases: [adf, azure data factory, data factory]
+  vendor: Microsoft
+  category: etl
+  role: etl
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: workflow
+  color: "#0078D4"
+  description: Azure's managed data integration service for building copy pipelines, mapping data flows and orchestrating activities across cloud and on-premises sources.
+  typical_legacy_use: Ingests data into ADLS, Synapse, Fabric or Databricks via self-hosted integration runtimes, and can rehost SSIS packages on the Azure-SSIS IR.
+  capabilities: [batch-etl, data-ingestion, workflow-orchestration, mapping-data-flows, hybrid-connectivity, ssis-rehost]
+  possible_targets: [microsoft-fabric, lakeflow-declarative-pipelines, databricks-workflows]
+  alternatives: [aws-glue, google-cloud-data-fusion, informatica-idmc]
+  replaces: [ssis, informatica-powercenter, ibm-datastage, talend, pentaho]
+  suggested_next: [adls-gen2, databricks, azure-synapse, microsoft-fabric, azure-key-vault, azure-monitor]
+  migration_considerations:
+    - Self-hosted integration runtimes are needed for on-premises sources; plan HA and network paths.
+    - Use ADF for movement and orchestration; push heavy transformations to Databricks, Synapse or Fabric where appropriate.
+    - Parameterise linked services and deploy through ARM/Bicep or Git integration for environment promotion.
+  known_challenges:
+    - Complex mapping data flows can be costly and slower to debug than code-based transformations.
+    - Activity limits and nested pipeline patterns complicate large orchestration graphs.
+  risks: [cost-overrun, vendor-lock-in, lineage-loss]
+  strategies: [replatform, refactor]
+  skills: [Azure Data Factory, Azure, SQL]
+  tags: [etl, cloud, azure, orchestration]
+  docs:
+    - title: Azure Data Factory documentation
+      url: https://learn.microsoft.com/en-us/azure/data-factory/
+
+- id: aws-glue
+  name: AWS Glue
+  aliases: [glue, aws glue, glue etl, glue jobs]
+  vendor: Amazon Web Services
+  category: etl
+  role: etl
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: workflow
+  color: "#FF9900"
+  description: AWS's serverless data integration service running Spark and Python shell jobs, with crawlers, workflows and integration with the Glue Data Catalog.
+  typical_legacy_use: Batch ETL from S3, JDBC sources and SaaS connectors into S3 data lakes and Redshift.
+  capabilities: [batch-etl, serverless-spark, data-catalog-integration, crawlers, streaming-etl]
+  possible_targets: [lakeflow-declarative-pipelines, amazon-emr, dbt]
+  alternatives: [azure-data-factory, google-cloud-data-fusion, informatica-idmc]
+  replaces: [informatica-powercenter, ibm-datastage, talend, pentaho, ssis]
+  suggested_next: [amazon-s3, aws-glue-data-catalog, amazon-redshift, aws-step-functions, amazon-mwaa, amazon-cloudwatch]
+  migration_considerations:
+    - Choose the Glue version (Spark runtime) and worker type deliberately; DPU consumption drives cost.
+    - Use job bookmarks or explicit watermarking for incremental loads.
+    - Orchestrate with Glue workflows, Step Functions or MWAA depending on complexity.
+  known_challenges:
+    - Cold-start latency and debugging limitations compared with long-running clusters.
+    - DynamicFrame-specific code reduces portability to other Spark platforms.
+  risks: [cost-overrun, vendor-lock-in, skills-gap]
+  strategies: [replatform, refactor]
+  skills: [PySpark, AWS Glue, AWS]
+  tags: [etl, cloud, aws, serverless]
+  docs:
+    - title: AWS Glue documentation
+      url: https://docs.aws.amazon.com/glue/
+
+- id: google-cloud-data-fusion
+  name: Cloud Data Fusion
+  aliases: [data fusion, cloud data fusion, cdap]
+  vendor: Google Cloud
+  category: etl
+  role: etl
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: workflow
+  color: "#4285F4"
+  description: Google Cloud's managed, visual data integration service based on open-source CDAP, executing pipelines on Dataproc.
+  typical_legacy_use: Visual ETL replacement for teams moving off GUI-based tools to Google Cloud, loading BigQuery and Cloud Storage.
+  capabilities: [batch-etl, visual-pipelines, data-transformation, plugin-ecosystem, replication]
+  possible_targets: [google-dataflow, dataform, dbt]
+  alternatives: [azure-data-factory, aws-glue, informatica-idmc]
+  replaces: [informatica-powercenter, ibm-datastage, talend, pentaho, ssis]
+  suggested_next: [bigquery, google-cloud-storage, cloud-composer, google-dataplex, google-cloud-monitoring]
+  migration_considerations:
+    - Instances incur cost while running regardless of pipeline activity; choose edition and lifecycle carefully.
+    - Pipelines run on ephemeral or existing Dataproc clusters; size compute profiles per workload.
+    - Verify plugin availability for each source and transformation needed.
+  known_challenges:
+    - Complex transformation logic can become unwieldy in a visual designer.
+    - Debugging Spark-level failures requires Dataproc knowledge.
+  risks: [cost-overrun, vendor-lock-in, skills-gap]
+  strategies: [replatform, refactor]
+  skills: [Cloud Data Fusion, Google Cloud, SQL]
+  tags: [etl, cloud, gcp]
+  docs:
+    - title: Cloud Data Fusion documentation
+      url: https://cloud.google.com/data-fusion/docs
+
+- id: informatica-idmc
+  name: Informatica Intelligent Data Management Cloud (IDMC)
+  aliases: [idmc, informatica idmc, informatica cloud, iics, cloud data integration, informatica intelligent cloud services]
+  vendor: Informatica
+  category: etl
+  role: etl
+  layer: processing
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: workflow
+  color: "#FF4D00"
+  description: Informatica's cloud-native SaaS data management platform covering data integration, application integration, data quality, MDM and catalog services.
+  typical_legacy_use: Modernisation path for PowerCenter customers, running mappings on Secure Agents or serverless runtimes against cloud warehouses and lakehouses.
+  capabilities: [batch-etl, data-ingestion, elt-pushdown, data-quality, catalog, cdc-ingestion]
+  possible_targets: [lakeflow-declarative-pipelines, dbt]
+  alternatives: [azure-data-factory, aws-glue, google-cloud-data-fusion, talend]
+  replaces: [informatica-powercenter]
+  suggested_next: [databricks, snowflake, bigquery, landing-zone, databricks-workflows]
+  migration_considerations:
+    - Informatica provides PowerCenter-to-IDMC conversion tooling; validate converted mappings rather than assuming parity.
+    - Consumption-based pricing (IPUs) requires forecasting against current workload volumes.
+    - Secure Agent placement determines network paths and data residency.
+  known_challenges:
+    - Converted mappings may need rework where PowerCenter features have no direct equivalent.
+    - Lock-in to the Informatica platform persists after the move.
+  risks: [vendor-lock-in, cost-overrun, licensing-overlap]
+  strategies: [repurchase, replatform]
+  skills: [Informatica Cloud Data Integration, SQL]
+  tags: [etl, saas, cloud]
+  docs:
+    - title: Informatica documentation
+      url: https://docs.informatica.com/

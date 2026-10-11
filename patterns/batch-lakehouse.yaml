@@ -1,0 +1,74 @@
+id: batch-lakehouse
+name: Batch Lakehouse
+summary: Scheduled batch ingestion from databases and files into a Databricks medallion lakehouse on AWS.
+description: >-
+  A batch-first lakehouse for estates whose consumers are served by daily or intra-day refreshes.
+  Representative implementation on AWS - AWS Glue extracts relational sources and partner files land via
+  SFTP into Amazon S3, Auto Loader ingests them incrementally into Delta bronze, and silver/gold tables are
+  served through Databricks SQL, with Amazon MWAA orchestrating the end-to-end schedule.
+suitable_scenarios:
+  - Nightly or intra-day reporting with no real-time requirement
+  - Replacement of legacy ETL batch windows (Informatica, DataStage, SSIS)
+  - Sources that cannot support log-based CDC
+  - Consolidation of file-based partner feeds with database extracts
+components:
+  - sql-server
+  - flat-files-sftp
+  - aws-glue
+  - amazon-s3
+  - databricks-auto-loader
+  - delta-bronze
+  - delta-silver
+  - delta-gold
+  - databricks-sql
+  - tableau
+  - amazon-mwaa
+  - unity-catalog
+  - aws-secrets-manager
+  - amazon-cloudwatch
+benefits:
+  - Simple, predictable processing windows and cost profile
+  - Incremental file discovery with Auto Loader avoids full reprocessing
+  - Open Delta tables on S3 with ACID guarantees and time travel
+  - Familiar operating model for teams coming from batch ETL
+limitations:
+  - Data freshness bounded by batch frequency
+  - Full or high-watermark extracts load source systems during extract windows
+  - Deletes are not captured without CDC or full-snapshot comparison
+tags: [aws, databricks, batch, lakehouse, medallion]
+template:
+  nodes:
+    - {key: sqlsrv, tech: sql-server}
+    - {key: sftp, tech: flat-files-sftp, label: "Partner files (SFTP)"}
+    - {key: glue, tech: aws-glue, label: "Glue JDBC extract"}
+    - {key: s3, tech: amazon-s3, label: "S3 landing bucket"}
+    - {key: autoloader, tech: databricks-auto-loader}
+    - {key: bronze, tech: delta-bronze}
+    - {key: silver, tech: delta-silver}
+    - {key: gold, tech: delta-gold}
+    - {key: dbsql, tech: databricks-sql}
+    - {key: tableau, tech: tableau}
+    - {key: mwaa, tech: amazon-mwaa}
+    - {key: uc, tech: unity-catalog}
+    - {key: secrets, tech: aws-secrets-manager}
+    - {key: cw, tech: amazon-cloudwatch}
+  edges:
+    - {from: sqlsrv, to: glue, label: "High-watermark extract", mode: batch, frequency: daily}
+    - {from: glue, to: s3, mode: file, frequency: daily, format: parquet}
+    - {from: sftp, to: s3, label: "File transfer", mode: file, frequency: daily, format: csv}
+    - {from: s3, to: autoloader, label: "Incremental file discovery", mode: file, frequency: daily}
+    - {from: autoloader, to: bronze, mode: batch, frequency: daily, format: delta}
+    - {from: bronze, to: silver, label: "Cleanse and conform", mode: batch, frequency: daily, format: delta}
+    - {from: silver, to: gold, label: "Dimensional marts", mode: batch, frequency: daily, format: delta}
+    - {from: gold, to: dbsql, mode: query}
+    - {from: dbsql, to: tableau, mode: query, latency: interactive}
+    - {from: mwaa, to: glue, label: "Start extract", mode: control, kind: control}
+    - {from: mwaa, to: autoloader, label: "Run ingestion job", mode: control, kind: control}
+    - {from: mwaa, to: silver, label: "Run transform job", mode: control, kind: control}
+    - {from: mwaa, to: gold, label: "Run transform job", mode: control, kind: control}
+    - {from: uc, to: bronze, mode: governance, kind: governance}
+    - {from: uc, to: silver, mode: governance, kind: governance}
+    - {from: uc, to: gold, mode: governance, kind: governance}
+    - {from: secrets, to: glue, label: "Database credentials", kind: security}
+    - {from: mwaa, to: cw, kind: monitoring}
+    - {from: glue, to: cw, kind: monitoring}
