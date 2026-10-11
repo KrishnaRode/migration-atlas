@@ -133,6 +133,7 @@ class Project(BaseModel):
     options: list[Architecture] = Field(default_factory=list)  # architecture branches (Option A, B, ...)
     active_option_id: str | None = None
     roadmap: Roadmap | None = None
+    option_analysis: dict | None = None  # priority-fit scores + recommendation across options
     risks: list[MigrationRisk] = Field(default_factory=list)
     decisions: list[ArchitectureDecision] = Field(default_factory=list)
     knowledge_sources: list[str] = Field(default_factory=list)

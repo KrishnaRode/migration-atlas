@@ -1,14 +1,15 @@
 "use client";
-import { ArrowUp, BookOpen, Cpu, ExternalLink, Link2, Sparkles, Square, Wand2, X } from "lucide-react";
+import { ArrowUp, BookOpen, Cpu, ExternalLink, GitBranch, GraduationCap, Link2, Sparkles, Square, Star, Wand2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Badge, Segmented, Spinner } from "@/components/ui";
 import { api, streamChat } from "@/lib/api";
 import { useStudio } from "@/lib/studio-store";
-import type { ChatMessage, Citation, Persona, Proposal } from "@/lib/types";
+import type { ChatMessage, Citation, OptionAnalysis, Persona, Proposal } from "@/lib/types";
 import { Markdown } from "./Markdown";
 import { ProposalCard } from "./ProposalCard";
 
 const QUESTIONS = [
+  "Which option is the best fit for us?",
   "Why did you add this component?",
   "Where are the major migration risks?",
   "What happens if we need near-real-time ingestion?",
@@ -21,7 +22,10 @@ const ACTIONS = [
   "Add disaster recovery", "Remove unnecessary staging", "Reduce infrastructure complexity", "Suggest a lower-cost alternative",
 ];
 
-interface Turn extends ChatMessage { proposals?: Proposal[]; pending?: boolean; error?: string; model?: string | null }
+interface Turn extends ChatMessage {
+  proposals?: Proposal[]; pending?: boolean; error?: string; model?: string | null; intent?: string;
+  whatIf?: { question: string; changes: string[] }; fit?: OptionAnalysis; playbooks?: { id: string; title: string }[];
+}
 
 export function CopilotPanel() {
   const persona = useStudio((s) => s.persona);
@@ -74,11 +78,19 @@ export function CopilotPanel() {
     abortRef.current = ctrl;
     const update = (patch: Partial<Turn> | ((t: Turn) => Partial<Turn>)) =>
       setTurns((all) => all.map((t, i) => (i === all.length - 1 ? { ...t, ...(typeof patch === "function" ? patch(t) : patch) } : t)));
+    const current = st.architecture();
+    const options = (st.project?.options || []).map((o) => (o.id === current?.id ? current : o));
     await streamChat({
-      message: msg, persona: st.persona, architecture: st.architecture(), estate: st.project?.estate,
+      message: msg, persona: st.persona, architecture: current, estate: st.project?.estate, options,
       selected_node_id: st.selectedNodeId, selected_edge_id: st.selectedEdgeId, history,
     }, {
-      onMeta: (m) => update({ citations: m.citations, model: m.model }),
+      onMeta: (m) => update({ citations: m.citations, model: m.model, playbooks: m.playbooks }),
+      onIntent: (intent) => update({ intent }),
+      onAction: (a) => {
+        if (a.type === "proposals") update({ proposals: a.proposals });
+        else if (a.type === "what_if") update({ whatIf: { question: a.question, changes: a.changes } });
+        else if (a.type === "fit") update({ fit: a.analysis });
+      },
       onToken: (tok) => update((t) => ({ content: t.content + tok })),
       onDone: () => update({ pending: false }),
       onError: (e) => update({ pending: false, error: e.message }),
@@ -187,10 +199,71 @@ function TurnView({ turn }: { turn: Turn }) {
       )}
       {turn.content && <Markdown text={turn.content} />}
       {turn.error && <div className="rounded-lg bg-surface-2 px-2.5 py-2 text-[12px] text-bad">{turn.error}{turn.error.includes("Ollama") && " Open Settings for setup steps."}</div>}
+      {turn.whatIf && <WhatIfCard q={turn.whatIf.question} changes={turn.whatIf.changes} />}
+      {turn.fit && <FitCard analysis={turn.fit} />}
       {turn.proposals?.filter((p) => !dismissed.includes(p.id)).map((p) => (
         <ProposalCard key={p.id} proposal={p} onDismiss={() => setDismissed([...dismissed, p.id])} />
       ))}
+      {turn.playbooks && turn.playbooks.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1 text-[10.5px] text-faint">
+          <GraduationCap size={11} /> Playbooks:
+          {turn.playbooks.map((p) => <span key={p.id} className="rounded-full bg-surface-2 px-2 py-[1px] text-muted" title={p.title}>{p.title.split(" (")[0]}</span>)}
+        </div>
+      )}
       {turn.citations.length > 0 && <Citations items={turn.citations} />}
+    </div>
+  );
+}
+
+function WhatIfCard({ q, changes }: { q: string; changes: string[] }) {
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const create = async () => {
+    const st = useStudio.getState();
+    const arch = st.architecture();
+    if (!arch || !st.project) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await api.whatIf(arch, st.project.estate, q, false);
+      await st.addOption(res.architecture);
+      setDone(true);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="animate-rise rounded-xl border border-border bg-surface p-3 shadow-soft">
+      <div className="flex items-center gap-2 text-[12.5px] font-semibold"><GitBranch size={14} className="text-accent" /> Scenario branch</div>
+      <ul className="mt-1.5 space-y-0.5 text-[12px] text-muted">{changes.map((c) => <li key={c}>• {c}</li>)}</ul>
+      {error && <div className="mt-1.5 text-[11.5px] text-bad">{error}</div>}
+      <button onClick={create} disabled={busy || done}
+        className="mt-2.5 inline-flex h-7 items-center gap-1.5 rounded-full bg-accent px-3 text-[12px] font-medium text-white disabled:opacity-60">
+        {done ? "Branch created" : busy ? "Creating…" : "Create branch"}
+      </button>
+      <span className="ml-2 text-[11px] text-faint">Your current option is never changed.</span>
+    </div>
+  );
+}
+
+function FitCard({ analysis }: { analysis: OptionAnalysis }) {
+  const best = analysis.fits.find((f) => f.option_id === analysis.recommended_option_id);
+  return (
+    <div className="animate-rise space-y-1.5 rounded-xl border border-border bg-surface p-3 shadow-soft">
+      <div className="flex items-center gap-1.5 text-[12px] font-semibold"><Star size={12} className="text-modern" fill="currentColor" /> Fit to your priorities</div>
+      {analysis.fits.map((f) => (
+        <button key={f.option_id} onClick={() => useStudio.getState().switchOption(f.option_id)}
+          className="flex w-full items-center gap-2 rounded-lg px-1.5 py-1 text-left hover:bg-surface-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-surface-2 text-[10px] font-bold">{f.label}</span>
+          <span className="min-w-0 flex-1 truncate text-[12px]">{f.name.replace(/^Option [A-Z] · /, "")}</span>
+          <span className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-3"><span className="block h-full rounded-full" style={{ width: `${f.fit_percent}%`, background: f === best ? "var(--modern)" : "var(--accent)" }} /></span>
+          <span className={`w-9 text-right text-[11.5px] font-semibold tabular-nums ${f === best ? "text-modern" : "text-muted"}`}>{f.fit_percent}%</span>
+        </button>
+      ))}
+      <button onClick={() => useStudio.getState().setView("compare")} className="text-[11.5px] font-medium text-accent hover:underline">See evidence for every score →</button>
     </div>
   );
 }

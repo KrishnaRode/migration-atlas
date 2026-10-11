@@ -85,6 +85,9 @@ class ArchitectureMeta(BaseModel):
     what_if: str | None = None
     migration_controls: list[str] = Field(default_factory=list)  # e.g. parallel-run, rollback-plan, cutover-plan
     ai_status: str | None = None  # human-readable note when AI was skipped or fell back
+    label: str | None = None  # option letter (A, B, C…)
+    variant: str | None = None  # requested | platform:<id> | coexistence | open | what-if
+    summary: str | None = None  # one-line description of what makes this option different
     created_at: str = Field(default_factory=utcnow)
 
 

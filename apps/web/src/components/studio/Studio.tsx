@@ -51,14 +51,16 @@ function StudioInner({ projectId, autoGenerate, useAi, initialView }: { projectI
     setGenerating(true);
     setPipeline(null);
     try {
-      const res = await api.generate(st.project.estate, ai);
+      const res = await api.options(st.project.estate, ai, 3);
       setPipeline(res.pipeline);
       await new Promise((r) => setTimeout(r, 900));
-      const hasContent = st.nodes.length > 0;
-      if (hasContent) await st.addOption(res.architecture);
-      else await st.loadArchitecture(res.architecture, { layout: true, animate: true, record: false });
+      const hasContent = st.project.options.length > 0;
+      await st.setOptions(res.options, res.analysis, hasContent ? "append" : "replace");
       st.setView("canvas");
-      st.toast({ title: "Target architecture generated", body: res.architecture.meta.ai_status || undefined, tone: "ok" });
+      const rec = res.options.find((o) => o.id === res.analysis.recommended_option_id);
+      st.toast({ title: `${res.options.length} architecture options generated`,
+        body: rec ? `Showing ${rec.name.split(" · ").slice(0, 2).join(" · ")} — the best fit for your priorities.` : undefined, tone: "ok",
+        action: { label: "Compare options", run: () => useStudio.getState().setView("compare") } });
     } catch (e) {
       st.toast({ title: "Generation failed", body: (e as Error).message, tone: "bad" });
     } finally {

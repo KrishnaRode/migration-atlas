@@ -16,7 +16,7 @@ const VIEWS: { id: View; label: string; icon: typeof Workflow }[] = [
   { id: "developer", label: "Developer", icon: Code2 },
   { id: "architect", label: "Architect", icon: Building2 },
   { id: "roadmap", label: "Roadmap", icon: Map },
-  { id: "compare", label: "Compare", icon: Columns2 },
+  { id: "compare", label: "Options", icon: Columns2 },
 ];
 
 export function TopBar({ onGenerate, generating, onExport }: { onGenerate: () => void; generating: boolean; onExport: (f: "png" | "svg" | "pdf" | "md" | "json") => void }) {
@@ -59,7 +59,7 @@ export function TopBar({ onGenerate, generating, onExport }: { onGenerate: () =>
           <ThemeToggle />
         </div>
       </div>
-      <div className="flex h-11 items-center gap-1.5 border-t border-border px-3">
+      <div className="flex h-12 items-center gap-1.5 border-t border-border px-3">
         <button onClick={() => st.toggle("libraryOpen")} title="Toggle component library" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text"><PanelLeft size={15} /></button>
         <OptionTabs />
         <div className="ml-auto flex items-center gap-1.5">
@@ -96,27 +96,56 @@ function IconBtn({ children, onClick, title, disabled, active }: { children: Rea
 function OptionTabs() {
   const options = useStudio((s) => s.project?.options) || [];
   const activeId = useStudio((s) => s.activeId);
+  const analysis = useStudio((s) => s.project?.option_analysis);
+  const analysing = useStudio((s) => s.analysing);
   const [editing, setEditing] = useState<string | null>(null);
   const st = useStudio.getState();
+  const fitOf = (id: string) => analysis?.fits.find((f) => f.option_id === id);
   return (
-    <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-      {options.map((o) => (
-        <div key={o.id} className={cn("group flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition-colors",
-          o.id === activeId ? "border-accent bg-accent-soft text-accent" : "border-border text-muted hover:text-text")}>
-          {o.meta.what_if ? <GitBranch size={11} /> : <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
-          {editing === o.id ? (
-            <input autoFocus defaultValue={o.name} className="w-40 bg-transparent outline-none"
-              onBlur={(e) => { st.renameOption(o.id, e.target.value || o.name); setEditing(null); }}
-              onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} />
-          ) : (
-            <button onClick={() => o.id !== activeId && st.switchOption(o.id)} onDoubleClick={() => setEditing(o.id)} title="Double-click to rename" className="max-w-[220px] truncate">{o.name}</button>
-          )}
-          {options.length > 1 && o.id === activeId && (
-            <button onClick={() => confirm(`Delete option "${o.name}"?`) && st.deleteOption(o.id)} className="opacity-0 transition-opacity group-hover:opacity-100" title="Delete option"><Trash2 size={11} /></button>
-          )}
-        </div>
-      ))}
-      <button onClick={() => st.set({ whatIfOpen: true })} title="New option via what-if" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-faint hover:bg-surface-2 hover:text-text"><Plus size={14} /></button>
+    <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto py-1">
+      {options.map((o, i) => {
+        const active = o.id === activeId;
+        const fit = fitOf(o.id);
+        const best = analysis?.recommended_option_id === o.id && options.length > 1;
+        const letter = o.meta.label || String.fromCharCode(65 + i);
+        const title = o.name.replace(/^Option [A-Z] · /, "");
+        const [platform, strategy] = title.split(" · ");
+        return (
+          <div key={o.id} title={o.meta.summary || o.name}
+            className={cn("group relative flex h-9 shrink-0 items-center gap-2 rounded-xl border pl-1.5 pr-2.5 text-left transition-all duration-300",
+              active ? "border-accent/40 bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.05),0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]"
+                : "border-border bg-surface/60 hover:border-border-strong hover:bg-surface")}>
+            <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold",
+              active ? "bg-accent text-white" : "bg-surface-2 text-muted")}>
+              {o.meta.what_if ? <GitBranch size={12} /> : letter}
+            </span>
+            {editing === o.id ? (
+              <input autoFocus defaultValue={o.name} className="w-48 bg-transparent text-[12px] outline-none"
+                onBlur={(e) => { st.renameOption(o.id, e.target.value || o.name); setEditing(null); }}
+                onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} />
+            ) : (
+              <button onClick={() => !active && st.switchOption(o.id)} onDoubleClick={() => setEditing(o.id)} className="flex min-w-0 flex-col leading-tight">
+                <span className={cn("max-w-[190px] truncate text-[12px] font-semibold", active ? "text-text" : "text-muted")}>{platform}</span>
+                <span className="max-w-[190px] truncate text-[10px] text-faint">{strategy || (o.meta.what_if ? "what-if branch" : o.meta.variant === "requested" ? "as requested" : "alternative")}</span>
+              </button>
+            )}
+            {fit && (
+              <span className={cn("ml-0.5 rounded-full px-1.5 py-[1px] text-[10px] font-semibold tabular-nums",
+                best ? "bg-modern-soft text-modern" : "bg-surface-2 text-muted")} title="Fit to your stated priorities">
+                {analysing ? "…" : `${fit.fit_percent}%`}
+              </span>
+            )}
+            {best && <span className="absolute -top-1.5 right-2 rounded-full bg-modern px-1.5 text-[8.5px] font-bold uppercase tracking-wider text-white shadow-soft">Best fit</span>}
+            {options.length > 1 && active && (
+              <button onClick={() => confirm(`Delete option "${o.name}"?`) && st.deleteOption(o.id)} className="text-faint opacity-0 transition-opacity hover:text-bad group-hover:opacity-100" title="Delete option"><Trash2 size={11} /></button>
+            )}
+          </div>
+        );
+      })}
+      <button onClick={() => st.set({ whatIfOpen: true })} title="New option via what-if" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-faint hover:bg-surface-2 hover:text-text"><Plus size={14} /></button>
+      {options.length > 1 && (
+        <button onClick={() => st.setView("compare")} className="ml-1 shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-medium text-accent hover:bg-accent-soft">Compare {options.length} options</button>
+      )}
     </div>
   );
 }

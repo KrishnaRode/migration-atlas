@@ -74,6 +74,20 @@ class OntologyService:
                     found[tech_id] = (phrase, m.start())
         return sorted(((tid, p, off) for tid, (p, off) in found.items()), key=lambda x: x[2])
 
+    def mentions(self, text: str) -> list[str]:
+        """Technologies mentioned in free text: exact aliases first, then close spellings ("Informatca")."""
+        found = [t for t, _, _ in self.match_aliases(text)]
+        import difflib
+
+        phrases = {p: tid for p, tid in self.alias_index if len(p) >= 5}
+        words = re.findall(r"[A-Za-z][A-Za-z0-9.+/-]{3,}", text)
+        candidates = words + [f"{a} {b}" for a, b in zip(words, words[1:])]
+        for w in candidates:
+            for hit in difflib.get_close_matches(w.lower(), phrases.keys(), n=1, cutoff=0.86):
+                if phrases[hit] not in found:
+                    found.append(phrases[hit])
+        return found
+
     # ------------------------------------------------------------------ search
     def search(self, query: str, category: str | None = None, limit: int = 50) -> list[tuple[Technology, float]]:
         q = query.strip().lower()

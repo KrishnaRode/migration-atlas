@@ -7,6 +7,7 @@ import { useStudio } from "@/lib/studio-store";
 import type { CompareResult } from "@/lib/types";
 import { CLOUD_NAMES, LAYER_NAMES } from "@/lib/utils";
 import { Markdown } from "../panels/Markdown";
+import { OptionsFit } from "./OptionsFit";
 
 const LEVEL_COLOR: Record<string, string> = { strong: "var(--ok)", partial: "var(--warn)", weak: "var(--bad)", "not-assessed": "var(--faint)" };
 
@@ -25,12 +26,7 @@ export function CompareView() {
   };
   useEffect(() => { if (options.length >= 2) void run(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [options.length]);
   if (options.length < 2) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <EmptyState icon={Columns2} title="One option so far" body="Create an alternative with What if… (e.g. 'What if we use BigQuery instead?') to compare architectures side by side."
-          action={<Button variant="primary" icon={GitBranch} onClick={() => useStudio.getState().set({ whatIfOpen: true })}>What if…?</Button>} />
-      </div>
-    );
+    return <div className="mx-auto max-w-[900px] px-8 py-16"><OptionsFit /></div>;
   }
   const rows: { label: string; render: (o: CompareResult["options"][number]) => React.ReactNode }[] = [
     { label: "Target", render: (o) => <span>{CLOUD_NAMES[o.target_cloud || ""] || "—"} · {o.data_platform || "—"}</span> },
@@ -49,10 +45,12 @@ export function CompareView() {
   return (
     <div className="mx-auto max-w-[1400px] space-y-5 px-8 py-8">
       <div className="flex items-start justify-between">
-        <div><div className="text-[12px] font-medium text-accent">Compare</div><h2 className="text-[26px] font-semibold tracking-tight">Architecture options side by side</h2>
-          <p className="mt-1 text-[13.5px] text-muted">Descriptive, not a scoreboard — each option fits different priorities.</p></div>
+        <div><div className="text-[12px] font-medium text-accent">Options</div><h2 className="text-[30px] font-semibold tracking-[-0.03em]">Which architecture fits best?</h2>
+          <p className="mt-1 text-[14px] text-muted">Scored against your stated priorities with the evidence behind every score — then compared in detail below.</p></div>
         <Button size="sm" icon={Sparkles} loading={busy} onClick={() => run(true)}>AI comparison narrative</Button>
       </div>
+      <OptionsFit />
+      <h3 className="pt-4 text-[18px] font-semibold tracking-[-0.02em]">Side-by-side comparison</h3>
       {error && <ErrorNote message={error} onRetry={() => run(false)} />}
       {result?.narrative && <div className="rounded-2xl bg-surface-2 p-4"><Markdown text={result.narrative} /></div>}
       {!result && busy && <div className="flex items-center gap-2 text-[13px] text-muted"><Spinner /> Comparing…</div>}

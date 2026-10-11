@@ -199,7 +199,7 @@ const STEPS = [
   { step: "graph", label: "Knowledge graph" },
   { step: "rag", label: "Documentation retrieval" },
   { step: "ai", label: "Local AI reasoning" },
-  { step: "validate", label: "Validation rules" },
+  { step: "validate", label: "Validation & fit to your priorities" },
 ];
 
 /** Shown while the hybrid pipeline runs. Steps tick on a timer until the real result arrives. */
@@ -216,8 +216,8 @@ export function GenerationOverlay({ running, useAi, done }: { running: boolean; 
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center bg-[color-mix(in_srgb,var(--canvas)_75%,transparent)] backdrop-blur-[3px] animate-fade">
       <div className="w-[400px] animate-pop rounded-2xl border border-border bg-surface p-5 shadow-lift">
-        <div className="flex items-center gap-2 text-[14px] font-semibold"><Sparkles size={16} className="text-accent" /> Generating target architecture</div>
-        <div className="mt-1 text-[12px] text-muted">Hybrid pipeline — rules first, local AI second, validation last. No coordinates come from the model.</div>
+        <div className="flex items-center gap-2 text-[14px] font-semibold"><Sparkles size={16} className="text-accent" /> Designing architecture options</div>
+        <div className="mt-1 text-[12px] text-muted">Several distinct options — requested target, an alternative platform and a low-rewrite path — scored against your priorities.</div>
         <div className="mt-4 space-y-2.5">
           {STEPS.map((s, i) => {
             const state = i < active ? "done" : i === active ? "active" : "todo";

@@ -13,8 +13,8 @@ Explore, design, compare and validate legacy-to-cloud architectures on a canvas 
 **No OpenAI. No Claude. No Gemini. No API keys. Architecture data stays local.**
 
 [![Local AI](https://img.shields.io/badge/AI-100%25%20local%20(Ollama)-0fa68f?style=flat-square)](#local-ai)
-[![Ontology](https://img.shields.io/badge/ontology-172%20technologies-2f6bff?style=flat-square)](#technology-ontology)
-[![Tests](https://img.shields.io/badge/tests-58%20API%20%2B%209%20UI%20%2B%2011--step%20smoke-3ddc97?style=flat-square)](#tests)
+[![Ontology](https://img.shields.io/badge/ontology-243%20technologies-2f6bff?style=flat-square)](#technology-ontology)
+[![Tests](https://img.shields.io/badge/tests-75%20API%20%2B%209%20UI%20%2B%2020--case%20AI%20eval-3ddc97?style=flat-square)](#tests)
 [![Stack](https://img.shields.io/badge/Next.js%2015%20·%20React%20Flow%20·%20FastAPI-555?style=flat-square)](#architecture)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 
@@ -50,8 +50,8 @@ Traditional diagramming tools understand boxes. Migration Atlas understands what
 - **Control-M** orchestrates workloads — it is *not* a data transport, so `Control-M → GCS` earns a warning.
 - **Kafka** provides streaming; **Databricks** provides a lakehouse; **Unity Catalog** provides governance.
 
-That knowledge lives in a **technology ontology** (YAML, 172 technologies, 169 connection rules,
-35 migration mappings, 11 architecture patterns, 25 risks) and drives every feature: suggestions,
+That knowledge lives in a **technology ontology** (YAML, 243 technologies, 169 connection rules,
+55 migration mappings, 11 architecture patterns, 25 risks) plus **19 expert playbooks** and drives every feature: suggestions,
 connection intelligence, generation, validation, roadmap and the AI's context.
 
 ## Screenshots
@@ -71,6 +71,10 @@ connection intelligence, generation, validation, roadmap and the AI's context.
 
 - **Estate intake** — natural language *and* visual pickers, kept in sync. Rules extract technologies,
   constraints, volumes and industry instantly; local AI refines.
+- **Multiple architecture options, every time** — the requested target, an alternative data platform
+  and a low-rewrite coexistence path (or an open & portable variant), shown as tabs. Each is scored
+  against your weighted priorities with the evidence behind every score, and local AI recommends the
+  best fit — with when to choose each alternative. You decide.
 - **AI architecture generation** — a hybrid pipeline (below). Structured JSON first; layout is computed
   with **ELK**, never by the model.
 - **Architecture canvas** (React Flow) — drag & drop, zoom/pan, minimap, multi-select, grouping (⌘G),
@@ -82,6 +86,10 @@ connection intelligence, generation, validation, roadmap and the AI's context.
   GCS, Pub/Sub, BigQuery, Dataflow, Composer, Secret Manager, Monitoring.
 - **Replace with…** — ontology-ranked alternatives; compatible connections are preserved, the operational
   change is described, and the copilot explains it for your persona. One click records an **ADR**.
+- **Ask anything** — free text is routed by intent: questions get cited answers; "replace Informatica
+  with dbt" or "add DR" returns Apply-able proposals; "what if we avoid Kafka?" offers a one-click
+  branch; "which option fits best?" returns the fit analysis. Expert playbooks are selected per
+  question and shown with the answer. See [docs/ai.md](docs/ai.md).
 - **AI copilot** — persona-aware (Developer / Architect / Leader), grounded in the architecture JSON,
   ontology facts, knowledge-graph neighbourhood, validation findings and retrieved documentation,
   with **citations**. Answers use *Recommendation · Why · Evidence · Assumptions · Alternatives · Risks*.
@@ -254,8 +262,9 @@ it up. The loader validates every cross-reference; the test suite fails on dangl
 ## Tests
 
 ```bash
-make test     # 58 backend tests (pytest) + 9 UI component tests (vitest)
+make test     # 75 backend tests (pytest) + 9 UI component tests (vitest)
 make smoke    # 11-step end-to-end demo journey against a running API
+python scripts/eval_ai.py   # 20-case copilot evaluation against your local model
 make typecheck
 ```
 

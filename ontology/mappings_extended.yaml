@@ -1,0 +1,423 @@
+# Extended source -> target migration mappings for technologies in technologies/extended_*.yaml.
+# Same schema as mappings.yaml.
+# ---------------------------------------------------------------- Hadoop SQL / scheduling
+- id: hive-to-databricks
+  title: Apache Hive to Databricks Lakehouse
+  source: apache-hive
+  source_artifact: null
+  targets: [databricks, delta-lake, unity-catalog, databricks-sql, databricks-workflows]
+  approaches:
+    - Export Hive Metastore metadata and recreate databases/tables in Unity Catalog (external tables first, then convert to managed Delta)
+    - Copy data from HDFS to cloud object storage (DistCp, cloud transfer services or partner tooling) and convert Parquet tables in place to Delta; rewrite ORC and Hive ACID tables via Spark
+    - Convert HiveQL scripts to Spark SQL / Databricks SQL with automated converters, then re-implement pipelines as Lakeflow Declarative Pipelines or jobs
+    - Replace Oozie/cron scheduling with Databricks Workflows and Ranger/Sentry policies with Unity Catalog grants, tags and row/column filters
+  conversion_considerations:
+    - HiveQL is largely compatible with Spark SQL, but custom UDFs/UDAFs, SerDes, TRANSFORM scripts and some Hive-specific settings need rework
+    - Hive ACID (transactional ORC) tables require major compaction and a full rewrite; their delta directories cannot be copied as-is
+    - Over-partitioned tables and small files should be redesigned (liquid clustering, fewer partitions) rather than replicated
+    - Kerberos-based service accounts and HDFS paths in scripts must be replaced with Unity Catalog identities and volumes/external locations
+  risks: [sql-dialect-conversion, data-volume-transfer, governance-gap, scheduling-dependency-loss, performance-regression]
+  automation_potential: high
+  manual_effort_areas:
+    - Rewriting custom UDFs, SerDes and TRANSFORM scripts
+    - Hive ACID table export and validation
+    - Mapping Ranger policies to Unity Catalog privileges and ABAC
+    - Partition and file-layout redesign for performance
+
+- id: hive-to-bigquery
+  title: Apache Hive to BigQuery
+  source: apache-hive
+  source_artifact: null
+  targets: [bigquery, google-cloud-storage, google-dataproc, google-dataplex]
+  approaches:
+    - Transfer HDFS data to Cloud Storage and load into native BigQuery tables, or expose it as BigLake/external tables during transition
+    - Translate HiveQL to GoogleSQL with the BigQuery SQL translation service (batch and interactive translators)
+    - Run residual Spark/Hive jobs on Dataproc temporarily while SQL workloads move to BigQuery
+    - Rebuild Hive Metastore governance in Dataplex and BigQuery IAM/policy tags
+  conversion_considerations:
+    - Hive partitioning maps to BigQuery partitioning (one column) plus clustering; multi-level partition schemes must be redesigned
+    - Complex types (MAP, STRUCT, ARRAY) map to STRUCT/ARRAY but MAP needs an ARRAY<STRUCT<key,value>> or JSON representation
+    - UDFs must be re-implemented as SQL/JavaScript UDFs or remote functions
+    - Slot/edition capacity planning replaces cluster sizing for cost control
+  risks: [sql-dialect-conversion, data-type-mismatch, data-volume-transfer, cost-overrun]
+  automation_potential: high
+  manual_effort_areas:
+    - MAP-type and nested-type redesign
+    - UDF re-implementation
+    - Partitioning and clustering design
+    - Cost model and reservation planning
+
+- id: hive-to-trino-iceberg
+  title: Apache Hive to Trino on Apache Iceberg
+  source: apache-hive
+  source_artifact: null
+  targets: [trino, starburst, apache-iceberg, amazon-s3, adls-gen2]
+  approaches:
+    - Migrate Hive tables to Iceberg in place (metadata-only migrate/snapshot procedures) or by CTAS rewrite to object storage
+    - Serve interactive SQL with Trino (or Starburst) while batch transformation moves to Spark or SQL-based pipelines
+    - Move the catalog from Hive Metastore to an Iceberg REST catalog or Glue for multi-engine access
+  conversion_considerations:
+    - Trino SQL differs from HiveQL in functions, implicit casts and complex-type handling; translate and test queries
+    - Iceberg hidden partitioning replaces explicit partition columns and enables later partition evolution
+    - Hive ACID tables need compaction and rewrite before conversion
+    - Access control needs an external policy system (Ranger, OPA or Starburst built-in)
+  risks: [sql-dialect-conversion, performance-regression, governance-gap, operational-readiness]
+  automation_potential: medium
+  manual_effort_areas:
+    - Query translation and performance testing
+    - Catalog migration and access-policy design
+    - Table maintenance (compaction, snapshot expiry) operations
+
+- id: impala-to-databricks-sql
+  title: Apache Impala to Databricks SQL
+  source: apache-impala
+  source_artifact: null
+  targets: [databricks-sql, databricks, delta-lake, unity-catalog]
+  approaches:
+    - Migrate the underlying Parquet tables to Delta and register them in Unity Catalog
+    - Translate Impala SQL views and BI queries to Databricks SQL; re-point BI tools to serverless SQL warehouses
+    - Replace Kudu real-time tables with Delta tables fed by streaming MERGE (Lakeflow Declarative Pipelines or Structured Streaming)
+  conversion_considerations:
+    - Impala-specific functions, hints and COMPUTE STATS have no direct equivalent; rely on predictive optimisation and clustering
+    - Kudu upsert semantics map to Delta MERGE; latency expectations must be revalidated
+    - BI concurrency peaks drive SQL warehouse sizing and scaling limits
+  risks: [sql-dialect-conversion, performance-regression, report-parity, cutover-downtime]
+  automation_potential: high
+  manual_effort_areas:
+    - BI report validation and performance tuning
+    - Kudu table redesign
+    - Concurrency and warehouse sizing tests
+
+- id: impala-to-snowflake
+  title: Apache Impala to Snowflake
+  source: apache-impala
+  source_artifact: null
+  targets: [snowflake]
+  approaches:
+    - Unload Parquet data from HDFS to cloud storage and load into Snowflake tables (or Iceberg tables)
+    - Translate Impala SQL to Snowflake SQL with automated conversion tools and manual review
+    - Re-point BI tools to Snowflake virtual warehouses sized for dashboard concurrency
+  conversion_considerations:
+    - Impala partitioning is replaced by Snowflake micro-partitions and optional clustering keys
+    - Kudu-based mutable tables need MERGE-based pipelines or dynamic tables
+    - Timestamp semantics (TIMESTAMP without time zone, UTC conversions) must be checked
+  risks: [sql-dialect-conversion, data-type-mismatch, report-parity, cost-overrun]
+  automation_potential: high
+  manual_effort_areas:
+    - BI query validation
+    - Mutable-table redesign
+    - Warehouse sizing and cost governance
+
+- id: oozie-to-airflow
+  title: Apache Oozie to Apache Airflow (Composer / MWAA)
+  source: apache-oozie
+  source_artifact: null
+  targets: [apache-airflow, cloud-composer, amazon-mwaa]
+  approaches:
+    - Parse Oozie workflow.xml/coordinator.xml and generate Airflow DAG skeletons (open-source converters exist, e.g. o2a), then refine by hand
+    - Map Hive/Spark/Sqoop/shell actions to the corresponding provider operators on the target cloud
+    - Replace coordinator dataset triggers with sensors or dataset/asset-based scheduling
+  conversion_considerations:
+    - Oozie EL functions and parameter propagation across bundles/coordinators must be re-expressed as Jinja templates and variables
+    - Shell and Java actions depend on edge-node paths, Kerberos keytabs and local files that do not exist on managed Airflow
+    - SLA and notification settings need explicit re-implementation
+  risks: [scheduling-dependency-loss, hidden-business-logic, skills-gap]
+  automation_potential: medium
+  manual_effort_areas:
+    - Refining generated DAGs and testing dependency chains
+    - Rewriting shell/Java actions
+    - SLA alerting re-implementation
+
+- id: oozie-to-databricks-workflows
+  title: Apache Oozie to Databricks Workflows (Lakeflow Jobs)
+  source: apache-oozie
+  source_artifact: null
+  targets: [databricks-workflows, databricks-asset-bundles]
+  approaches:
+    - Convert each Oozie workflow into a Databricks job with tasks for SQL, notebooks, Python wheels or Lakeflow Declarative Pipelines
+    - Replace coordinators with schedules, file-arrival triggers and table-update triggers
+    - Deploy jobs as code with Databricks Asset Bundles across environments
+  conversion_considerations:
+    - Fork/join and decision nodes map to task dependencies and if/else condition tasks
+    - Sqoop actions should be replaced by Lakeflow Connect or JDBC ingestion rather than ported
+    - Cross-workflow dependencies may need run-job tasks or an external orchestrator for non-Databricks steps
+  risks: [scheduling-dependency-loss, hidden-business-logic]
+  automation_potential: medium
+  manual_effort_areas:
+    - Translating decision logic and EL parameters
+    - Replacing shell actions with notebooks or scripts
+    - End-to-end dependency testing
+
+- id: oozie-to-dagster
+  title: Apache Oozie to Dagster
+  source: apache-oozie
+  source_artifact: null
+  targets: [dagster, dbt]
+  approaches:
+    - Re-model workflows as software-defined assets (tables produced) instead of translating actions one-to-one
+    - Use partitions and sensors to replace coordinator time and dataset triggers
+    - Move SQL transformations into dbt models orchestrated as Dagster assets
+  conversion_considerations:
+    - Requires a mindset change from task DAGs to asset lineage; plan design workshops
+    - Execution environments (Kubernetes, ECS, Databricks, Spark) must be defined per asset group
+  risks: [scheduling-dependency-loss, skills-gap]
+  automation_potential: low
+  manual_effort_areas:
+    - Asset modelling and dependency design
+    - Re-implementation of each action's logic
+
+# ---------------------------------------------------------------- Microsoft BI
+- id: ssrs-to-power-bi
+  title: SSRS reports to Power BI paginated reports
+  source: ssrs
+  source_artifact: "RDL paginated reports"
+  targets: [power-bi, microsoft-fabric]
+  approaches:
+    - Use execution-log analysis to retire unused reports, then migrate RDL files to Power BI paginated reports with Microsoft's migration tooling
+    - Re-point data sources to the modernised platform (Fabric, Azure SQL, Databricks SQL) via gateways or cloud connections
+    - Convert subscriptions to Power BI subscriptions or Power Automate flows
+    - Redesign interactive operational reports as Power BI reports where paginated layout is not required
+  conversion_considerations:
+    - Custom code, custom assemblies and some data-source types are not supported in the Power BI service
+    - Data-driven subscriptions and file-share delivery need Power Automate or alternative delivery
+    - Embedded T-SQL in datasets must be converted if the underlying database changes
+    - Paginated reports require Premium/Fabric capacity
+  risks: [report-parity, hidden-business-logic, sql-dialect-conversion]
+  automation_potential: medium
+  manual_effort_areas:
+    - Report rationalisation with business owners
+    - Rewriting unsupported custom code and subscriptions
+    - Pixel-level output validation
+
+- id: ssas-to-power-bi
+  title: SSAS / Azure Analysis Services to Power BI semantic models
+  source: ssas
+  source_artifact: "Tabular and multidimensional models"
+  targets: [power-bi, microsoft-fabric]
+  approaches:
+    - Migrate tabular models to Power BI/Fabric semantic models via XMLA endpoints (Microsoft provides an Azure Analysis Services migration experience)
+    - Redesign multidimensional cubes as tabular models, translating MDX calculations to DAX
+    - Use Direct Lake on OneLake or incremental refresh for large models
+    - Re-point Excel, SSRS and Power BI clients to the new semantic model endpoints
+  conversion_considerations:
+    - Multidimensional features (scope assignments, writeback, many-to-many with complex dimension relationships, actions) need redesign
+    - Row-level security roles must be re-validated with Entra ID groups
+    - Model size and refresh windows determine capacity SKU
+  risks: [report-parity, hidden-business-logic, skills-gap]
+  automation_potential: medium
+  manual_effort_areas:
+    - MDX to DAX translation and validation
+    - Security role and partition design
+    - Client re-pointing and user acceptance
+
+# ---------------------------------------------------------------- SAP
+- id: sap-bw-to-lakehouse
+  title: SAP BW / BW/4HANA to a cloud lakehouse or warehouse
+  source: sap-bw
+  source_artifact: null
+  targets: [databricks, snowflake, bigquery, microsoft-fabric]
+  approaches:
+    - Decide per domain between SAP-native modernisation (SAP Datasphere / SAP Business Data Cloud, with zero-copy sharing to Databricks or other platforms) and rebuilding on a non-SAP lakehouse or warehouse
+    - Extract source data through a licensed, SAP-supported route (SAP-native replication, Business Data Cloud data products or certified partner connectors) rather than unsupported ODP RFC access
+    - Rebuild aDSO/InfoCube layers as medallion bronze/silver/gold models and BEx queries as semantic-model measures
+    - Run BW and target in parallel per subject area, reconciling key figures before decommissioning process chains
+  conversion_considerations:
+    - ABAP start/end/expert routines and customer exits hold business logic that must be re-implemented in SQL/Python
+    - Currency translation, unit conversion, fiscal-year variants, hierarchies and time-dependent master data need explicit modelling
+    - BEx restricted/calculated key figures, variables and exceptions must be rebuilt in the target semantic layer
+    - SAP licensing terms constrain third-party extraction; validate with SAP before design sign-off
+  risks: [hidden-business-logic, report-parity, licensing-overlap, regulatory-compliance, skills-gap]
+  automation_potential: low
+  manual_effort_areas:
+    - ABAP routine analysis and re-implementation
+    - Semantic-layer rebuild of BEx queries
+    - Hierarchy and master-data modelling
+    - Reconciliation with finance and controlling stakeholders
+
+- id: sap-data-services-to-modern-etl
+  title: SAP Data Services (BODS) to modern pipelines
+  source: sap-data-services
+  source_artifact: null
+  targets: [lakeflow-declarative-pipelines, dbt, azure-data-factory, databricks-workflows]
+  approaches:
+    - Export ATL repository content to inventory jobs, dataflows and custom functions, and classify by pattern
+    - Re-implement transformations as SQL/dbt models or Lakeflow Declarative Pipelines; orchestration via Databricks Workflows or ADF
+    - Replace SAP extraction with a licensed SAP-supported connector route and land data in bronze
+    - Move data-quality and address-cleansing transforms to a DQ tool or platform expectations
+  conversion_considerations:
+    - BODS scripting language and custom functions need manual translation
+    - ABAP dataflows executed on SAP must be replaced, not ported
+    - Global/substitution variables and datastore configurations map to pipeline parameters per environment
+  risks: [hidden-business-logic, licensing-overlap, data-quality-regression, skills-gap]
+  automation_potential: medium
+  manual_effort_areas:
+    - Custom function and script translation
+    - SAP extraction redesign
+    - DQ/cleansing rule re-implementation
+
+# ---------------------------------------------------------------- Oracle ODI
+- id: odi-to-dbt-databricks
+  title: Oracle Data Integrator to dbt / Databricks pipelines
+  source: oracle-data-integrator
+  source_artifact: null
+  targets: [dbt, lakeflow-declarative-pipelines, databricks-workflows, databricks]
+  approaches:
+    - Export ODI repository objects (mappings, packages, load plans, Knowledge Modules) and classify by pattern
+    - Use the SQL that ODI generates as a conversion input, translating it to Databricks SQL or dbt models
+    - Replace Knowledge Module load strategies (incremental update, SCD2) with MERGE-based dbt materialisations or APPLY CHANGES / AUTO CDC in Lakeflow
+    - Re-implement load plans as Databricks Workflows or dbt job orchestration
+  conversion_considerations:
+    - Oracle-specific SQL, DB links and PL/SQL procedure calls must be converted alongside mappings
+    - Customised Knowledge Modules (Jython/Groovy) hide technical and business logic
+    - ODI variables, sequences and scenario versions need equivalents in parameters and identity columns
+  risks: [hidden-business-logic, sql-dialect-conversion, stored-procedure-rewrite, scheduling-dependency-loss]
+  automation_potential: medium
+  manual_effort_areas:
+    - Custom KM and procedure rewrite
+    - Load-plan dependency translation
+    - Reconciliation of converted mappings
+
+# ---------------------------------------------------------------- TIBCO
+- id: tibco-ems-to-kafka
+  title: TIBCO EMS to Apache Kafka / Confluent
+  source: tibco-ems
+  source_artifact: null
+  targets: [apache-kafka, confluent-cloud, amazon-msk]
+  approaches:
+    - Bridge EMS to Kafka with JMS source/sink connectors to migrate producers and consumers incrementally
+    - Re-design queue-based point-to-point flows as topics with consumer groups where event streaming is appropriate
+    - Keep request-reply and transactional JMS patterns on a JMS-compatible broker if they cannot be redesigned
+  conversion_considerations:
+    - Kafka has no message selectors; use separate topics, headers with consumer-side filtering, or stream processing
+    - Ordering is per partition; choose keys to preserve required ordering
+    - Redelivery and dead-letter semantics must be implemented in consumers or via connectors
+    - Message payload formats (XML maps) benefit from schema registry adoption
+  risks: [integration-breakage, cutover-downtime, skills-gap]
+  automation_potential: low
+  manual_effort_areas:
+    - Producer/consumer code changes
+    - Topic and partition design
+    - Dual-running bridge operations and cutover
+
+- id: tibco-ems-to-cloud-messaging
+  title: TIBCO EMS to cloud-native messaging (Service Bus / SQS / SNS)
+  source: tibco-ems
+  source_artifact: null
+  targets: [azure-service-bus, amazon-sqs, amazon-sns, google-pubsub]
+  approaches:
+    - Move JMS queues/topics to Azure Service Bus Premium (JMS 2.0) for minimal code change on Azure
+    - On AWS, use Amazon MQ (ActiveMQ) for lift-and-shift or refactor to SQS queues with SNS fan-out
+    - Migrate consumers incrementally with a bridge, then decommission EMS server pairs
+  conversion_considerations:
+    - Selectors, temporary queues and XA transactions have limited or no support on cloud-native services
+    - Message size limits differ; large payloads need claim-check patterns
+    - FIFO/ordering requirements determine queue type selection
+  risks: [integration-breakage, cutover-downtime, vendor-lock-in]
+  automation_potential: low
+  manual_effort_areas:
+    - Client library replacement and testing
+    - Semantics validation under failure
+    - Cutover sequencing across producers and consumers
+
+- id: tibco-bw-to-ipaas
+  title: TIBCO BusinessWorks to MuleSoft or Boomi
+  source: tibco-businessworks
+  source_artifact: "BusinessWorks processes and adapters"
+  targets: [mulesoft, boomi, apache-kafka]
+  approaches:
+    - Inventory BW processes, shared resources and adapters; rationalise duplicates and retire unused services
+    - Re-implement integrations using API-led patterns (MuleSoft) or low-code processes (Boomi), not one-to-one process copies
+    - Move asynchronous, high-volume flows to event streaming (Kafka) with lightweight consumers
+  conversion_considerations:
+    - XSLT/mapper logic and Java activities need translation to DataWeave, Boomi maps or code
+    - Adapter-based integrations (SAP, mainframe) need equivalent certified connectors
+    - Long-running stateful processes require explicit state management on the target
+  risks: [hidden-business-logic, integration-breakage, licensing-overlap, skills-gap]
+  automation_potential: low
+  manual_effort_areas:
+    - Mapping and Java activity translation
+    - Connector selection for legacy adapters
+    - Regression testing of every integration endpoint
+
+# ---------------------------------------------------------------- NoSQL
+- id: mongodb-to-managed
+  title: Self-managed MongoDB to managed document databases
+  source: mongodb
+  source_artifact: null
+  targets: [mongodb-atlas, azure-cosmos-db, amazon-documentdb]
+  approaches:
+    - Move to MongoDB Atlas with live migration (mongosync-based) for full feature compatibility
+    - Move to Azure Cosmos DB for MongoDB (vCore or RU) or Amazon DocumentDB after an API compatibility assessment
+    - Use change-stream-based online migration to minimise cutover downtime
+  conversion_considerations:
+    - API-compatible services implement subsets of MongoDB features (aggregation stages, transactions, index types)
+    - Shard keys and partition keys must be redesigned for RU-based or elastic targets
+    - Driver versions and connection strings change; test retryable writes and read preferences
+  risks: [integration-breakage, cutover-downtime, performance-regression]
+  automation_potential: high
+  manual_effort_areas:
+    - Compatibility assessment of queries and indexes
+    - Partition/shard-key design
+    - Performance testing
+
+- id: cassandra-to-managed
+  title: Apache Cassandra to managed wide-column services
+  source: apache-cassandra
+  source_artifact: null
+  targets: [amazon-keyspaces, azure-cosmos-db, google-bigtable]
+  approaches:
+    - Keep CQL with Amazon Keyspaces or Azure Cosmos DB for Apache Cassandra (or Azure Managed Instance for Apache Cassandra) using dual-write/proxy migration plus bulk load
+    - Re-architect to Bigtable when moving to GCP, redesigning row keys and client code (Bigtable is HBase-API, not CQL)
+    - Use Spark-based bulk export/import for historical data and validate with row counts and checksums
+  conversion_considerations:
+    - Check support for lightweight transactions, materialised views, secondary indexes, TTLs and consistency levels on each target
+    - Throughput/capacity models (RU/s, on-demand) differ from node-based clusters
+    - Multi-DC topologies map to multi-region configurations with different consistency guarantees
+  risks: [integration-breakage, cutover-downtime, performance-regression, cost-overrun]
+  automation_potential: medium
+  manual_effort_areas:
+    - Feature compatibility assessment
+    - Data model redesign for non-CQL targets
+    - Dual-write/proxy cutover operations
+
+- id: elasticsearch-to-opensearch
+  title: Elasticsearch to Amazon OpenSearch Service
+  source: elasticsearch
+  source_artifact: null
+  targets: [amazon-opensearch]
+  approaches:
+    - Snapshot to S3 and restore into OpenSearch for compatible versions (up to Elasticsearch 7.10 lineage)
+    - Reindex from remote or replay from Kafka/source systems for newer Elasticsearch versions
+    - Migrate Kibana dashboards to OpenSearch Dashboards and rewrite unsupported features
+  conversion_considerations:
+    - Elasticsearch 8.x features (ES|QL, some security and ML features) have no direct OpenSearch equivalent
+    - Client libraries must move to OpenSearch clients
+    - Shard sizing and storage tiers should be redesigned rather than copied
+  risks: [integration-breakage, report-parity, data-volume-transfer]
+  automation_potential: medium
+  manual_effort_areas:
+    - Dashboard and alert migration
+    - Client code changes
+    - Index template and mapping review
+
+# ---------------------------------------------------------------- Self-service prep
+- id: alteryx-to-dbt-databricks
+  title: Alteryx workflows to dbt and Databricks
+  source: alteryx
+  source_artifact: "Alteryx workflows (.yxmd) and macros"
+  targets: [dbt, databricks, lakeflow-declarative-pipelines, databricks-sql]
+  approaches:
+    - Discover and rationalise workflows across desktops and Alteryx Server; retire duplicates and one-off analyses
+    - Translate data-preparation workflows into SQL (dbt models or Databricks SQL) and complex ones into PySpark notebooks
+    - Move predictive and spatial tools to Databricks notebooks with MLflow and spatial libraries
+    - Give analysts governed self-service on Databricks SQL / AI-BI with Unity Catalog permissions
+  conversion_considerations:
+    - Tool-by-tool translation (Join, Union, Formula, Multi-Row Formula, Summarize) maps to SQL, but iterative/batch macros need redesign
+    - File-based inputs/outputs (Excel, network shares) should move to governed tables and volumes
+    - Analyst ownership and change processes shift from desktop files to version-controlled code
+  risks: [hidden-business-logic, skills-gap, report-parity, governance-gap]
+  automation_potential: medium
+  manual_effort_areas:
+    - Macro and iterative-workflow redesign
+    - Analyst enablement and handover
+    - Output reconciliation against Excel deliverables

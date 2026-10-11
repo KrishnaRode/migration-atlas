@@ -17,6 +17,8 @@ from atlas.ai.ollama import AIUnavailable, OllamaClient
 from atlas.ai.parsing import parse_model
 from atlas.ai.prompts import (
     PERSONA_FRAMING,
+    RECOMMEND_PROMPT,
+    RECOMMEND_SYSTEM,
     PROPOSE_PROMPT,
     PROPOSE_SYSTEM,
     REVIEW_PROMPT,
@@ -80,11 +82,54 @@ def _clean(items: list[str], limit: int) -> list[str]:
     return out[:limit]
 
 
+class _Recommendation(BaseModel):
+    recommended: str
+    headline: str = ""
+    rationale: str = ""
+    choose_when: dict[str, str] = Field(default_factory=dict)
+    caveats: list[str] = Field(default_factory=list)
+
+
 class ArchitectAI:
-    def __init__(self, ontology: OntologyService, engine: ConnectionEngine, ollama: OllamaClient):
+    def __init__(self, ontology: OntologyService, engine: ConnectionEngine, ollama: OllamaClient, skills=None):
         self.ontology = ontology
         self.engine = engine
         self.ollama = ollama
+        self.skills = skills
+
+    def _playbooks(self, text: str, arch: Architecture | None = None, estate: Estate | None = None) -> str:
+        if not self.skills:
+            return ""
+        ids = [n.tech_id for n in arch.nodes] if arch else []
+        ids += list(estate.current_technologies) + list(estate.target_platforms) if estate else []
+        picked = self.skills.select(text, tech_ids=ids, focus_ids=list(estate.current_technologies) if estate else [])
+        return ("PLAYBOOKS\n" + self.skills.render(picked, max_chars=1800)) if picked else ""
+
+    async def recommend(self, options: list[Architecture], analysis, estate: Estate) -> tuple[dict | None, str | None]:
+        """LLM best-fit recommendation over the deterministic fit table. Returns (fields, model) or (None, None)."""
+        by_letter = {f.label: f for f in analysis.fits}
+        opts = "\n".join(f"Option {f.label}: {f.name} — {f.summary} ({f.component_count} components, {f.high_findings} high findings)"
+                         for f in analysis.fits)
+        fit = "\n".join(f"Option {f.label} [{f.fit_percent}%]: " + "; ".join(f"{c.name} ({c.priority}) {c.score}/3 — {c.evidence}" for c in f.criteria)
+                         for f in analysis.fits)
+        prompt = RECOMMEND_PROMPT.format(estate=render_estate(estate, self.ontology), options=opts, fit=fit,
+                                         playbooks=self._playbooks("platform selection best fit", options[0] if options else None, estate))
+        try:
+            raw, model = await self.ollama.generate_json(RECOMMEND_SYSTEM, prompt, num_predict=700)
+        except AIUnavailable:
+            return None, None
+        rec, _ = parse_model(raw, _Recommendation)
+        letter = (rec.recommended.strip().upper().replace("OPTION", "").strip()[:1]) if rec else ""
+        if not rec or letter not in by_letter:
+            return None, None
+        return {
+            "recommended_option_id": by_letter[letter].option_id,
+            "headline": rec.headline[:240],
+            "rationale": rec.rationale[:900],
+            "choose_when": {by_letter[k.strip().upper()[-1:]].option_id: v[:400] for k, v in rec.choose_when.items()
+                            if k.strip() and k.strip().upper()[-1:] in by_letter},
+            "caveats": [c[:300] for c in rec.caveats[:3]],
+        }, model
 
     def _first_node(self, arch: Architecture, tech_id: str):
         return next((n for n in arch.nodes if n.tech_id == tech_id), None)
@@ -105,7 +150,7 @@ class ArchitectAI:
             constraints=", ".join(f"{c.id} ({c.priority})" for c in estate.constraints) or "none",
             architecture=render_architecture(arch, self.ontology),
             catalog=render_catalog(self.ontology, cloud),
-        )
+        ) + "\n\n" + self._playbooks(" ".join(c.id for c in estate.constraints), arch, estate)
         try:
             raw, model = await self.ollama.generate_json(REVIEW_SYSTEM, prompt, num_predict=900)
         except AIUnavailable as exc:
@@ -155,7 +200,7 @@ class ArchitectAI:
             estate=render_estate(estate, self.ontology),
             catalog=render_catalog(self.ontology, cloud),
             request=request[:500],
-        )
+        ) + "\n\n" + self._playbooks(request, arch, estate)
         try:
             raw, model = await self.ollama.generate_json(PROPOSE_SYSTEM, prompt, num_predict=900)
         except AIUnavailable as exc:

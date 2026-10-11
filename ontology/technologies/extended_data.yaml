@@ -1,0 +1,1531 @@
+# Extended data estate: ELT/ingestion SaaS, legacy ETL, query engines and lake formats,
+# modern orchestrators, and operational / NoSQL / SAP / managed databases.
+# ---------------------------------------------------------------- Ingestion / ELT
+- id: fivetran
+  name: Fivetran
+  aliases: [fivetran, fivetran hvr, hvr, fivetran connectors]
+  vendor: Fivetran
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: refresh-cw
+  color: "#0073FF"
+  description: Fully managed ELT service with hundreds of pre-built connectors that replicate SaaS applications, databases (including log-based CDC via its HVR technology), files and events into a cloud warehouse or lake.
+  typical_legacy_use: Replaces hand-built extract scripts and on-prem ETL extract layers, landing SaaS (Salesforce, NetSuite, Workday) and database changes into Snowflake, Databricks, BigQuery or Redshift for in-warehouse transformation with dbt.
+  capabilities: [managed-connectors, log-based-cdc, schema-drift-handling, incremental-sync, saas-ingestion, history-mode]
+  possible_targets: []
+  alternatives: [airbyte, lakeflow-connect, qlik-replicate, matillion, striim]
+  replaces: [informatica-powercenter, ssis, talend, oracle-data-integrator, sap-data-services]
+  suggested_next: [dbt, snowflake, databricks, bigquery, delta-bronze, landing-zone]
+  migration_considerations:
+    - Pricing is consumption-based (monthly active rows per connection); profile change volumes of high-churn tables before committing to a connector-per-source design.
+    - Decide where Fivetran's runtime runs (fully SaaS, hybrid deployment agent, or self-hosted HVR) to satisfy data-residency and network constraints for on-prem databases.
+    - Fivetran lands data close to source schema; plan the transformation layer (dbt, Lakeflow Declarative Pipelines) separately rather than expecting ETL-style logic.
+    - Agree soft-delete, history-mode and schema-change behaviour per connector so downstream models handle them consistently.
+  known_challenges:
+    - Very large initial historical syncs can take days and may need to be staged or seeded from a bulk export.
+    - Connector-level configuration offers limited control over column-level transformation and filtering compared with a full ETL tool.
+    - Costs can grow unexpectedly when wide, frequently updated tables are synced.
+  risks: [cost-overrun, cdc-lag, schema-drift, vendor-lock-in, security-gap]
+  strategies: [repurchase, replatform]
+  skills: [Fivetran administration, SQL, dbt]
+  tags: [elt, cdc, saas, connectors, modern]
+  docs:
+    - title: Fivetran documentation
+      url: https://fivetran.com/docs
+
+- id: airbyte
+  name: Airbyte
+  aliases: [airbyte, airbyte cloud, airbyte open source, airbyte connectors]
+  vendor: Airbyte
+  category: cdc
+  role: cdc
+  layer: ingestion
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: refresh-cw
+  color: "#615EFF"
+  description: Open-source data movement platform (self-managed or Airbyte Cloud) offering a large catalogue of source and destination connectors, incremental sync and Debezium-based CDC for databases.
+  typical_legacy_use: Used by engineering-led teams wanting an open-source, extensible alternative to commercial ELT services, often deployed on Kubernetes alongside Airflow or Dagster.
+  capabilities: [managed-connectors, open-source-connectors, log-based-cdc, incremental-sync, connector-development-kit]
+  possible_targets: []
+  alternatives: [fivetran, lakeflow-connect, debezium, matillion]
+  replaces: [talend, pentaho, ssis]
+  suggested_next: [dbt, dagster, apache-airflow, landing-zone, delta-bronze, snowflake]
+  migration_considerations:
+    - Choose between self-managed (Kubernetes) and Airbyte Cloud based on operational capacity and where source databases are reachable from.
+    - Assess connector maturity per source; community-maintained connectors vary in quality and support level.
+    - Database CDC relies on Debezium semantics (replication slots, binlog retention, supplemental logging); coordinate with source DBAs.
+  known_challenges:
+    - Self-managed deployments require ongoing upgrades and capacity planning for sync workers.
+    - Very large tables and high-frequency CDC can need tuning or a dedicated CDC tool.
+  risks: [schema-drift, cdc-lag, operational-readiness, skills-gap]
+  strategies: [repurchase, replatform]
+  skills: [Airbyte, Kubernetes, SQL, Python]
+  tags: [elt, cdc, open-source, connectors, modern]
+  docs:
+    - title: Airbyte documentation
+      url: https://docs.airbyte.com/
+
+- id: matillion
+  name: Matillion
+  aliases: [matillion, matillion etl, matillion data productivity cloud, matillion dpc]
+  vendor: Matillion
+  category: etl
+  role: etl
+  layer: processing
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: workflow
+  color: "#2A2C79"
+  description: Cloud-native visual ELT platform (Matillion ETL and the Data Productivity Cloud) that loads data and pushes transformations down as SQL into Snowflake, Databricks, Redshift or BigQuery.
+  typical_legacy_use: Low-code ELT for cloud warehouse teams migrating off on-prem GUI ETL tools, with orchestration jobs and transformation jobs designed visually and executed in the warehouse.
+  capabilities: [elt, pushdown-transformation, visual-pipeline-design, managed-connectors, job-orchestration]
+  possible_targets: [dbt, lakeflow-declarative-pipelines, databricks-workflows]
+  alternatives: [fivetran, informatica-idmc, azure-data-factory, aws-glue, dbt]
+  replaces: [informatica-powercenter, ssis, talend, ibm-datastage, oracle-data-integrator]
+  suggested_next: [snowflake, databricks, amazon-redshift, bigquery, dbt]
+  migration_considerations:
+    - Confirm the target warehouse and edition support for each Matillion product (Matillion ETL instances versus the SaaS Data Productivity Cloud).
+    - Transformations execute as generated SQL in the warehouse, so warehouse compute sizing and cost governance apply directly.
+    - Plan migration of legacy Matillion ETL jobs to the Data Productivity Cloud designer, including variables, shared jobs and Python scripts.
+  known_challenges:
+    - Python and Bash script components embed logic outside the visual design and are easy to miss.
+    - Version control and promotion across environments need deliberate setup (Git integration).
+  risks: [hidden-business-logic, vendor-lock-in, cost-overrun]
+  strategies: [retain, replatform, refactor]
+  skills: [Matillion, SQL, cloud data warehouse]
+  tags: [elt, low-code, saas, modern]
+  docs:
+    - title: Matillion documentation
+      url: https://docs.matillion.com/
+
+- id: apache-nifi
+  name: Apache NiFi
+  aliases: [nifi, apache nifi, nifi flows, cloudera dataflow]
+  vendor: Apache Software Foundation
+  category: etl
+  role: etl
+  layer: ingestion
+  environment: any
+  legacy: false
+  clouds: [on-prem, any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: workflow
+  color: "#728E9B"
+  description: Flow-based data routing and mediation system with a visual canvas of processors, back-pressure, guaranteed delivery and fine-grained data provenance.
+  typical_legacy_use: Moves files, logs and events from edge, on-prem and Hadoop sources into Kafka, HDFS or object storage, often as part of a Cloudera (CDF) estate or in public-sector and defence environments.
+  capabilities: [flow-based-routing, data-provenance, back-pressure, protocol-mediation, edge-ingestion]
+  possible_targets: [databricks-auto-loader, lakeflow-connect, azure-data-factory, aws-glue, google-dataflow, apache-kafka]
+  alternatives: [apache-kafka, azure-data-factory, aws-glue, talend]
+  replaces: [flat-files-sftp]
+  suggested_next: [apache-kafka, landing-zone, amazon-s3, adls-gen2, google-cloud-storage]
+  migration_considerations:
+    - Inventory process groups, custom processors, controller services and parameter contexts; custom processors are Java code that must be re-implemented or retained.
+    - Separate pure routing/transport flows (good candidates for cloud-native ingestion) from flows doing heavy record-level transformation (move to Spark or SQL).
+    - Preserve provenance and audit requirements; decide where equivalent lineage will be captured on the target.
+  known_challenges:
+    - Clustered NiFi needs careful sizing of content, flowfile and provenance repositories.
+    - Large canvases with nested process groups become hard to version and review without NiFi Registry discipline.
+  risks: [hidden-business-logic, lineage-loss, operational-readiness, skills-gap]
+  strategies: [retain, rehost, replatform, rearchitect]
+  skills: [Apache NiFi, Java, data flow design]
+  tags: [ingestion, data-flow, open-source, hadoop-ecosystem]
+  docs:
+    - title: Apache NiFi documentation
+      url: https://nifi.apache.org/documentation/
+
+- id: oracle-data-integrator
+  name: Oracle Data Integrator (ODI)
+  aliases: [odi, oracle data integrator, odi 12c, odi 11g]
+  vendor: Oracle
+  category: etl
+  role: etl
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: workflow
+  color: "#C74634"
+  description: Oracle's E-LT data integration tool that generates set-based SQL executed on source and target databases through reusable Knowledge Modules, with packages, scenarios and load plans for control flow.
+  typical_legacy_use: Loads Oracle-based data warehouses and Oracle BI Applications, often tightly coupled to Oracle Database, Exadata and Oracle EBS/Fusion sources.
+  capabilities: [elt, pushdown-transformation, knowledge-modules, load-plans, metadata-repository]
+  possible_targets: [dbt, lakeflow-declarative-pipelines, databricks-workflows, azure-data-factory, aws-glue, informatica-idmc, matillion]
+  alternatives: [informatica-powercenter, ibm-datastage, ssis, talend, sap-data-services]
+  replaces: []
+  suggested_next: [dbt, lakeflow-declarative-pipelines, databricks-workflows, lakeflow-connect, oracle-goldengate]
+  migration_considerations:
+    - Export the master and work repositories to inventory mappings, interfaces (11g), procedures, packages, load plans and customised Knowledge Modules.
+    - Because ODI generates SQL in the Oracle dialect, the generated code is a useful conversion input but must be translated to the target SQL dialect.
+    - Customised Knowledge Modules and ODI procedures often hold Jython/Groovy or PL/SQL logic that needs manual rewrite.
+    - Map load plans, scenarios and ODI agents' schedules onto the target orchestrator.
+  known_challenges:
+    - Heavy use of Oracle-specific features (MERGE hints, DB links, PL/SQL calls) ties pipelines to Oracle.
+    - Repository metadata spans many versions of interfaces/mappings, making automated conversion uneven.
+  risks: [hidden-business-logic, sql-dialect-conversion, stored-procedure-rewrite, scheduling-dependency-loss, skills-gap]
+  strategies: [retain, replatform, refactor, rearchitect, retire]
+  skills: [ODI development, Oracle SQL, PL/SQL]
+  tags: [etl, elt, legacy, oracle]
+  docs:
+    - title: Oracle Data Integrator documentation
+      url: https://docs.oracle.com/en/middleware/fusion-middleware/data-integrator/
+
+- id: sap-data-services
+  name: SAP Data Services (BODS)
+  aliases: [sap data services, sap bods, bods, business objects data services, sap ds, bodi]
+  vendor: SAP
+  category: etl
+  role: etl
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: workflow
+  color: "#0FAAFF"
+  description: SAP's on-premises ETL and data quality tool (formerly BusinessObjects Data Integrator) built around jobs, workflows and dataflows with native SAP ECC/BW extractors and data-cleansing transforms.
+  typical_legacy_use: Extracts from SAP ECC/S4 and BW into SAP or non-SAP warehouses, and runs data-quality and address-cleansing jobs for SAP data migrations.
+  capabilities: [batch-etl, sap-extraction, data-quality, address-cleansing, data-transformation]
+  possible_targets: [lakeflow-declarative-pipelines, dbt, azure-data-factory, informatica-idmc, databricks-workflows, aws-glue]
+  alternatives: [informatica-powercenter, ibm-datastage, oracle-data-integrator, ssis]
+  replaces: []
+  suggested_next: [lakeflow-declarative-pipelines, dbt, databricks-workflows, landing-zone, sap-hana]
+  migration_considerations:
+    - Inventory jobs, workflows, dataflows, custom functions and scripts from the local/central repository (ATL exports).
+    - SAP extraction (ABAP dataflows, extractors, BAPIs) must be replaced with a licensed, SAP-supported extraction route; validate licensing for ODP-based access by third-party tools.
+    - Data-quality transforms (match, cleanse, address) need an equivalent on the target or a dedicated DQ product.
+    - Align with SAP's mainstream-maintenance timelines for Data Services when sequencing waves.
+  known_challenges:
+    - ABAP dataflows and custom scripts embed logic that is hard to convert automatically.
+    - SAP's restrictions on ODP/RFC usage by non-SAP tools can constrain target ingestion design.
+  risks: [hidden-business-logic, licensing-overlap, skills-gap, data-quality-regression, regulatory-compliance]
+  strategies: [retain, replatform, refactor, rearchitect, retire]
+  skills: [SAP Data Services, SAP data models, SQL]
+  tags: [etl, sap, legacy, data-quality]
+  docs:
+    - title: SAP Data Services documentation
+      url: https://help.sap.com/docs/SAP_DATA_SERVICES
+
+- id: alteryx
+  name: Alteryx Designer / Server
+  aliases: [alteryx, alteryx designer, alteryx server, alteryx workflows, yxmd]
+  vendor: Alteryx
+  category: etl
+  role: etl
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: workflow
+  color: "#0078C0"
+  description: Desktop-centric analytics automation and data-preparation tool where analysts build drag-and-drop workflows, optionally scheduled on Alteryx Server (with a newer cloud offering, Alteryx One).
+  typical_legacy_use: Business analysts in finance, tax and operations run spreadsheet-replacing workflows that blend extracts from databases and files, frequently outside central IT governance.
+  capabilities: [self-service-data-prep, visual-workflows, spatial-analytics, predictive-tools, scheduling]
+  possible_targets: [dbt, databricks, lakeflow-declarative-pipelines, power-bi, microsoft-fabric]
+  alternatives: [informatica-idmc, matillion, ssis]
+  replaces: []
+  suggested_next: [databricks, dbt, databricks-sql, unity-catalog]
+  migration_considerations:
+    - Discover workflows across analyst desktops and Server galleries; many critical processes are undocumented and owned by individuals.
+    - Classify workflows into data preparation (move to governed SQL/dbt or Spark), analytics/ML (move to notebooks) and report-output (move to BI).
+    - Macros, R/Python tools and spatial tools require specific re-implementation.
+    - Plan analyst enablement; the user base is typically non-engineering and needs a self-service landing on the target.
+  known_challenges:
+    - Desktop-sprawl makes complete inventory and lineage difficult.
+    - Outputs often feed Excel or emails, so report parity is judged by end users rather than by tables.
+  risks: [hidden-business-logic, governance-gap, skills-gap, report-parity, licensing-overlap]
+  strategies: [retain, repurchase, refactor, retire]
+  skills: [Alteryx, SQL, Python, analyst enablement]
+  tags: [data-prep, self-service, analytics, legacy]
+  docs:
+    - title: Alteryx documentation
+      url: https://help.alteryx.com/
+
+# ---------------------------------------------------------------- Query engines / lake formats / real-time analytics
+- id: trino
+  name: Trino
+  aliases: [trino, trinodb, prestosql, trino cluster]
+  vendor: Trino Software Foundation
+  category: processing
+  role: serving
+  layer: serving
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: search
+  color: "#DD00A1"
+  description: Open-source distributed SQL query engine (the fork formerly known as PrestoSQL) for interactive and federated queries over data lakes (Iceberg, Delta, Hive) and many other connectors.
+  typical_legacy_use: Interactive SQL over Hadoop/Hive or S3 data lakes, federating queries across lake and operational databases without moving data.
+  capabilities: [federated-query, interactive-sql, iceberg-support, delta-support, connector-framework]
+  possible_targets: [starburst, databricks-sql, amazon-athena]
+  alternatives: [presto, starburst, dremio, amazon-athena, databricks-sql]
+  replaces: [apache-hive, apache-impala, presto, cloudera-hadoop]
+  suggested_next: [apache-iceberg, amazon-s3, aws-glue-data-catalog, starburst, tableau]
+  migration_considerations:
+    - Choose the table format and catalog (Iceberg REST, Hive Metastore, Glue, Unity Catalog) first; Trino reads what the catalog exposes.
+    - Size coordinator and workers for concurrency; enable fault-tolerant execution for long-running ETL-style queries.
+    - Translate HiveQL/Impala SQL to Trino SQL; functions, implicit casts and complex-type handling differ.
+  known_challenges:
+    - Self-managed clusters need tuning of memory limits, spill and autoscaling for mixed workloads.
+    - Fine-grained access control requires an external policy system (e.g. Ranger, OPA or a commercial distribution).
+  risks: [sql-dialect-conversion, performance-regression, operational-readiness, governance-gap]
+  strategies: [replatform, refactor]
+  skills: [Trino, SQL, lake table formats, Kubernetes]
+  tags: [query-engine, federated, open-source, lakehouse, modern]
+  docs:
+    - title: Trino documentation
+      url: https://trino.io/docs/current/
+
+- id: starburst
+  name: Starburst (Galaxy / Enterprise)
+  aliases: [starburst, starburst galaxy, starburst enterprise, sep]
+  vendor: Starburst
+  category: processing
+  role: serving
+  layer: serving
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: search
+  color: "#00A7B5"
+  description: Commercial Trino platform offered as Starburst Enterprise (self-managed) and Starburst Galaxy (SaaS), adding enterprise connectors, access control, caching and data-product features.
+  typical_legacy_use: Federated analytics and data-mesh style data products across Hadoop, object storage and relational sources, frequently as a Hadoop/Impala replacement.
+  capabilities: [federated-query, interactive-sql, fine-grained-access-control, iceberg-support, data-products]
+  possible_targets: []
+  alternatives: [trino, dremio, databricks-sql, amazon-athena]
+  replaces: [apache-hive, apache-impala, cloudera-hadoop, presto]
+  suggested_next: [apache-iceberg, amazon-s3, adls-gen2, tableau, power-bi]
+  migration_considerations:
+    - Decide between Galaxy (SaaS) and Enterprise (self-managed on Kubernetes) based on network reachability of sources and data-residency needs.
+    - Plan catalog strategy and migrate Hive/Ranger policies into Starburst's access control.
+    - Benchmark federated queries; pushing large joins across sources can be slower than consolidating data in the lake.
+  known_challenges:
+    - Federation can hide poor data placement and create cross-source performance issues.
+    - Licensing is consumption/cluster based; cost governance is needed for ad-hoc users.
+  risks: [performance-regression, cost-overrun, vendor-lock-in]
+  strategies: [repurchase, replatform]
+  skills: [Trino, SQL, data mesh design]
+  tags: [query-engine, federated, trino, modern]
+  docs:
+    - title: Starburst documentation
+      url: https://docs.starburst.io/
+
+- id: presto
+  name: Presto (PrestoDB)
+  aliases: [presto, prestodb, presto db]
+  vendor: Presto Foundation
+  category: processing
+  role: serving
+  layer: serving
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: search
+  color: "#5890FF"
+  description: Open-source distributed SQL query engine originated at Meta and governed by the Linux Foundation's Presto Foundation, for interactive queries over data lakes and other sources.
+  typical_legacy_use: Interactive SQL over Hive tables on HDFS or S3 in Hadoop-era platforms, and the engine behind several managed services (including Amazon EMR's Presto option).
+  capabilities: [federated-query, interactive-sql, connector-framework, hive-support]
+  possible_targets: [trino, starburst, amazon-athena, databricks-sql]
+  alternatives: [trino, dremio, apache-impala, amazon-athena]
+  replaces: [apache-hive]
+  suggested_next: [trino, apache-iceberg, amazon-s3]
+  migration_considerations:
+    - Presto and Trino diverged in 2020; SQL, configuration and connector behaviour are similar but not identical, so test queries when moving between them.
+    - Migrate Hive Metastore to a modern catalog when moving to managed engines.
+    - Re-validate session properties and resource-group configurations on the target.
+  known_challenges:
+    - Ecosystem fragmentation between PrestoDB and Trino causes confusion over feature availability.
+    - Self-managed clusters require ongoing tuning for memory-heavy joins.
+  risks: [sql-dialect-conversion, performance-regression, operational-readiness]
+  strategies: [retain, replatform, refactor]
+  skills: [Presto, SQL, Hadoop ecosystem]
+  tags: [query-engine, open-source, hadoop-ecosystem]
+  docs:
+    - title: Presto documentation
+      url: https://prestodb.io/docs/current/
+
+- id: apache-hive
+  name: Apache Hive
+  aliases: [apache hive, hiveql, hive sql, hive metastore, hive llap, hive tables, hive on tez]
+  vendor: Apache Software Foundation
+  category: processing
+  role: processing
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#FDEE21"
+  description: SQL-on-Hadoop data warehouse system that compiles HiveQL into Tez, MapReduce or Spark jobs over HDFS/object storage, with the Hive Metastore as the de-facto table catalog of the Hadoop ecosystem.
+  typical_legacy_use: Batch ELT and reporting tables on Cloudera/Hortonworks clusters, with HiveQL scripts scheduled by Oozie and partitioned ORC/Parquet tables shared through the Hive Metastore.
+  capabilities: [sql-on-hadoop, batch-sql, metastore, acid-tables, partitioning]
+  possible_targets: [databricks, databricks-sql, delta-lake, bigquery, google-dataproc, amazon-emr, trino, apache-iceberg, snowflake]
+  alternatives: [apache-impala, presto, trino, apache-spark]
+  replaces: []
+  suggested_next: [databricks, unity-catalog, delta-lake, lakeflow-declarative-pipelines, databricks-workflows]
+  migration_considerations:
+    - Inventory databases, managed vs external tables, partitions, UDFs and SerDes from the Hive Metastore; this is the backbone of the migration plan.
+    - Convert HiveQL to Spark SQL / Databricks SQL or BigQuery SQL; most DDL/DML translates, but custom UDFs, SerDes and transform scripts need rework.
+    - Move data from HDFS to object storage and convert ORC/Parquet tables to Delta or Iceberg; Hive ACID (ORC transactional) tables need compaction and export, not file copy.
+    - Replace Oozie/cron scheduling of HiveQL scripts with a modern orchestrator, and Ranger/Sentry policies with the target catalog's access model.
+  known_challenges:
+    - Hive ACID tables and their delta files cannot be read reliably by other engines without major compaction.
+    - Small-file problems and over-partitioned tables degrade performance after a lift-and-shift.
+    - Custom Java UDFs and SerDes are often undocumented.
+  risks: [sql-dialect-conversion, data-volume-transfer, governance-gap, scheduling-dependency-loss, performance-regression]
+  strategies: [retain, rehost, replatform, refactor, rearchitect, retire]
+  skills: [HiveQL, Hadoop administration, Spark SQL]
+  tags: [hadoop, sql-on-hadoop, legacy, batch]
+  docs:
+    - title: Apache Hive documentation
+      url: https://cwiki.apache.org/confluence/display/Hive/Home
+
+- id: apache-impala
+  name: Apache Impala
+  aliases: [apache impala, impala sql, impala daemon, impalad]
+  vendor: Apache Software Foundation (Cloudera)
+  category: processing
+  role: serving
+  layer: serving
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: zap
+  color: "#4F9E3E"
+  description: Massively parallel, low-latency SQL engine for Hadoop that queries Parquet/Kudu/HBase tables registered in the Hive Metastore, primarily shipped by Cloudera.
+  typical_legacy_use: Interactive BI over Hadoop data, serving Tableau, Qlik or MicroStrategy dashboards directly from Parquet tables on CDH/CDP clusters.
+  capabilities: [interactive-sql, mpp-query, kudu-integration, metastore-integration]
+  possible_targets: [databricks-sql, databricks, trino, starburst, snowflake, bigquery, amazon-athena]
+  alternatives: [apache-hive, presto, trino]
+  replaces: []
+  suggested_next: [databricks-sql, unity-catalog, delta-gold, tableau, power-bi]
+  migration_considerations:
+    - Identify BI workloads and concurrency patterns served by Impala; size the target SQL serving tier against peak dashboard load.
+    - Translate Impala SQL (and any Kudu upsert patterns) to the target dialect; Kudu tables need a new mutable-table design (Delta/Iceberg MERGE).
+    - Re-point BI connections and semantic layers; test query performance against SLAs before cutover.
+  known_challenges:
+    - Kudu-backed real-time tables have no one-to-one cloud equivalent.
+    - COMPUTE STATS and partition-pruning assumptions hide slow queries that surface on new engines.
+  risks: [sql-dialect-conversion, performance-regression, report-parity, cutover-downtime]
+  strategies: [retain, replatform, refactor, retire]
+  skills: [Impala SQL, Hadoop, BI performance tuning]
+  tags: [hadoop, sql-on-hadoop, legacy, interactive]
+  docs:
+    - title: Apache Impala documentation
+      url: https://impala.apache.org/docs/build/html/index.html
+
+- id: apache-hudi
+  name: Apache Hudi
+  aliases: [hudi, apache hudi, hudi tables]
+  vendor: Apache Software Foundation
+  category: data-lake
+  role: lakehouse
+  layer: storage
+  environment: any
+  legacy: false
+  clouds: [aws, azure, gcp, on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: layers
+  color: "#00B2E5"
+  description: Open lakehouse table format and platform providing upserts, deletes, incremental queries and table services (compaction, clustering, cleaning) on object storage.
+  typical_legacy_use: Record-level upserts and CDC ingestion into data lakes on Amazon EMR/AWS Glue, especially for high-volume mutable datasets.
+  capabilities: [open-table-format, upserts, incremental-queries, copy-on-write, merge-on-read, table-services]
+  possible_targets: [delta-lake, apache-iceberg]
+  alternatives: [delta-lake, apache-iceberg]
+  replaces: [hdfs, apache-hive]
+  suggested_next: [amazon-s3, amazon-emr, aws-glue-data-catalog, apache-spark]
+  migration_considerations:
+    - Choose copy-on-write versus merge-on-read per table based on write and read latency needs.
+    - Plan table-service scheduling (compaction, cleaning, clustering) — inline or async — as part of operations.
+    - For interoperability, evaluate metadata translation (e.g. Apache XTable) rather than rewriting data when other engines need Delta or Iceberg views.
+  known_challenges:
+    - Operational tuning of compaction and indexing is more involved than with simpler formats.
+    - Engine support for the latest Hudi features varies across query engines.
+  risks: [operational-readiness, performance-regression, skills-gap]
+  strategies: [retain, replatform]
+  skills: [Apache Hudi, Apache Spark, lake table design]
+  tags: [table-format, lakehouse, open-source, modern]
+  docs:
+    - title: Apache Hudi documentation
+      url: https://hudi.apache.org/docs/overview
+
+- id: dremio
+  name: Dremio
+  aliases: [dremio, dremio cloud, dremio software]
+  vendor: Dremio
+  category: processing
+  role: serving
+  layer: serving
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: search
+  color: "#31D3DB"
+  description: Lakehouse query engine and semantic layer built on Apache Arrow, with Iceberg-native catalog features (Apache Polaris-based), reflections for query acceleration and federation.
+  typical_legacy_use: Self-service SQL and BI acceleration directly on data-lake files, replacing Hadoop SQL engines or extract-heavy BI marts.
+  capabilities: [interactive-sql, query-acceleration, semantic-layer, iceberg-catalog, federated-query]
+  possible_targets: []
+  alternatives: [trino, starburst, databricks-sql, amazon-athena]
+  replaces: [apache-impala, apache-hive, cloudera-hadoop]
+  suggested_next: [apache-iceberg, amazon-s3, adls-gen2, tableau, power-bi]
+  migration_considerations:
+    - Decide whether Dremio is the catalog of record or a consumer of another catalog (Glue, Unity Catalog, Polaris).
+    - Design reflections deliberately; they are materialisations with storage and refresh cost.
+    - Migrate virtual datasets (views) and their permissions as part of the semantic layer.
+  known_challenges:
+    - Reflection sprawl increases storage and refresh overhead.
+    - Semantic-layer logic held in Dremio views becomes a dependency for BI tools.
+  risks: [vendor-lock-in, cost-overrun, performance-regression]
+  strategies: [repurchase, replatform]
+  skills: [Dremio, SQL, Apache Iceberg]
+  tags: [query-engine, lakehouse, semantic-layer, modern]
+  docs:
+    - title: Dremio documentation
+      url: https://docs.dremio.com/
+
+- id: amazon-athena
+  name: Amazon Athena
+  aliases: [athena, amazon athena, aws athena]
+  vendor: Amazon Web Services
+  category: processing
+  role: serving
+  layer: serving
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: search
+  color: "#8C4FFF"
+  description: Serverless interactive query service (Trino/Presto-based SQL plus Apache Spark) that queries data in Amazon S3 through the AWS Glue Data Catalog, billed per data scanned or by provisioned capacity.
+  typical_legacy_use: Ad-hoc SQL over S3 data lakes, log analytics (CloudTrail, ALB, VPC flow logs) and lightweight serving for QuickSight dashboards.
+  capabilities: [serverless-sql, iceberg-support, federated-query, pay-per-query, spark-notebooks]
+  possible_targets: []
+  alternatives: [trino, amazon-redshift, databricks-sql, starburst, bigquery]
+  replaces: [apache-hive, apache-impala, presto]
+  suggested_next: [amazon-s3, aws-glue-data-catalog, aws-lake-formation, apache-iceberg, amazon-quicksight]
+  migration_considerations:
+    - Organise S3 data in columnar formats with partitioning (or Iceberg) to control scan cost and performance.
+    - Use Lake Formation for fine-grained permissions and workgroups for cost controls and query limits.
+    - Translate HiveQL/Presto SQL to Athena engine version 3 (Trino-based) semantics.
+  known_challenges:
+    - Per-TB-scanned pricing punishes unpartitioned CSV/JSON data.
+    - Concurrency and query timeouts limit its use for heavy ETL or high-concurrency BI without provisioned capacity.
+  risks: [cost-overrun, performance-regression, sql-dialect-conversion]
+  strategies: [replatform, refactor]
+  skills: [SQL, AWS Glue Data Catalog, S3 data layout]
+  tags: [aws, serverless, query-engine, modern]
+  docs:
+    - title: Amazon Athena documentation
+      url: https://docs.aws.amazon.com/athena/
+
+- id: azure-data-explorer
+  name: Azure Data Explorer
+  aliases: [azure data explorer, adx, kusto, kusto cluster]
+  vendor: Microsoft
+  category: data-warehouse
+  role: warehouse
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: activity
+  color: "#0078D4"
+  description: Fully managed, high-ingestion analytics database for log, telemetry and time-series data queried with Kusto Query Language (KQL); the same engine powers Eventhouse in Microsoft Fabric Real-Time Intelligence.
+  typical_legacy_use: Near-real-time analytics on IoT telemetry, application logs and security events ingested from Event Hubs, IoT Hub or files, often replacing Elasticsearch or custom time-series stores.
+  capabilities: [time-series-analytics, log-analytics, kql, streaming-ingestion, materialized-views]
+  possible_targets: [microsoft-fabric]
+  alternatives: [clickhouse, elasticsearch, databricks-sql, google-bigtable]
+  replaces: [elasticsearch]
+  suggested_next: [azure-event-hubs, power-bi, grafana, microsoft-fabric]
+  migration_considerations:
+    - Design retention and caching (hot cache) policies per table; they drive both cost and query latency.
+    - Teams must learn KQL; SQL support exists but is limited.
+    - Evaluate Fabric Eventhouse versus standalone ADX clusters in light of Microsoft's Fabric roadmap.
+  known_challenges:
+    - Cluster sizing and hot-cache settings require tuning to avoid cost spikes.
+    - KQL-specific dashboards and functions add platform dependency.
+  risks: [skills-gap, cost-overrun, vendor-lock-in]
+  strategies: [replatform, rearchitect]
+  skills: [KQL, Azure, time-series modelling]
+  tags: [azure, time-series, log-analytics, real-time, modern]
+  docs:
+    - title: Azure Data Explorer documentation
+      url: https://learn.microsoft.com/en-us/azure/data-explorer/
+
+- id: clickhouse
+  name: ClickHouse
+  aliases: [clickhouse, clickhouse cloud, clickhouse server]
+  vendor: ClickHouse
+  category: data-warehouse
+  role: warehouse
+  layer: processing
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: zap
+  color: "#FAFF69"
+  description: Open-source column-oriented OLAP database (self-managed or ClickHouse Cloud) optimised for very fast aggregations over large event and time-series datasets.
+  typical_legacy_use: Real-time product analytics, observability backends and customer-facing dashboards with sub-second queries over billions of rows.
+  capabilities: [columnar-olap, real-time-analytics, materialized-views, high-ingest-throughput]
+  possible_targets: []
+  alternatives: [azure-data-explorer, elasticsearch, databricks-sql, bigquery, snowflake]
+  replaces: [elasticsearch, apache-impala]
+  suggested_next: [apache-kafka, grafana, apache-superset]
+  migration_considerations:
+    - Choose table engines (MergeTree family) and ordering keys around dominant query patterns; they are hard to change later.
+    - ClickHouse favours denormalised data; redesign join-heavy warehouse schemas before migrating.
+    - Plan ingestion from Kafka or object storage in batches; very small inserts hurt merge performance.
+  known_challenges:
+    - Updates and deletes are expensive mutations compared with OLTP or lakehouse MERGE.
+    - Self-managed clusters need expertise in sharding, replication and Keeper/ZooKeeper.
+  risks: [skills-gap, data-type-mismatch, operational-readiness]
+  strategies: [replatform, rearchitect]
+  skills: [ClickHouse, SQL, data modelling for OLAP]
+  tags: [olap, real-time, open-source, modern]
+  docs:
+    - title: ClickHouse documentation
+      url: https://clickhouse.com/docs
+
+# ---------------------------------------------------------------- Orchestration
+- id: dagster
+  name: Dagster
+  aliases: [dagster, dagster+, dagster plus, dagster cloud]
+  vendor: Dagster Labs
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: calendar-clock
+  color: "#4F43DD"
+  description: Python data orchestrator built around software-defined assets, with lineage-aware scheduling, partitions, data checks and first-class dbt integration; available open-source or as Dagster+.
+  typical_legacy_use: Asset-centric orchestration for modern data stacks (dbt, Airbyte/Fivetran, Spark, warehouses), often replacing cron or ageing Airflow deployments.
+  capabilities: [asset-based-orchestration, lineage, partitions, data-quality-checks, dbt-integration]
+  possible_targets: []
+  alternatives: [apache-airflow, prefect, databricks-workflows, argo-workflows]
+  replaces: [cron, apache-oozie, control-m, autosys]
+  suggested_next: [dbt, airbyte, fivetran, databricks, snowflake]
+  migration_considerations:
+    - Model pipelines as assets rather than translating task DAGs one-to-one; the benefit comes from asset lineage and freshness policies.
+    - Decide between self-hosted (Kubernetes/ECS) and Dagster+ hybrid or serverless deployment.
+    - Map legacy calendars, file-watchers and cross-team dependencies to sensors and schedules.
+  known_challenges:
+    - Enterprise scheduler features (complex calendars, SLA escalation, mainframe agents) need custom implementation.
+    - Teams used to task-based Airflow need time to adopt the asset paradigm.
+  risks: [scheduling-dependency-loss, skills-gap]
+  strategies: [refactor, rearchitect]
+  skills: [Python, Dagster, dbt]
+  tags: [orchestration, python, open-source, modern]
+  docs:
+    - title: Dagster documentation
+      url: https://docs.dagster.io/
+
+- id: prefect
+  name: Prefect
+  aliases: [prefect, prefect cloud, prefect flows]
+  vendor: Prefect Technologies
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: calendar-clock
+  color: "#2D6DF6"
+  description: Python-native workflow orchestration framework where ordinary functions become flows and tasks, with a self-hosted server or Prefect Cloud control plane and work pools for execution.
+  typical_legacy_use: Orchestrating Python data and ML pipelines that outgrew cron or scripts, with dynamic workflows and event-driven triggers.
+  capabilities: [python-workflows, dynamic-dags, event-triggers, retries, hybrid-execution]
+  possible_targets: []
+  alternatives: [apache-airflow, dagster, databricks-workflows, aws-step-functions]
+  replaces: [cron]
+  suggested_next: [dbt, databricks, kubernetes, amazon-ecs]
+  migration_considerations:
+    - Choose between Prefect Cloud (hybrid model, code and data stay in your infrastructure) and self-hosted server.
+    - Configure work pools/workers per execution environment (Kubernetes, ECS, serverless) and secrets via blocks or the cloud secret manager.
+    - Re-implement enterprise-scheduler calendars and cross-application dependencies explicitly.
+  known_challenges:
+    - Major-version upgrades (Prefect 1 to 2/3) changed core concepts and required rewrites.
+    - Less mature ecosystem of pre-built operators than Airflow.
+  risks: [scheduling-dependency-loss, skills-gap]
+  strategies: [refactor, rearchitect]
+  skills: [Python, Prefect]
+  tags: [orchestration, python, modern]
+  docs:
+    - title: Prefect documentation
+      url: https://docs.prefect.io/
+
+- id: argo-workflows
+  name: Argo Workflows
+  aliases: [argo workflows, argo workflow, argoproj workflows]
+  vendor: CNCF (Argo Project)
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: calendar-clock
+  color: "#EF7B4D"
+  description: Kubernetes-native workflow engine (CNCF graduated) that runs DAGs and step workflows as containers defined in Kubernetes custom resources.
+  typical_legacy_use: Container-based batch, ML and data-processing pipelines on Kubernetes platforms, often underpinning Kubeflow Pipelines.
+  capabilities: [kubernetes-native, container-workflows, dag-execution, artifact-passing, cron-workflows]
+  possible_targets: []
+  alternatives: [apache-airflow, dagster, prefect, aws-step-functions]
+  replaces: [cron, apache-oozie]
+  suggested_next: [kubernetes, gke, amazon-eks, aks, prometheus]
+  migration_considerations:
+    - Requires a well-run Kubernetes platform (RBAC, artifact repository, resource quotas) before onboarding data workloads.
+    - Express each step as a container image; package legacy scripts and their dependencies accordingly.
+    - Plan observability and retry policies at the workflow-template level.
+  known_challenges:
+    - YAML-heavy workflow definitions become hard to maintain without templating or an SDK (e.g. Hera).
+    - Less suited to business-calendar scheduling and SLA management than enterprise schedulers.
+  risks: [operational-readiness, skills-gap, scheduling-dependency-loss]
+  strategies: [refactor, rearchitect]
+  skills: [Kubernetes, YAML, containers]
+  tags: [orchestration, kubernetes, cncf, modern]
+  docs:
+    - title: Argo Workflows documentation
+      url: https://argo-workflows.readthedocs.io/
+
+- id: apache-oozie
+  name: Apache Oozie
+  aliases: [oozie, apache oozie, oozie workflows, oozie coordinator, oozie bundles]
+  vendor: Apache Software Foundation
+  category: orchestration
+  role: orchestrator
+  layer: operations
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: calendar-clock
+  color: "#8B5E3C"
+  description: Hadoop workflow scheduler that runs XML-defined workflows of Hive, Spark, MapReduce, Sqoop, shell and Java actions, triggered by coordinators on time or data availability; development activity has largely stopped and modern Hadoop successors favour other orchestrators.
+  typical_legacy_use: Schedules nightly HiveQL, Spark and Sqoop ingestion on Cloudera/Hortonworks clusters, with coordinators waiting on HDFS partition arrival.
+  capabilities: [workflow-orchestration, hadoop-actions, data-availability-triggers, coordinators]
+  possible_targets: [apache-airflow, databricks-workflows, dagster, cloud-composer, amazon-mwaa, aws-step-functions]
+  alternatives: [apache-airflow, control-m, autosys]
+  replaces: []
+  suggested_next: [databricks-workflows, apache-airflow, dagster, cloud-composer]
+  migration_considerations:
+    - Parse workflow.xml, coordinator.xml and job.properties to inventory actions, parameters, dataset dependencies and SLAs.
+    - Translate actions to target tasks (Hive/Spark actions to Spark or SQL tasks, Sqoop to ingestion connectors, shell actions to containerised or notebook tasks).
+    - Replace HDFS dataset triggers with file-arrival or table-update triggers on the target.
+  known_challenges:
+    - Shell and Java actions hide logic and environment assumptions (edge-node paths, Kerberos keytabs).
+    - EL functions and parameter inheritance across bundles/coordinators are easy to mistranslate.
+  risks: [scheduling-dependency-loss, hidden-business-logic, skills-gap]
+  strategies: [refactor, retire]
+  skills: [Oozie, Hadoop, Airflow or Databricks Workflows]
+  tags: [orchestration, hadoop, legacy]
+  docs:
+    - title: Apache Oozie
+      url: https://oozie.apache.org/
+
+# ---------------------------------------------------------------- Operational / NoSQL / SAP / managed databases
+- id: mongodb
+  name: MongoDB (self-managed)
+  aliases: [mongodb, mongo, mongo db, mongodb enterprise, mongodb community]
+  vendor: MongoDB
+  category: databases
+  role: source-database
+  layer: sources
+  environment: on-prem
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#00684A"
+  description: Document database storing flexible BSON documents with replica sets, sharding, secondary indexes and an aggregation pipeline; this entry covers self-managed Community/Enterprise deployments.
+  typical_legacy_use: Operational store for web, mobile and catalogue applications with evolving schemas, increasingly also a source for analytics via change streams.
+  capabilities: [document-store, flexible-schema, change-streams, sharding, aggregation-pipeline]
+  possible_targets: [mongodb-atlas, azure-cosmos-db, amazon-documentdb]
+  alternatives: [couchbase, azure-cosmos-db, amazon-dynamodb, google-firestore]
+  replaces: []
+  suggested_next: [mongodb-atlas, debezium, apache-kafka, landing-zone, delta-bronze]
+  migration_considerations:
+    - Check driver and server-version compatibility with the target (Atlas is full MongoDB; Cosmos DB for MongoDB and DocumentDB implement subsets of the API).
+    - Use live migration tooling (Atlas live migration, mongosync, DMS) to minimise downtime; size the oplog to cover the initial sync window.
+    - For analytics, ingest via change streams (Kafka connector or Debezium) and flatten nested documents into tabular bronze/silver models.
+  known_challenges:
+    - Unbounded document growth and polymorphic schemas complicate downstream modelling.
+    - API-compatible targets differ in supported aggregation stages, transactions and index types.
+  risks: [schema-drift, data-type-mismatch, cutover-downtime, integration-breakage]
+  strategies: [retain, rehost, replatform, refactor]
+  skills: [MongoDB administration, data modelling, change-stream CDC]
+  tags: [nosql, document, operational]
+  docs:
+    - title: MongoDB manual
+      url: https://www.mongodb.com/docs/manual/
+
+- id: mongodb-atlas
+  name: MongoDB Atlas
+  aliases: [mongodb atlas, mongo atlas, atlas cluster]
+  vendor: MongoDB
+  category: databases
+  role: source-database
+  layer: sources
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#00ED64"
+  description: MongoDB's fully managed multi-cloud database service, adding Atlas Search, Vector Search, Stream Processing and Online Archive to the core document database.
+  typical_legacy_use: Managed target for self-hosted MongoDB clusters and operational store for cloud-native applications.
+  capabilities: [document-store, managed-service, vector-search, full-text-search, change-streams, multi-cloud]
+  possible_targets: []
+  alternatives: [azure-cosmos-db, amazon-documentdb, amazon-dynamodb, google-firestore, couchbase]
+  replaces: [mongodb]
+  suggested_next: [apache-kafka, delta-bronze, private-connectivity]
+  migration_considerations:
+    - Configure private networking (PrivateLink / Private Endpoint / Private Service Connect) and encryption with customer-managed keys where required.
+    - Size cluster tiers and storage auto-scaling against working-set memory, not just data size.
+    - Plan analytics integration via change streams, Atlas Data Federation or connectors rather than heavy queries on primaries.
+  known_challenges:
+    - Cross-cloud egress and backup costs can be significant.
+    - Feature parity (Search, Vector Search) creates a deeper dependency on Atlas.
+  risks: [vendor-lock-in, cost-overrun, security-gap]
+  strategies: [replatform, repurchase]
+  skills: [MongoDB, Atlas administration]
+  tags: [nosql, document, managed, modern]
+  docs:
+    - title: MongoDB Atlas documentation
+      url: https://www.mongodb.com/docs/atlas/
+
+- id: amazon-documentdb
+  name: Amazon DocumentDB (with MongoDB compatibility)
+  aliases: [amazon documentdb, aws documentdb, docdb]
+  vendor: Amazon Web Services
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#3B48CC"
+  description: AWS managed document database implementing the MongoDB API on a purpose-built, storage-separated engine, with instance-based and elastic clusters.
+  typical_legacy_use: Target for MongoDB workloads standardising on AWS-native services, IAM and VPC networking.
+  capabilities: [document-store, mongodb-api-compatibility, managed-service, change-streams]
+  possible_targets: []
+  alternatives: [mongodb-atlas, amazon-dynamodb, azure-cosmos-db]
+  replaces: [mongodb]
+  suggested_next: [aws-dms, amazon-s3, amazon-cloudwatch]
+  migration_considerations:
+    - Run a compatibility assessment of application queries, operators and indexes against the supported MongoDB API version.
+    - Use AWS DMS or native tools for online migration, with change-stream CDC for cutover.
+    - Plan analytics offload via change streams or DMS to S3 rather than running aggregation-heavy reporting on the cluster.
+  known_challenges:
+    - Not all MongoDB features, aggregation stages or index types are supported.
+    - Engine behaviour differs from MongoDB in places, so performance must be re-tested.
+  risks: [integration-breakage, performance-regression, vendor-lock-in]
+  strategies: [replatform]
+  skills: [MongoDB, AWS]
+  tags: [nosql, document, aws, managed]
+  docs:
+    - title: Amazon DocumentDB documentation
+      url: https://docs.aws.amazon.com/documentdb/
+
+- id: apache-cassandra
+  name: Apache Cassandra
+  aliases: [cassandra, apache cassandra, datastax, datastax enterprise, cql database]
+  vendor: Apache Software Foundation (DataStax)
+  category: databases
+  role: source-database
+  layer: sources
+  environment: on-prem
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#1287B1"
+  description: Distributed wide-column NoSQL database with masterless replication, tunable consistency and CQL, designed for high write throughput across data centres.
+  typical_legacy_use: Time-series, IoT, messaging and user-activity stores at very high write volume, often on DataStax Enterprise clusters spanning multiple data centres.
+  capabilities: [wide-column-store, multi-dc-replication, tunable-consistency, high-write-throughput, cql]
+  possible_targets: [amazon-keyspaces, azure-cosmos-db, google-bigtable]
+  alternatives: [google-bigtable, amazon-dynamodb, azure-cosmos-db, couchbase]
+  replaces: []
+  suggested_next: [amazon-keyspaces, apache-kafka, apache-spark, landing-zone]
+  migration_considerations:
+    - Inventory keyspaces, tables, consistency levels, TTLs, lightweight transactions and materialised views; check each against the target's CQL compatibility.
+    - Use dual-writes or a proxy (e.g. ZDM proxy) plus bulk load for zero-downtime migration; CQL-compatible targets ease application change.
+    - For analytics, export via the Spark Cassandra connector or CDC rather than full-table scans on production rings.
+  known_challenges:
+    - Query-first data models do not translate to relational or document targets without redesign.
+    - Managed CQL services do not support every Cassandra feature (e.g. some materialised-view and LWT behaviours).
+  risks: [data-type-mismatch, cutover-downtime, performance-regression, integration-breakage]
+  strategies: [retain, rehost, replatform, rearchitect]
+  skills: [Cassandra administration, CQL data modelling]
+  tags: [nosql, wide-column, operational]
+  docs:
+    - title: Apache Cassandra documentation
+      url: https://cassandra.apache.org/doc/latest/
+
+- id: amazon-keyspaces
+  name: Amazon Keyspaces (for Apache Cassandra)
+  aliases: [amazon keyspaces, aws keyspaces, keyspaces for apache cassandra]
+  vendor: Amazon Web Services
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: database
+  color: "#3B48CC"
+  description: Serverless, Cassandra-compatible (CQL) database service on AWS with on-demand or provisioned capacity and point-in-time recovery.
+  typical_legacy_use: Managed target for self-managed Cassandra clusters where teams want to keep CQL drivers and data models.
+  capabilities: [wide-column-store, cql-compatibility, serverless, point-in-time-recovery]
+  possible_targets: []
+  alternatives: [amazon-dynamodb, azure-cosmos-db, google-bigtable]
+  replaces: [apache-cassandra]
+  suggested_next: [amazon-cloudwatch, aws-iam, aws-kms]
+  migration_considerations:
+    - Check functional differences (supported CQL features, consistency levels, batch and LWT behaviour) before committing.
+    - Choose on-demand versus provisioned capacity based on traffic predictability; pre-warm tables for large bulk loads.
+    - Use Spark (with the Cassandra connector) or CQL-based loaders with retry and rate limiting for historical loads, and dual-write or proxy patterns for cutover.
+  known_challenges:
+    - Some Cassandra features and tooling (e.g. nodetool operations, certain materialised-view behaviours) are unavailable.
+    - Bulk loading large historical datasets needs throughput planning.
+  risks: [integration-breakage, cost-overrun]
+  strategies: [replatform]
+  skills: [CQL, AWS]
+  tags: [nosql, wide-column, aws, serverless]
+  docs:
+    - title: Amazon Keyspaces documentation
+      url: https://docs.aws.amazon.com/keyspaces/
+
+- id: couchbase
+  name: Couchbase
+  aliases: [couchbase, couchbase server, couchbase capella]
+  vendor: Couchbase
+  category: databases
+  role: source-database
+  layer: sources
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#EA2328"
+  description: Distributed JSON document database with an integrated memory-first cache, SQL++ query language, full-text search and mobile sync; available self-managed or as Capella DBaaS.
+  typical_legacy_use: Low-latency session, profile and catalogue stores for customer-facing applications, often replacing a cache-plus-RDBMS combination.
+  capabilities: [document-store, memory-first-cache, sql-plus-plus, mobile-sync, cross-dc-replication]
+  possible_targets: [mongodb-atlas, azure-cosmos-db, amazon-dynamodb]
+  alternatives: [mongodb, azure-cosmos-db, redis, amazon-dynamodb]
+  replaces: []
+  suggested_next: [apache-kafka, landing-zone]
+  migration_considerations:
+    - Map buckets, scopes and collections and SQL++ (N1QL) queries to the target's data and query model.
+    - Use XDCR or the Kafka connector for continuous replication during migration.
+    - Separate cache-style usage (can be warmed on the target) from system-of-record buckets that need full data migration and reconciliation.
+  known_challenges:
+    - SQL++ queries and index definitions need rewriting on non-Couchbase targets.
+    - Mobile/Sync Gateway dependencies are hard to replace.
+  risks: [integration-breakage, data-type-mismatch]
+  strategies: [retain, replatform, rearchitect]
+  skills: [Couchbase, SQL++]
+  tags: [nosql, document, cache]
+  docs:
+    - title: Couchbase documentation
+      url: https://docs.couchbase.com/
+
+- id: amazon-dynamodb
+  name: Amazon DynamoDB
+  aliases: [dynamodb, dynamo db, amazon dynamodb, aws dynamodb]
+  vendor: Amazon Web Services
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: database
+  color: "#3B48CC"
+  description: Serverless key-value and document database with single-digit-millisecond latency, on-demand or provisioned capacity, global tables and DynamoDB Streams.
+  typical_legacy_use: High-scale operational store for serverless and microservice applications; exported to S3 or streamed for analytics.
+  capabilities: [key-value-store, serverless, global-tables, change-streams, point-in-time-recovery]
+  possible_targets: []
+  alternatives: [azure-cosmos-db, google-firestore, google-bigtable, mongodb-atlas, apache-cassandra]
+  replaces: [apache-cassandra, mongodb, redis]
+  suggested_next: [aws-lambda, amazon-kinesis, amazon-s3, amazon-athena]
+  migration_considerations:
+    - Design access patterns and keys first (single-table design where appropriate); relational schemas cannot be lifted directly.
+    - For analytics, use export-to-S3 or DynamoDB Streams/Kinesis rather than scans against production tables.
+    - Choose capacity mode and set auto scaling/alarms to avoid throttling during migration loads.
+  known_challenges:
+    - Hot partitions and item-size limits (400 KB) constrain data models.
+    - Ad-hoc querying is limited; analytical workloads need a separate engine.
+  risks: [vendor-lock-in, cost-overrun, data-type-mismatch]
+  strategies: [refactor, rearchitect]
+  skills: [DynamoDB data modelling, AWS]
+  tags: [nosql, key-value, aws, serverless]
+  docs:
+    - title: Amazon DynamoDB documentation
+      url: https://docs.aws.amazon.com/dynamodb/
+
+- id: azure-cosmos-db
+  name: Azure Cosmos DB
+  aliases: [cosmos db, cosmosdb, azure cosmos db, azure cosmos]
+  vendor: Microsoft
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#0078D4"
+  description: Globally distributed multi-model database service with NoSQL, MongoDB, Apache Cassandra, Gremlin and Table APIs, offering provisioned or serverless request-unit capacity and change feed.
+  typical_legacy_use: Operational store for globally distributed Azure applications and the Azure target for MongoDB and Cassandra workloads.
+  capabilities: [multi-model, global-distribution, change-feed, serverless, multiple-consistency-levels, vector-search]
+  possible_targets: []
+  alternatives: [amazon-dynamodb, mongodb-atlas, google-firestore, google-spanner]
+  replaces: [mongodb, apache-cassandra, couchbase]
+  suggested_next: [azure-functions, microsoft-fabric, azure-monitor, private-connectivity]
+  migration_considerations:
+    - Choose the API (NoSQL, MongoDB RU or vCore, Cassandra) up front; it determines driver compatibility and features.
+    - Choose partition keys from access patterns and estimate request units (RU/s); poor keys cause throttling and cost overruns.
+    - Use the change feed or Fabric mirroring for analytics instead of querying transactional containers.
+  known_challenges:
+    - RU-based pricing is hard to forecast without load testing.
+    - API-compatible modes do not support every feature of the native MongoDB or Cassandra engines.
+  risks: [cost-overrun, vendor-lock-in, integration-breakage]
+  strategies: [replatform, refactor]
+  skills: [Cosmos DB modelling, Azure]
+  tags: [nosql, multi-model, azure, global]
+  docs:
+    - title: Azure Cosmos DB documentation
+      url: https://learn.microsoft.com/en-us/azure/cosmos-db/
+
+- id: google-spanner
+  name: Google Cloud Spanner
+  aliases: [spanner, cloud spanner, google spanner]
+  vendor: Google Cloud
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#4285F4"
+  description: Globally distributed, strongly consistent relational database with horizontal scale, GoogleSQL and PostgreSQL dialects and up to 99.999% availability in multi-region configurations.
+  typical_legacy_use: Target for scale-limited relational OLTP systems (sharded MySQL/Oracle) needing global consistency, such as payments, inventory and gaming backends.
+  capabilities: [distributed-sql, strong-consistency, horizontal-scaling, postgresql-interface, change-streams]
+  possible_targets: []
+  alternatives: [alloydb, cloud-sql, azure-cosmos-db, amazon-aurora]
+  replaces: [oracle-database, mysql, apache-cassandra]
+  suggested_next: [bigquery, google-datastream, google-dataflow, google-cloud-monitoring]
+  migration_considerations:
+    - Design primary keys to avoid hotspots (no monotonically increasing keys) and use interleaving where it fits.
+    - Use the Spanner migration tool for schema and data from MySQL/PostgreSQL; stored procedures and triggers have no direct equivalent.
+    - Use change streams or BigQuery federation for analytics.
+  known_challenges:
+    - Application changes are often needed for transactions, key design and unsupported SQL features.
+    - Minimum footprint costs make it uneconomic for small workloads (processing units help).
+  risks: [stored-procedure-rewrite, sql-dialect-conversion, cost-overrun, vendor-lock-in]
+  strategies: [refactor, rearchitect]
+  skills: [Spanner schema design, GoogleSQL]
+  tags: [gcp, distributed-sql, oltp, modern]
+  docs:
+    - title: Spanner documentation
+      url: https://cloud.google.com/spanner/docs
+
+- id: google-bigtable
+  name: Google Cloud Bigtable
+  aliases: [bigtable, cloud bigtable, google bigtable]
+  vendor: Google Cloud
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#4285F4"
+  description: Fully managed wide-column NoSQL database for low-latency, high-throughput workloads, compatible with the Apache HBase API.
+  typical_legacy_use: Target for HBase and Cassandra workloads such as time-series, ad-tech, personalisation and IoT telemetry.
+  capabilities: [wide-column-store, hbase-api, high-throughput, replication, change-streams]
+  possible_targets: []
+  alternatives: [apache-cassandra, amazon-dynamodb, azure-cosmos-db]
+  replaces: [apache-cassandra, cloudera-hadoop]
+  suggested_next: [google-dataflow, bigquery, google-cloud-monitoring]
+  migration_considerations:
+    - Design row keys to distribute load and support range scans; row-key design is the main performance lever.
+    - HBase workloads can migrate with the HBase client and replication/snapshot import; Cassandra workloads need data-model and client changes.
+    - Size nodes (or enable autoscaling) for throughput and storage, and use app profiles and replication for workload isolation and HA.
+  known_challenges:
+    - No secondary indexes or SQL joins in the core model; secondary access paths must be designed explicitly.
+    - Small datasets are uneconomic given node-based pricing.
+  risks: [data-type-mismatch, integration-breakage, cost-overrun]
+  strategies: [replatform, rearchitect]
+  skills: [Bigtable schema design, HBase]
+  tags: [gcp, nosql, wide-column]
+  docs:
+    - title: Bigtable documentation
+      url: https://cloud.google.com/bigtable/docs
+
+- id: google-firestore
+  name: Google Cloud Firestore
+  aliases: [firestore, cloud firestore, firebase firestore, cloud datastore]
+  vendor: Google Cloud
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: database
+  color: "#FFA000"
+  description: Serverless document database for mobile, web and server applications with real-time listeners, offline sync and Datastore-mode compatibility.
+  typical_legacy_use: Backend store for Firebase-based mobile/web apps and successor to Cloud Datastore.
+  capabilities: [document-store, serverless, real-time-sync, offline-support]
+  possible_targets: []
+  alternatives: [azure-cosmos-db, amazon-dynamodb, mongodb-atlas]
+  replaces: []
+  suggested_next: [google-cloud-functions, bigquery]
+  migration_considerations:
+    - Model data around queries and collection groups; composite indexes must be declared.
+    - For analytics, export to BigQuery (managed export or stream extension) rather than querying Firestore.
+    - Choose Native mode versus Datastore mode deliberately; the mode determines APIs and real-time features available.
+  known_challenges:
+    - Query limitations (no arbitrary joins, limited aggregation) push complexity to application code.
+    - Per-operation pricing needs monitoring for chatty clients.
+  risks: [vendor-lock-in, cost-overrun]
+  strategies: [refactor, rearchitect]
+  skills: [Firestore data modelling, Firebase]
+  tags: [gcp, nosql, document, serverless]
+  docs:
+    - title: Firestore documentation
+      url: https://cloud.google.com/firestore/docs
+
+- id: redis
+  name: Redis
+  aliases: [redis, redis enterprise, redis cloud, redis cluster, redis cache]
+  vendor: Redis
+  category: databases
+  role: source-database
+  layer: sources
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#DC382D"
+  description: In-memory key-value data store used as cache, session store, message broker and lightweight database, with data structures, persistence options and clustering; also offered as managed services on every major cloud.
+  typical_legacy_use: Application cache and session store in front of relational databases, rate limiting, leaderboards and pub/sub signalling.
+  capabilities: [in-memory-store, caching, pub-sub, data-structures, persistence]
+  possible_targets: []
+  alternatives: [couchbase, amazon-dynamodb]
+  replaces: []
+  suggested_next: [amazon-cloudwatch, azure-monitor, google-cloud-monitoring]
+  migration_considerations:
+    - Distinguish cache use (can be warmed on the target) from system-of-record use (needs RDB/AOF data migration and durability review).
+    - Confirm the licence position — Redis moved to source-available licences in 2024 and added AGPL in Redis 8; managed services may run Redis or the Valkey fork.
+    - Check module usage (search, JSON, time-series) which may not be available on every managed service.
+  known_challenges:
+    - Memory sizing and eviction policies determine behaviour under load.
+    - Applications sometimes rely on Redis as an undocumented system of record.
+  risks: [hidden-business-logic, licensing-overlap, operational-readiness]
+  strategies: [retain, rehost, replatform]
+  skills: [Redis, caching patterns]
+  tags: [in-memory, cache, key-value]
+  docs:
+    - title: Redis documentation
+      url: https://redis.io/docs/latest/
+
+- id: elasticsearch
+  name: Elasticsearch
+  aliases: [elasticsearch, elastic search, elk, elk stack, elastic stack, elastic cloud]
+  vendor: Elastic
+  category: databases
+  role: source-database
+  layer: sources
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: search
+  color: "#FEC514"
+  description: Distributed search and analytics engine built on Apache Lucene, core of the Elastic Stack (with Kibana, Logstash and Beats) for full-text search, log analytics, security analytics and vector search.
+  typical_legacy_use: Application search indexes and centralised logging (ELK) clusters, frequently also used as an ad-hoc analytics store over operational events.
+  capabilities: [full-text-search, log-analytics, vector-search, aggregations, near-real-time-indexing]
+  possible_targets: [amazon-opensearch, azure-data-explorer, clickhouse]
+  alternatives: [amazon-opensearch, azure-data-explorer, clickhouse, datadog]
+  replaces: []
+  suggested_next: [apache-kafka, grafana, amazon-opensearch]
+  migration_considerations:
+    - Separate search use cases (stay on a search engine) from log/metric analytics (candidates for observability platforms or analytical stores).
+    - Reindex rather than copy across major versions; mappings, analysers and index templates must be migrated explicitly.
+    - Review licensing (Elastic License/SSPL/AGPL options) and the OpenSearch fork divergence when choosing a managed target.
+  known_challenges:
+    - Oversharded clusters and mapping explosions cause instability and cost.
+    - Kibana dashboards, watchers and ingest pipelines hold logic that does not port to other tools.
+  risks: [licensing-overlap, data-volume-transfer, report-parity, cost-overrun]
+  strategies: [retain, replatform, repurchase, rearchitect]
+  skills: [Elasticsearch, Lucene, Kibana]
+  tags: [search, log-analytics, nosql]
+  docs:
+    - title: Elastic documentation
+      url: https://www.elastic.co/docs
+
+- id: amazon-opensearch
+  name: Amazon OpenSearch Service
+  aliases: [opensearch, amazon opensearch, amazon opensearch service, aws opensearch, opensearch serverless]
+  vendor: Amazon Web Services
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: search
+  color: "#005EB8"
+  description: AWS managed service for OpenSearch (the open-source fork of Elasticsearch 7.10) and legacy Elasticsearch versions, with provisioned domains or OpenSearch Serverless collections.
+  typical_legacy_use: Managed target for self-run Elasticsearch/ELK clusters on AWS, used for log analytics, application search and vector search.
+  capabilities: [full-text-search, log-analytics, vector-search, serverless-option, dashboards]
+  possible_targets: []
+  alternatives: [elasticsearch, azure-data-explorer, clickhouse]
+  replaces: [elasticsearch]
+  suggested_next: [amazon-kinesis, amazon-s3, amazon-cloudwatch]
+  migration_considerations:
+    - Migrate via snapshot/restore or reindex; confirm version compatibility because OpenSearch diverges from Elasticsearch after 7.10.
+    - Replace Elastic-only features (some X-Pack features, ES|QL, Kibana plugins) with OpenSearch equivalents.
+    - Choose between provisioned domains (with UltraWarm/cold tiers) and OpenSearch Serverless based on workload predictability and feature needs.
+  known_challenges:
+    - Client libraries and APIs differ from newer Elasticsearch versions.
+    - Domain sizing (instance types, shard counts, UltraWarm/cold tiers) drives cost.
+  risks: [integration-breakage, cost-overrun]
+  strategies: [replatform]
+  skills: [OpenSearch, AWS]
+  tags: [search, log-analytics, aws, managed]
+  docs:
+    - title: Amazon OpenSearch Service documentation
+      url: https://docs.aws.amazon.com/opensearch-service/
+
+- id: neo4j
+  name: Neo4j
+  aliases: [neo4j, neo4j aura, neo4j graph database, cypher]
+  vendor: Neo4j
+  category: databases
+  role: source-database
+  layer: sources
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: share-2
+  color: "#018BFF"
+  description: Native property-graph database queried with Cypher, offered self-managed or as AuraDB, with graph data science and vector-search capabilities.
+  typical_legacy_use: Fraud detection, network/IT topology, recommendation and master-data relationship use cases where multi-hop traversal matters.
+  capabilities: [graph-database, cypher, graph-algorithms, vector-search]
+  possible_targets: []
+  alternatives: [azure-cosmos-db]
+  replaces: []
+  suggested_next: [apache-kafka, apache-spark]
+  migration_considerations:
+    - Graph models and Cypher queries are not portable to relational targets; keep the graph engine unless the use case no longer needs traversal.
+    - Feed the graph from the lakehouse (Spark connector) and write insights back rather than duplicating source extraction.
+    - Choose between self-managed clusters and AuraDB based on scale, security and plug-in (GDS/APOC) requirements.
+  known_challenges:
+    - Very large graphs need careful memory sizing and sharding strategy.
+    - Skills in graph modelling and Cypher are scarce.
+  risks: [skills-gap, vendor-lock-in]
+  strategies: [retain, replatform]
+  skills: [Neo4j, Cypher, graph modelling]
+  tags: [graph, nosql]
+  docs:
+    - title: Neo4j documentation
+      url: https://neo4j.com/docs/
+
+- id: sap-hana
+  name: SAP HANA
+  aliases: [sap hana, hana, hana db, hana database, sap hana cloud]
+  vendor: SAP
+  category: databases
+  role: source-database
+  layer: sources
+  environment: on-prem
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: database
+  color: "#0FAAFF"
+  description: SAP's in-memory, column-oriented database platform that underpins S/4HANA and BW/4HANA, with calculation views, SQLScript and SAP HANA Cloud as its managed variant.
+  typical_legacy_use: Database for SAP S/4HANA and BW on HANA, plus native HANA data marts built from calculation views and SQLScript procedures.
+  capabilities: [in-memory-columnar, calculation-views, sqlscript, mixed-oltp-olap]
+  possible_targets: [databricks, snowflake, bigquery]
+  alternatives: [oracle-database, sql-server, ibm-db2]
+  replaces: []
+  suggested_next: [sap-bw, fivetran, lakeflow-connect, landing-zone]
+  migration_considerations:
+    - Distinguish HANA as the SAP application database (moves with the SAP system, e.g. RISE with SAP) from native HANA data marts (candidates for lakehouse/warehouse migration).
+    - Extraction from SAP-managed HANA schemas is constrained by SAP licensing; confirm permitted routes (SAP Datasphere/Business Data Cloud, ODP-based connectors) early.
+    - Convert calculation views and SQLScript to SQL/dbt models; graphical calculation views need careful reverse-engineering.
+  known_challenges:
+    - Calculation views encode joins, currency conversion and hierarchies that are hard to replicate faithfully.
+    - Runtime licences restrict direct third-party access to HANA underneath SAP applications.
+  risks: [licensing-overlap, hidden-business-logic, stored-procedure-rewrite, regulatory-compliance]
+  strategies: [retain, relocate, replatform, refactor]
+  skills: [SAP HANA, SQLScript, SAP data models]
+  tags: [sap, in-memory, database]
+  docs:
+    - title: SAP HANA Platform documentation
+      url: https://help.sap.com/docs/SAP_HANA_PLATFORM
+
+- id: sap-bw
+  name: SAP Business Warehouse (BW / BW/4HANA)
+  aliases: [sap bw, bw/4hana, sap bw/4hana, sap netweaver bw, sap business warehouse, bw on hana, sap bw on hana]
+  vendor: SAP
+  category: databases
+  role: legacy-warehouse
+  layer: storage
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: warehouse
+  color: "#0FAAFF"
+  description: SAP's packaged enterprise data warehouse with InfoProviders (InfoCubes, DSOs/aDSOs, CompositeProviders), extractors, transformations (incl. ABAP routines), process chains and BEx/Analysis for Office queries.
+  typical_legacy_use: Central reporting warehouse for SAP ECC/S4 finance, supply-chain and sales data, consumed through BEx queries, Analysis for Office and SAP BusinessObjects.
+  capabilities: [packaged-edw, sap-extractors, process-chains, olap-queries, business-content]
+  possible_targets: [databricks, snowflake, bigquery, microsoft-fabric]
+  alternatives: [teradata, oracle-exadata, sap-hana]
+  replaces: []
+  suggested_next: [databricks, snowflake, bigquery, unity-catalog, power-bi]
+  migration_considerations:
+    - SAP BW 7.5 mainstream maintenance ends in 2027 and BW/4HANA in 2040; most estates choose between SAP Datasphere/Business Data Cloud and a non-SAP lakehouse/warehouse.
+    - Inventory InfoProviders, transformations with ABAP start/end routines, BEx queries (restricted/calculated key figures, hierarchies, variables) and process chains.
+    - Rebuild source extraction from SAP using a licensed route; SAP restricts third-party use of ODP RFC extraction, so validate with SAP licensing and architecture.
+    - Rebuild business semantics (currency translation, fiscal calendars, hierarchies) explicitly in the target semantic layer.
+  known_challenges:
+    - BEx query logic and ABAP routines carry significant hidden business logic.
+    - Business users depend on Analysis for Office workbooks that need equivalent self-service in the new BI tool.
+    - Hierarchy and time-dependent master-data handling is complex to reproduce.
+  risks: [hidden-business-logic, report-parity, licensing-overlap, skills-gap, lineage-loss]
+  strategies: [retain, replatform, rearchitect, retire]
+  skills: [SAP BW, ABAP, SAP data models, dimensional modelling]
+  tags: [sap, edw, legacy, warehouse]
+  docs:
+    - title: SAP BW/4HANA documentation
+      url: https://help.sap.com/docs/SAP_BW4HANA
+
+- id: oracle-autonomous-database
+  name: Oracle Autonomous Database
+  aliases: [oracle autonomous database, autonomous database, autonomous data warehouse, autonomous transaction processing, oracle adb]
+  vendor: Oracle
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#C74634"
+  description: Oracle's self-driving managed Oracle Database service (Autonomous Data Warehouse, Transaction Processing, JSON) on OCI and via Oracle Database@Azure, @AWS and @Google Cloud.
+  typical_legacy_use: Lift-and-modernise target for Oracle workloads that must keep PL/SQL and Oracle features while removing DBA toil.
+  capabilities: [managed-oracle, auto-scaling, auto-patching, pl-sql, json-documents]
+  possible_targets: []
+  alternatives: [amazon-rds, azure-sql-database, alloydb, amazon-aurora]
+  replaces: [oracle-database, oracle-exadata]
+  suggested_next: [oracle-goldengate, private-connectivity]
+  migration_considerations:
+    - Use Zero Downtime Migration, Data Pump or GoldenGate; check unsupported features and restricted privileges (no OS access, some init parameters fixed).
+    - Validate availability and networking of the Oracle Database@hyperscaler offering in the chosen region.
+    - Revisit licensing (BYOL vs licence-included) during the transition.
+  known_challenges:
+    - Restricted SYS/OS-level access breaks some legacy scripts and agents.
+    - Lock-in to Oracle features continues, limiting future portability.
+  risks: [vendor-lock-in, licensing-overlap, cutover-downtime]
+  strategies: [relocate, replatform]
+  skills: [Oracle DBA, PL/SQL, OCI]
+  tags: [oracle, managed, database]
+  docs:
+    - title: Oracle Autonomous Database documentation
+      url: https://docs.oracle.com/en/cloud/paas/autonomous-database/
+
+- id: azure-postgresql
+  name: Azure Database for PostgreSQL (Flexible Server)
+  aliases: [azure postgresql, azure postgres, azure database for postgresql, postgresql flexible server, azure postgresql flexible server]
+  vendor: Microsoft
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#336791"
+  description: Azure's fully managed community PostgreSQL service (Flexible Server deployment), with zone-redundant HA, read replicas and extensions such as PostGIS and pgvector.
+  typical_legacy_use: Azure target for on-prem PostgreSQL and for Oracle/SQL Server workloads modernising to open-source engines.
+  capabilities: [managed-postgresql, high-availability, read-replicas, logical-replication, extensions]
+  possible_targets: []
+  alternatives: [azure-sql-database, amazon-aurora, alloydb, cloud-sql, amazon-rds]
+  replaces: [postgresql, oracle-database]
+  suggested_next: [azure-dms, lakeflow-connect, azure-monitor, private-connectivity]
+  migration_considerations:
+    - Use the Azure Database for PostgreSQL migration service (online or offline) or logical replication for low-downtime moves.
+    - Verify extension availability and versions; Single Server is retired, so legacy deployments must move to Flexible Server.
+    - Oracle-to-PostgreSQL requires schema and PL/SQL-to-PL/pgSQL conversion (e.g. ora2pg) and data-type review.
+  known_challenges:
+    - Superuser restrictions affect some extensions and administrative scripts.
+    - Connection limits require pooling (built-in PgBouncer) for chatty applications.
+  risks: [stored-procedure-rewrite, sql-dialect-conversion, cutover-downtime]
+  strategies: [rehost, replatform]
+  skills: [PostgreSQL, Azure]
+  tags: [azure, postgresql, managed, rdbms]
+  docs:
+    - title: Azure Database for PostgreSQL documentation
+      url: https://learn.microsoft.com/en-us/azure/postgresql/
+
+- id: amazon-rds
+  name: Amazon RDS
+  aliases: [rds, amazon rds, aws rds, rds for oracle, rds for sql server, rds postgresql, rds mysql, rds custom]
+  vendor: Amazon Web Services
+  category: databases
+  role: source-database
+  layer: sources
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: database
+  color: "#3B48CC"
+  description: AWS managed relational database service for PostgreSQL, MySQL, MariaDB, Oracle, SQL Server and Db2, handling provisioning, patching, backups and Multi-AZ high availability.
+  typical_legacy_use: Rehost/replatform target for on-prem Oracle, SQL Server, MySQL and PostgreSQL databases that keep their engine.
+  capabilities: [managed-rdbms, multi-az, read-replicas, automated-backups, multiple-engines]
+  possible_targets: [amazon-aurora]
+  alternatives: [amazon-aurora, azure-sql-database, cloud-sql, azure-postgresql, oracle-autonomous-database]
+  replaces: [oracle-database, sql-server, mysql, postgresql, ibm-db2]
+  suggested_next: [aws-dms, amazon-cloudwatch, aws-kms, aws-secrets-manager]
+  migration_considerations:
+    - Choose engine, licensing model (licence-included vs BYOL) and RDS vs RDS Custom based on required OS/DB access.
+    - Use AWS DMS (with Schema Conversion for heterogeneous moves) or native replication for low-downtime cutover.
+    - Validate unsupported features (e.g. some Oracle options, SQL Server Agent/SSIS limits, file-system access).
+  known_challenges:
+    - Lack of OS access breaks agents, file-based integrations and some admin scripts.
+    - Storage and IOPS provisioning needs tuning to avoid performance regression.
+  risks: [cutover-downtime, performance-regression, licensing-overlap]
+  strategies: [rehost, replatform]
+  skills: [AWS RDS, DBA]
+  tags: [aws, rdbms, managed]
+  docs:
+    - title: Amazon RDS documentation
+      url: https://docs.aws.amazon.com/rds/

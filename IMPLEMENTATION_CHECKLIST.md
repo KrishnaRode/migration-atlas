@@ -72,3 +72,13 @@ app and by `scripts/smoke_test.py` against `qwen3:4b`.
 - Browser drag-and-drop is HTML5 DnD; automated UI drivers that synthesise mouse events cannot trigger it (real users and the double-click/⌘K paths are unaffected).
 - What-if branches regenerate from the estate plus the scenario; manual edits on the source option are not carried into the branch.
 - Small local models occasionally propose odd changes; every proposal is ontology-checked and requires Apply.
+
+## Iteration 2 — alternatives and AI depth
+- ✅ Every generation produces distinct architecture options (requested · alternative platform · low-rewrite coexistence · open & portable), shown as tabs with fit % and a "Best fit" marker
+- ✅ Priority-fit analysis: 0–3 score per stated priority (weighted Low→Critical) plus baseline criteria, each with evidence; local AI recommendation validated against real options; "choose this when" for every option
+- ✅ Options view: recommendation card, fit matrix with evidence, side-by-side comparison; "Generate alternatives" for single-option projects
+- ✅ Copilot intent routing: question / change (Apply cards) / what-if (Create branch) / recommend (fit table)
+- ✅ 19 expert playbooks selected per question (keywords > mentioned tech (typo-tolerant) > estate by importance); shown with each answer
+- ✅ Ontology expanded to 243 technologies and 55 mappings (ELT SaaS, query engines, NoSQL, iPaaS, serverless, governance tools)
+- ✅ Small-model robustness: narration filter, question-echo removal, degenerate-answer retry, honest "outside the ontology" answers
+- ✅ `scripts/eval_ai.py` — 20-case evaluation with automatic checks; results in docs/ai.md

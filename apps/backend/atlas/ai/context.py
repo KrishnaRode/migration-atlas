@@ -19,7 +19,7 @@ def node_name(arch: Architecture, node_id: str, ontology: OntologyService) -> st
     return n.label or (tech.name if tech else n.tech_id)
 
 
-def render_architecture(arch: Architecture, ontology: OntologyService, max_edges: int = 40) -> str:
+def render_architecture(arch: Architecture, ontology: OntologyService, max_edges: int = 40, compact: bool = False) -> str:
     lines = [f"Name: {arch.name}"]
     if arch.meta.target_cloud or arch.meta.data_platform:
         lines.append(f"Target: cloud={arch.meta.target_cloud} platform={arch.meta.data_platform}")
@@ -34,13 +34,21 @@ def render_architecture(arch: Architecture, ontology: OntologyService, max_edges
             extra.append(f"strategy={n.strategy or n.suggested_strategy}")
         if n.replaces:
             extra.append("replaces " + ", ".join(n.replaces))
-        lines.append(f"- {n.tech_id} \"{node_name(arch, n.id, ontology)}\" ({role}{'; ' + '; '.join(extra) if extra else ''})")
+        if compact:
+            lines.append(f"- {node_name(arch, n.id, ontology)} ({role}{'; ' + '; '.join(extra[1:]) if len(extra) > 1 else ''})")
+        else:
+            lines.append(f"- {n.tech_id} \"{node_name(arch, n.id, ontology)}\" ({role}{'; ' + '; '.join(extra) if extra else ''})")
     lines.append("Connections:")
-    for e in arch.edges[:max_edges]:
+    edges = arch.edges
+    if compact:
+        # Data flows carry the meaning; cross-cutting wiring is summarised by the component list above.
+        edges = [e for e in arch.edges if e.kind in {"data", "control"}]
+        max_edges = min(max_edges, 24)
+    for e in edges[:max_edges]:
         meta = ", ".join(x for x in [e.kind, e.mode, e.label, e.status] if x)
         lines.append(f"- {node_name(arch, e.source, ontology)} -> {node_name(arch, e.target, ontology)} [{meta}]")
-    if len(arch.edges) > max_edges:
-        lines.append(f"- ... {len(arch.edges) - max_edges} more connections")
+    if len(edges) > max_edges:
+        lines.append(f"- ... {len(edges) - max_edges} more connections")
     if arch.architecture_notes:
         lines.append("Notes: " + " ".join(arch.architecture_notes[:5]))
     return "\n".join(lines)
@@ -71,7 +79,7 @@ def render_catalog(ontology: OntologyService, cloud: str | None, exclude_legacy:
     return "\n".join(rows[:limit])
 
 
-def render_tech_facts(tech_id: str, ontology: OntologyService) -> str:
+def render_tech_facts(tech_id: str, ontology: OntologyService, brief: bool = False) -> str:
     t = ontology.get(tech_id)
     if not t:
         return ""
@@ -86,8 +94,8 @@ def render_tech_facts(tech_id: str, ontology: OntologyService) -> str:
     if t.alternatives:
         lines.append("Alternatives: " + ", ".join(ontology.get(x).name for x in t.alternatives if ontology.get(x)))
     if t.migration_considerations:
-        lines.append("Migration considerations: " + " | ".join(t.migration_considerations[:4]))
-    if t.known_challenges:
+        lines.append("Migration considerations: " + " | ".join(t.migration_considerations[: 2 if brief else 4]))
+    if t.known_challenges and not brief:
         lines.append("Known challenges: " + " | ".join(t.known_challenges[:3]))
     return "\n".join(lines)
 

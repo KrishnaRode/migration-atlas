@@ -15,6 +15,8 @@ from atlas.architecture.generator import ArchitectureGenerator
 from atlas.config import Settings, get_settings
 from atlas.knowledge.graph import NetworkXGraphStore
 from atlas.knowledge.ingest import Ingestor, SourceRegistry
+from atlas.knowledge.skills import SkillLibrary
+from atlas.architecture.options import OptionPlanner
 from atlas.knowledge.store import KnowledgeStore
 from atlas.migration.roadmap import RoadmapPlanner
 from atlas.models.project import Project
@@ -47,9 +49,10 @@ class Services:
             log.info("knowledge: loaded %s curated seed notes", seeded)
         self.graph = NetworkXGraphStore(settings.graph_path)
         self.rebuild_graph()
+        self.skills = SkillLibrary(settings.knowledge_dir / "skills", self.ontology)
         self.estate_parser = EstateParser(self.ontology, self.ollama)
-        self.architect_ai = ArchitectAI(self.ontology, self.engine, self.ollama)
-        self.copilot = Copilot(self.ontology, self.engine, self.validator, self.store, self.graph, self.ollama)
+        self.architect_ai = ArchitectAI(self.ontology, self.engine, self.ollama, self.skills)
+        self.copilot = Copilot(self.ontology, self.engine, self.validator, self.store, self.graph, self.ollama, self.skills)
 
     def reload_ontology(self) -> None:
         data = load_ontology(self.settings.ontology_dir, self.settings.patterns_dir)
@@ -59,6 +62,7 @@ class Services:
         self.generator = ArchitectureGenerator(self.ontology, self.engine)
         self.planner = RoadmapPlanner(self.ontology)
         self.comparer = ArchitectureComparer(self.ontology, self.validator)
+        self.options = OptionPlanner(self.ontology, self.generator, self.validator)
 
     def rebuild_graph(self) -> None:
         self.graph.rebuild(self.ontology, self.store.documents())

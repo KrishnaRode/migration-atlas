@@ -176,7 +176,14 @@ class OllamaClient:
 
     # ------------------------------------------------------------------ generation
     async def generate_json(self, system: str, prompt: str, temperature: float = 0.2, num_predict: int = 1400) -> tuple[str, str]:
-        """Return (raw_text, model). Uses Ollama's JSON mode; parsing/validation is the caller's job."""
+        """Return (raw_text, model). Hard overall deadline: a stalled Ollama can never hang a request."""
+        try:
+            return await asyncio.wait_for(self._generate_json(system, prompt, temperature, num_predict),
+                                          timeout=self.timeout_s * (self.retries + 1) + 10)
+        except asyncio.TimeoutError as exc:
+            raise AIUnavailable(f"The local model did not answer within {self.timeout_s:.0f}s.", "timeout") from exc
+
+    async def _generate_json(self, system: str, prompt: str, temperature: float, num_predict: int) -> tuple[str, str]:
         model = await self._model()
         payload = {
             "model": model,
@@ -231,11 +238,12 @@ class OllamaClient:
         self._caps[model] = caps
         return caps
 
-    async def chat_stream(self, messages: list[dict], temperature: float = 0.3) -> AsyncIterator[str]:
+    async def chat_stream(self, messages: list[dict], temperature: float = 0.3, envelope: bool | None = None) -> AsyncIterator[str]:
         model = await self._model()
         # Thinking-only models (e.g. qwen3 2507) ignore `think: false` and narrate their reasoning
         # in the answer. JSON mode forces a direct answer; we stream the `answer` field out of it.
-        envelope = "thinking" in await self.capabilities(model)
+        if envelope is None:
+            envelope = "thinking" in await self.capabilities(model)
         if envelope:
             messages = [dict(m) for m in messages]
             messages[0]["content"] += (

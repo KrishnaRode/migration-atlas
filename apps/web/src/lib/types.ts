@@ -61,6 +61,17 @@ export interface ArchitectureGroup { id: string; label: string; node_ids: string
 export interface ArchitectureMeta {
   target_cloud?: string | null; data_platform?: string | null; generated_by?: string | null; model?: string | null;
   parent_id?: string | null; what_if?: string | null; migration_controls: string[]; ai_status?: string | null; created_at: string;
+  label?: string | null; variant?: string | null; summary?: string | null;
+}
+
+export interface CriterionScore { id: string; name: string; priority: Priority; score: number; evidence: string; baseline: boolean }
+export interface OptionFit {
+  option_id: string; label: string; name: string; variant: string; summary: string; fit_percent: number;
+  criteria: CriterionScore[]; strengths: string[]; trade_offs: string[]; component_count: number; high_findings: number;
+}
+export interface OptionAnalysis {
+  fits: OptionFit[]; recommended_option_id: string | null; headline: string; rationale: string;
+  choose_when: Record<string, string>; caveats: string[]; decided_by: string; priorities_assumed: boolean;
 }
 
 export interface Architecture {
@@ -128,7 +139,7 @@ export interface ChatMessage { role: "user" | "assistant" | "system"; content: s
 
 export interface Project {
   id: string; name: string; description: string; industry?: string | null; estate: Estate; options: Architecture[];
-  active_option_id?: string | null; roadmap?: Roadmap | null; risks: unknown[]; decisions: ArchitectureDecision[];
+  active_option_id?: string | null; roadmap?: Roadmap | null; option_analysis?: OptionAnalysis | null; risks: unknown[]; decisions: ArchitectureDecision[];
   knowledge_sources: string[]; conversations: ChatMessage[]; sample_id?: string | null; created_at: string; updated_at: string;
 }
 

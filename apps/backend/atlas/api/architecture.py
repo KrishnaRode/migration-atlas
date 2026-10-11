@@ -223,20 +223,30 @@ async def propose(body: ProposeBody, svc: Services = Depends(services)):
                 operations=[Operation(op="add_node", tech_id=stream_id, node_id="new",
                                       connect=[*[OperationConnect(node=n.id, direction="from") for n in cdc[:2]],
                                                *[OperationConnect(node=n.id, direction="to") for n in first[:1]]])]))
-    for tid, _, _ in svc.ontology.match_aliases(body.request):
-        if re.search(r"replace|swap|instead|alternative", body.request, re.I):
-            node = next((n for n in arch.nodes if n.tech_id == tid), None)
-            cands = svc.ontology.replacement_candidates(tid, arch.meta.target_cloud) if node else []
-            cands = [c for c in cands if (not c.platforms or arch.meta.data_platform in c.platforms) and c.runs_on(arch.meta.target_cloud)]
-            if node and cands:
+    m = re.search(r"\b(?:replace|swap|switch|substitute)\s+(.+?)\s+(?:with|for|by|to)\s+(.+)$|\buse\s+(.+?)\s+instead\s+of\s+(.+)$",
+                  body.request.strip().rstrip(".?!"), re.I)
+    if m:
+        old_text, new_text = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+        old_ids, new_ids = svc.ontology.mentions(old_text), svc.ontology.mentions(new_text)
+        for old in old_ids[:1]:
+            # The component may already have been modernised: then target the node that replaced it.
+            node = next((n for n in arch.nodes if n.tech_id == old), None) or next((n for n in arch.nodes if old in n.replaces), None)
+            cands = [svc.ontology.get(t) for t in new_ids if svc.ontology.get(t)] or [
+                c for c in svc.ontology.replacement_candidates(old, arch.meta.target_cloud)
+                if (not c.platforms or arch.meta.data_platform in c.platforms) and c.runs_on(arch.meta.target_cloud)][:1]
+            if node and cands and cands[0].id != node.tech_id:
                 c = cands[0]
-                rule_props.append(Proposal(title=f"Replace {svc.ontology.require(tid).name} with {c.name}", source="rules",
-                                           reason=f"{c.name} is the ontology's preferred modern target on this platform.",
-                                           evidence=[c.description], confidence="medium",
-                                           operations=[Operation(op="replace_node", node_id=node.id, tech_id=c.id)]))
+                current = svc.ontology.require(node.tech_id).name
+                via = f", now implemented by {current}," if node.tech_id != old else ""
+                maps = svc.ontology.mappings_between(old, c.id)
+                ev = [c.description] + ([f"Mapping: {maps[0].approaches[0]}"] if maps and maps[0].approaches else [])
+                rule_props.append(Proposal(title=f"Replace {current} with {c.name}", source="rules", confidence="high" if new_ids else "medium",
+                                           reason=f"{svc.ontology.require(old).name}{via} is replaced by {c.name}, which takes over its role; compatible connections are kept.",
+                                           evidence=ev, operations=[Operation(op="replace_node", node_id=node.id, tech_id=c.id)]))
     rule_props = list({p.title: p for p in rule_props}.values())[:5]
     ai_props, ai_note = [], None
-    if body.use_ai and (len(rule_props) < 2 or not prefixes):
+    explicit_replace = bool(m) and any(p.operations and p.operations[0].op == "replace_node" for p in rule_props)
+    if body.use_ai and not explicit_replace and (len(rule_props) < 2 or not prefixes):
         ai_props, ai_note = await svc.architect_ai.propose(arch, body.estate, body.request)
     return {"proposals": [p.model_dump() for p in rule_props + ai_props], "ai_note": ai_note}
 
@@ -288,3 +298,66 @@ def import_architecture(body: ImportBody, svc: Services = Depends(services)):
     arch.edges = [e for e in arch.edges if e.source in node_ids and e.target in node_ids]
     svc.engine.annotate(arch)
     return {"architecture": arch.model_dump(), "unknown_technologies": unknown}
+
+
+class OptionsBody(BaseModel):
+    estate: Estate
+    count: int = 3
+    use_ai: bool = True
+
+
+async def _analysis(svc: Services, options: list[Architecture], estate: Estate, use_ai: bool) -> dict:
+    analysis = svc.options.analyse(options, estate)
+    if use_ai and len(options) > 1:
+        rec, model = await svc.architect_ai.recommend(options, analysis, estate)
+        if rec:
+            analysis = analysis.model_copy(update={**rec, "decided_by": f"rules+ai:{model}"})
+    return analysis.model_dump()
+
+
+@router.post("/options")
+async def options(body: OptionsBody, svc: Services = Depends(services)):
+    """Generate several distinct target architectures and analyse their fit to the stated priorities."""
+    estate = body.estate
+    if not estate.current_technologies and not estate.target_platforms and not estate.target_cloud:
+        raise AtlasError(422, "empty_estate", "Describe the current estate or pick a target before generating.")
+    archs = svc.options.build(estate, count=max(1, min(body.count, 4)))
+    pipeline = [{"step": "rules", "label": "Deterministic architecture rules",
+                 "detail": f"{len(archs)} distinct options: " + "; ".join(a.meta.summary or a.name for a in archs)}]
+    names = " ".join(svc.ontology.get(t).name for t in estate.current_technologies + estate.target_platforms if svc.ontology.get(t))
+    hits = svc.store.search(f"{names} migration", limit=5)
+    pipeline.append({"step": "ontology", "label": "Technology ontology",
+                     "detail": f"{sum(1 for a in archs for n in a.nodes if n.replaces)} legacy mappings applied across options"})
+    pipeline.append({"step": "graph", "label": "Knowledge graph", "detail": "Migration relationships consulted for every option"})
+    pipeline.append({"step": "rag", "label": "Documentation retrieval", "detail": f"{len(hits)} reference passages"})
+    if body.use_ai and archs:
+        # Review only the requested option with the model; alternatives stay rules-only to keep generation fast.
+        reviewed, note = await svc.architect_ai.review(archs[0], estate)
+        reviewed.meta.ai_status = note
+        archs[0] = reviewed
+        pipeline.append({"step": "ai", "label": "Local AI reasoning", "detail": note})
+    else:
+        for a in archs:
+            a.meta.ai_status = "Local AI review was turned off for this generation."
+        pipeline.append({"step": "ai", "label": "Local AI reasoning", "detail": "Skipped (rules only)"})
+    for a in archs:
+        svc.engine.annotate(a)
+    analysis = await _analysis(svc, archs, estate, body.use_ai)
+    pipeline.append({"step": "validate", "label": "Validation & fit analysis",
+                     "detail": f"Recommended: {next((a.name for a in archs if a.id == analysis['recommended_option_id']), '—')}"})
+    return {"options": [a.model_dump() for a in archs], "analysis": analysis, "pipeline": pipeline,
+            "citations": [h.citation.model_dump() for h in hits]}
+
+
+class AnalyseBody(BaseModel):
+    options: list[Architecture]
+    estate: Estate
+    use_ai: bool = False
+
+
+@router.post("/analyse-options")
+async def analyse_options(body: AnalyseBody, svc: Services = Depends(services)):
+    """Re-score existing options (after edits or new what-if branches)."""
+    for i, a in enumerate(body.options):
+        a.meta.label = a.meta.label or "ABCDEF"[i % 6]
+    return await _analysis(svc, body.options, body.estate, body.use_ai)

@@ -86,6 +86,8 @@ def load_ontology(ontology_dir: Path, patterns_dir: Path) -> OntologyData:
         data.platforms = Platforms.model_validate(_read_yaml(platforms_path) or {})
 
     data.mappings = _load_list(ontology_dir / "mappings.yaml", MigrationMapping, problems)
+    for extra in sorted(ontology_dir.glob("mappings_*.yaml")):
+        data.mappings.extend(_load_list(extra, MigrationMapping, problems))
     data.risks = {r.id: r for r in _load_list(ontology_dir / "risks.yaml", RiskDef, problems)}
     data.strategies = {s.id: s for s in _load_list(ontology_dir / "strategies.yaml", Strategy, problems)}
     data.constraints = {c.id: c for c in _load_list(ontology_dir / "constraints.yaml", ConstraintDef, problems)}

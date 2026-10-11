@@ -6,7 +6,7 @@ import { create } from "zustand";
 import { api } from "./api";
 import { layoutArchitecture, NODE_H, NODE_W } from "./layout";
 import type {
-  Architecture, ArchitectureDecision, ArchitectureEdge, ArchitectureNode, ChatMessage, ConnectionAssessment, Persona,
+  Architecture, ArchitectureDecision, OptionAnalysis, ArchitectureEdge, ArchitectureNode, ChatMessage, ConnectionAssessment, Persona,
   Project, Proposal, Roadmap, Severity, TechCard, ValidationReport,
 } from "./types";
 import { SEVERITY_ORDER, uid } from "./utils";
@@ -73,6 +73,9 @@ interface StudioState {
   architecture: () => Architecture | null;
   loadArchitecture: (arch: Architecture, opts?: { layout?: boolean; animate?: boolean; record?: boolean }) => Promise<void>;
   addOption: (arch: Architecture) => Promise<void>;
+  setOptions: (options: Architecture[], analysis: OptionAnalysis | null, mode?: "replace" | "append") => Promise<void>;
+  refreshAnalysis: (useAi?: boolean) => Promise<void>;
+  analysing: boolean;
   switchOption: (id: string) => Promise<void>;
   renameOption: (id: string, name: string) => void;
   deleteOption: (id: string) => void;
@@ -152,7 +155,7 @@ export const useStudio = create<StudioState>((set, get) => {
     validation: null, validating: false, selectedNodeId: null, selectedEdgeId: null,
     persona: "architect", view: "canvas", rightTab: "inspector", rightOpen: true, libraryOpen: true, swimlanes: false,
     proposals: [], suggestionFor: null, replaceFor: null, toasts: [], saving: false, dirtyAt: 0, chatSeed: null,
-    paletteOpen: false, whatIfOpen: false, adrDraft: null, fitNonce: 0,
+    paletteOpen: false, whatIfOpen: false, adrDraft: null, fitNonce: 0, analysing: false,
 
     init: async (project, techs) => {
       const techIndex = Object.fromEntries(techs.map((t) => [t.id, t]));
@@ -208,9 +211,41 @@ export const useStudio = create<StudioState>((set, get) => {
       const { project } = get();
       if (!project) return;
       const letter = String.fromCharCode(65 + project.options.length);
-      const named = { ...arch, name: arch.name.startsWith("Option") || arch.meta.what_if ? arch.name : `Option ${letter} · ${arch.name}` };
+      const named = { ...arch, meta: { ...arch.meta, label: letter },
+        name: arch.name.startsWith("Option") ? arch.name : `Option ${letter} · ${arch.name}` };
       set({ project: { ...syncActive()!, options: [...(syncActive()?.options || []), named] }, past: [], future: [] });
       await get().loadArchitecture(named, { layout: true, animate: true, record: false });
+      void get().refreshAnalysis();
+    },
+
+    setOptions: async (options, analysis, mode = "replace") => {
+      const synced = syncActive();
+      if (!synced || !options.length) return;
+      const base = mode === "append" ? synced.options : [];
+      const relabelled = options.map((o, i) => {
+        const letter = String.fromCharCode(65 + base.length + i);
+        const name = o.name.replace(/^Option [A-Z] · /, `Option ${letter} · `);
+        return { ...o, name, meta: { ...o.meta, label: letter } };
+      });
+      const all = [...base, ...relabelled];
+      set({ project: { ...synced, options: all, option_analysis: analysis }, past: [], future: [] });
+      const first = relabelled.find((o) => o.id === analysis?.recommended_option_id) || relabelled[0];
+      await get().loadArchitecture(first, { layout: true, animate: true, record: false });
+      if (mode === "append" || !analysis) void get().refreshAnalysis();
+    },
+
+    refreshAnalysis: async (useAi = false) => {
+      const synced = syncActive();
+      if (!synced || synced.options.length < 2) return;
+      set({ analysing: true, project: synced });
+      try {
+        const analysis = await api.analyseOptions(synced.options, synced.estate, useAi);
+        const p = get().project;
+        if (p) set({ project: { ...p, option_analysis: analysis } });
+        touch();
+      } catch { /* keep the last analysis */ } finally {
+        set({ analysing: false });
+      }
     },
 
     switchOption: async (id) => {
@@ -235,6 +270,7 @@ export const useStudio = create<StudioState>((set, get) => {
       set({ project: { ...synced, options } });
       if (get().activeId === id) void get().switchOption(options[0].id);
       touch();
+      void get().refreshAnalysis();
     },
 
     record: () => {

@@ -1,7 +1,7 @@
 // Thin typed client for the local FastAPI backend. Never surfaces stack traces.
 import type {
   Architecture, Category, Citation, CompareResult, ConnectionAssessment, Estate, KnowledgeDocument, KnowledgeSource,
-  OllamaStatus, Pattern, PipelineStep, Project, ProjectSummary, Proposal, Roadmap, Sample, SearchHit, TechCard,
+  OllamaStatus, OptionAnalysis, Pattern, PipelineStep, Project, ProjectSummary, Proposal, Roadmap, Sample, SearchHit, TechCard,
   TechnologyDetail, ValidationReport, DependencyGraph, MigrationMapping, Strategy, ConstraintDef,
 } from "./types";
 
@@ -80,6 +80,11 @@ export const api = {
   parseEstate: (text: string, use_ai = true) => request<ParseResult>("/estate/parse", { method: "POST", json: { text, use_ai } }),
   generate: (estate: Estate, use_ai = true, name?: string) =>
     request<GenerateResult>("/architecture/generate", { method: "POST", json: { estate, use_ai, name } }),
+  options: (estate: Estate, use_ai = true, count = 3) =>
+    request<{ options: Architecture[]; analysis: OptionAnalysis; pipeline: PipelineStep[]; citations: Citation[] }>(
+      "/architecture/options", { method: "POST", json: { estate, use_ai, count } }),
+  analyseOptions: (options: Architecture[], estate: Estate, use_ai = false) =>
+    request<OptionAnalysis>("/architecture/analyse-options", { method: "POST", json: { options, estate, use_ai } }),
   validate: (architecture: Architecture, estate?: Estate | null) =>
     request<ValidationReport>("/architecture/validate", { method: "POST", json: { architecture, estate } }),
   compare: (options: Architecture[], estate?: Estate | null, persona = "architect", narrative = false) =>
@@ -135,8 +140,16 @@ export const api = {
   graphStats: () => request<{ nodes: number; edges: number; node_kinds: Record<string, number>; relations: Record<string, number> }>("/knowledge/graph/stats"),
 };
 
+export type ChatAction =
+  | { type: "proposals"; proposals: import("./types").Proposal[]; note?: string | null }
+  | { type: "what_if"; question: string; changes: string[] }
+  | { type: "fit"; analysis: OptionAnalysis }
+  | { type: "no_change"; note?: string | null };
+
 export interface ChatStreamHandlers {
-  onMeta?: (meta: { model: string | null; citations: Citation[] }) => void;
+  onMeta?: (meta: { model: string | null; citations: Citation[]; playbooks?: { id: string; title: string }[] }) => void;
+  onIntent?: (intent: string) => void;
+  onAction?: (action: ChatAction) => void;
   onToken: (token: string) => void;
   onDone?: () => void;
   onError?: (err: { code: string; message: string }) => void;
@@ -173,6 +186,8 @@ export async function streamChat(body: unknown, h: ChatStreamHandlers, signal?: 
         if (!event || data === undefined) continue;
         const parsed = JSON.parse(data);
         if (event === "meta") h.onMeta?.(parsed);
+        else if (event === "intent") h.onIntent?.(parsed.intent);
+        else if (event === "action") h.onAction?.(parsed);
         else if (event === "token") h.onToken(parsed);
         else if (event === "done") h.onDone?.();
         else if (event === "error") h.onError?.(parsed);

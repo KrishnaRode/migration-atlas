@@ -1,0 +1,1118 @@
+# Extended platform estate: messaging and integration (iPaaS/ESB), BI and semantic layers,
+# serverless and container compute, governance/quality/observability tools, and cloud GenAI services.
+# ---------------------------------------------------------------- Messaging / integration
+- id: apache-pulsar
+  name: Apache Pulsar
+  aliases: [pulsar, apache pulsar, streamnative]
+  vendor: Apache Software Foundation
+  category: streaming
+  role: streaming
+  layer: ingestion
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: activity
+  color: "#188FFF"
+  description: Distributed messaging and event-streaming platform with separated serving (brokers) and storage (Apache BookKeeper), multi-tenancy, geo-replication and both queue and stream semantics.
+  typical_legacy_use: Multi-tenant event backbone combining pub/sub streaming and work-queue messaging, sometimes replacing separate Kafka and JMS/RabbitMQ estates.
+  capabilities: [event-streaming, message-queuing, multi-tenancy, geo-replication, tiered-storage]
+  possible_targets: [apache-kafka, confluent-cloud]
+  alternatives: [apache-kafka, confluent-cloud, google-pubsub, azure-event-hubs, amazon-kinesis]
+  replaces: [rabbitmq, activemq, tibco-ems]
+  suggested_next: [apache-flink, spark-structured-streaming, delta-bronze]
+  migration_considerations:
+    - Map tenants, namespaces and topics, subscription types (exclusive, shared, failover, key_shared) and retention policies to the target model.
+    - Assess client compatibility; Kafka-protocol layers exist but do not cover every Pulsar feature.
+    - Plan BookKeeper and ZooKeeper/metadata-store operations, or use a managed service.
+  known_challenges:
+    - Operational complexity of brokers, bookies and metadata stores is higher than single-tier brokers.
+    - Smaller connector and talent ecosystem than Kafka.
+  risks: [operational-readiness, skills-gap, integration-breakage]
+  strategies: [retain, replatform, rearchitect]
+  skills: [Apache Pulsar, event-driven architecture]
+  tags: [streaming, messaging, open-source]
+  docs:
+    - title: Apache Pulsar documentation
+      url: https://pulsar.apache.org/docs/
+
+- id: tibco-ems
+  name: TIBCO Enterprise Message Service (EMS)
+  aliases: [tibco ems, tibco enterprise message service, enterprise message service, ems server]
+  vendor: TIBCO (Cloud Software Group)
+  category: messaging
+  role: streaming
+  layer: ingestion
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: mail
+  color: "#1A6EB5"
+  description: JMS-compliant enterprise messaging server providing queues, topics, durable subscriptions and fault-tolerant server pairs.
+  typical_legacy_use: Messaging backbone of TIBCO-based integration estates in banking, telco and logistics, carrying transactions between BusinessWorks processes and core applications.
+  capabilities: [jms-messaging, queues, topics, durable-subscriptions, fault-tolerance]
+  possible_targets: [apache-kafka, confluent-cloud, azure-service-bus, amazon-sqs, amazon-sns, google-pubsub, activemq, rabbitmq]
+  alternatives: [ibm-mq, activemq, rabbitmq]
+  replaces: []
+  suggested_next: [apache-kafka, azure-service-bus, confluent-cloud, tibco-businessworks]
+  migration_considerations:
+    - Inventory queues, topics, bridges, routes, selectors and durable subscribers, plus message volumes and size distributions.
+    - Decide between JMS-compatible replacement (ActiveMQ/Amazon MQ, Service Bus JMS) for minimal change and re-architecture onto event streaming (Kafka) for new patterns.
+    - Preserve delivery semantics (persistent, exactly-once expectations, ordering, redelivery and dead-letter behaviour).
+    - Coordinate cutover with TIBCO BusinessWorks and other producers/consumers to avoid split-brain messaging.
+  known_challenges:
+    - Message selectors, request-reply and transactional sessions do not map directly to Kafka.
+    - Undocumented consumers discovered late break integrations.
+  risks: [integration-breakage, cutover-downtime, licensing-overlap, skills-gap]
+  strategies: [retain, replatform, rearchitect, retire]
+  skills: [JMS, TIBCO EMS administration, event-driven architecture]
+  tags: [messaging, jms, legacy, tibco]
+  docs:
+    - title: TIBCO Enterprise Message Service documentation
+      url: https://docs.tibco.com/products/tibco-enterprise-message-service
+
+- id: tibco-businessworks
+  name: TIBCO BusinessWorks
+  aliases: [tibco businessworks, businessworks, tibco bw, bw6, bwce, activematrix businessworks]
+  vendor: TIBCO (Cloud Software Group)
+  category: apis
+  role: api
+  layer: processing
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: plug
+  color: "#1A6EB5"
+  description: TIBCO's enterprise integration (ESB) platform for building process-based integrations, web services and adapters, available as BW5, BW6 and BusinessWorks Container Edition.
+  typical_legacy_use: Central ESB orchestrating SOAP/JMS integrations between ERP, CRM, mainframe and partner systems, usually paired with TIBCO EMS and adapters.
+  capabilities: [esb, process-orchestration, adapters, soap-rest-services, message-transformation]
+  possible_targets: [mulesoft, boomi, azure-api-management, apigee, aws-step-functions, apache-kafka]
+  alternatives: [mulesoft, boomi, websphere]
+  replaces: []
+  suggested_next: [mulesoft, boomi, apache-kafka, azure-service-bus]
+  migration_considerations:
+    - Inventory process definitions, shared resources, adapters, XSLT/mappers and deployed services with their call volumes.
+    - Decide per integration between iPaaS re-implementation, API-led redesign and event-driven re-architecture; avoid porting point-to-point anti-patterns.
+    - BW5 to BW6/BWCE upgrades are themselves projects; weigh them against moving off TIBCO.
+  known_challenges:
+    - Java code activities and custom adapters hold logic outside visual processes.
+    - Long-running, stateful processes and checkpoints need careful redesign.
+  risks: [hidden-business-logic, integration-breakage, licensing-overlap, skills-gap]
+  strategies: [retain, rehost, replatform, rearchitect, retire]
+  skills: [TIBCO BusinessWorks, XML/XSLT, integration architecture]
+  tags: [esb, integration, legacy, tibco]
+  docs:
+    - title: TIBCO ActiveMatrix BusinessWorks documentation
+      url: https://docs.tibco.com/products/tibco-activematrix-businessworks
+
+- id: mulesoft
+  name: MuleSoft Anypoint Platform
+  aliases: [mulesoft, mule, mule esb, mule 4, anypoint, anypoint platform, cloudhub]
+  vendor: Salesforce (MuleSoft)
+  category: apis
+  role: api
+  layer: processing
+  environment: hybrid
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: plug
+  color: "#00A2DF"
+  description: Integration and API management platform where Mule applications (with DataWeave transformations) implement API-led connectivity, deployed to CloudHub, Runtime Fabric or on-prem runtimes.
+  typical_legacy_use: Enterprise integration layer exposing system, process and experience APIs over ERP, CRM and legacy systems, often replacing older ESBs.
+  capabilities: [api-led-integration, api-management, dataweave-transformation, connectors, hybrid-runtimes]
+  possible_targets: []
+  alternatives: [boomi, tibco-businessworks, azure-api-management, apigee, kong]
+  replaces: [tibco-businessworks, websphere]
+  suggested_next: [apache-kafka, salesforce, sap-erp, azure-service-bus]
+  migration_considerations:
+    - Choose runtime plane (CloudHub 2.0, Runtime Fabric on Kubernetes, customer-hosted) against network and residency constraints.
+    - Mule 3 to Mule 4 is a rewrite (DataWeave 1 to 2, MEL removal); account for it in legacy MuleSoft estates.
+    - Integration platforms are not bulk data pipelines; route high-volume analytical loads through ELT/CDC tools instead.
+  known_challenges:
+    - Licensing by vCore/flows can grow quickly with many small APIs.
+    - DataWeave scripts concentrate transformation logic that needs testing and versioning.
+  risks: [cost-overrun, vendor-lock-in, integration-breakage]
+  strategies: [repurchase, replatform, refactor]
+  skills: [MuleSoft, DataWeave, API design]
+  tags: [ipaas, api, integration, modern]
+  docs:
+    - title: MuleSoft documentation
+      url: https://docs.mulesoft.com/
+
+- id: boomi
+  name: Boomi Enterprise Platform
+  aliases: [boomi, dell boomi, boomi atomsphere, boomi integration]
+  vendor: Boomi
+  category: apis
+  role: api
+  layer: processing
+  environment: saas
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: plug
+  color: "#033D58"
+  description: Low-code integration platform as a service (iPaaS) with cloud-managed design and runtimes (Atoms, Molecules) that can run in the cloud or on-premises, plus API management and master-data hub.
+  typical_legacy_use: Application-to-application and B2B/EDI integration for mid-to-large enterprises connecting SaaS applications with on-prem ERP.
+  capabilities: [ipaas, low-code-integration, edi, api-management, hybrid-runtimes]
+  possible_targets: []
+  alternatives: [mulesoft, tibco-businessworks, azure-data-factory]
+  replaces: [tibco-businessworks]
+  suggested_next: [salesforce, sap-erp, azure-service-bus]
+  migration_considerations:
+    - Decide runtime placement (Boomi-hosted Atom Cloud vs local Atoms/Molecules) for systems behind the firewall.
+    - Map process shapes, maps and scripting (Groovy/JavaScript) from the source ESB; re-design rather than translate where possible.
+    - Keep analytical bulk data movement on ELT/CDC tooling, not on the iPaaS.
+  known_challenges:
+    - Custom scripting inside processes hides logic.
+    - Connector-based licensing requires careful estimation.
+  risks: [vendor-lock-in, hidden-business-logic, cost-overrun]
+  strategies: [repurchase, refactor]
+  skills: [Boomi, integration design]
+  tags: [ipaas, integration, saas, modern]
+  docs:
+    - title: Boomi documentation
+      url: https://help.boomi.com/
+
+- id: azure-service-bus
+  name: Azure Service Bus
+  aliases: [azure service bus, service bus, asb, service bus queues, service bus topics]
+  vendor: Microsoft
+  category: messaging
+  role: streaming
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: mail
+  color: "#0078D4"
+  description: Fully managed enterprise message broker with queues and publish-subscribe topics, sessions, transactions, dead-lettering and JMS 2.0 support (Premium tier).
+  typical_legacy_use: Azure target for JMS/MQ-style enterprise messaging, decoupling applications with reliable queues and topics.
+  capabilities: [message-queuing, pub-sub-topics, sessions, dead-lettering, jms-support, transactions]
+  possible_targets: []
+  alternatives: [azure-event-hubs, amazon-sqs, rabbitmq, activemq, ibm-mq]
+  replaces: [ibm-mq, tibco-ems, activemq, rabbitmq]
+  suggested_next: [azure-functions, azure-monitor, private-connectivity]
+  migration_considerations:
+    - Use Premium tier for JMS 2.0, VNet integration, predictable throughput and large messages.
+    - Map JMS features (selectors, request-reply, transactions) to Service Bus sessions, filters and transactions; test ordering and redelivery semantics.
+    - Use Event Hubs, not Service Bus, for high-volume telemetry/event streaming.
+  known_challenges:
+    - Message size and throughput limits differ by tier.
+    - Some JMS behaviours have subtle differences that surface only in failure tests.
+  risks: [integration-breakage, cutover-downtime, vendor-lock-in]
+  strategies: [replatform, refactor]
+  skills: [Azure messaging, JMS]
+  tags: [azure, messaging, queue, managed]
+  docs:
+    - title: Azure Service Bus documentation
+      url: https://learn.microsoft.com/en-us/azure/service-bus-messaging/
+
+- id: amazon-sqs
+  name: Amazon SQS
+  aliases: [sqs, amazon sqs, aws sqs, simple queue service]
+  vendor: Amazon Web Services
+  category: messaging
+  role: streaming
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: mail
+  color: "#E7157B"
+  description: Fully managed, serverless message queuing service with standard (at-least-once) and FIFO (ordered, exactly-once processing) queues and dead-letter queues.
+  typical_legacy_use: Decoupling microservices and buffering work for Lambda or container consumers, frequently paired with SNS for fan-out.
+  capabilities: [message-queuing, fifo-queues, dead-lettering, serverless, long-polling]
+  possible_targets: []
+  alternatives: [azure-service-bus, rabbitmq, activemq, google-pubsub]
+  replaces: [ibm-mq, tibco-ems, activemq, rabbitmq]
+  suggested_next: [aws-lambda, amazon-sns, amazon-cloudwatch]
+  migration_considerations:
+    - SQS is not JMS; use Amazon MQ for lift-and-shift of JMS/AMQP applications and SQS for re-architected consumers.
+    - Choose standard vs FIFO per queue based on ordering and throughput needs; design idempotent consumers.
+    - Tune visibility timeouts and redrive policies against processing times.
+  known_challenges:
+    - Message size limit requires the extended-client pattern (payload in S3) for large messages.
+    - No native pub/sub; fan-out requires SNS or EventBridge.
+  risks: [integration-breakage, data-quality-regression]
+  strategies: [refactor, rearchitect]
+  skills: [AWS messaging, event-driven design]
+  tags: [aws, messaging, queue, serverless]
+  docs:
+    - title: Amazon SQS documentation
+      url: https://docs.aws.amazon.com/sqs/
+
+- id: amazon-sns
+  name: Amazon SNS
+  aliases: [sns, amazon sns, aws sns, simple notification service]
+  vendor: Amazon Web Services
+  category: messaging
+  role: streaming
+  layer: ingestion
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: radio
+  color: "#E7157B"
+  description: Fully managed pub/sub messaging service that fans out messages from topics to SQS, Lambda, HTTP endpoints, email and mobile push, with standard and FIFO topics.
+  typical_legacy_use: Event fan-out and notifications between AWS services and microservices, commonly in the SNS-to-SQS fan-out pattern.
+  capabilities: [pub-sub, fan-out, message-filtering, fifo-topics, notifications]
+  possible_targets: []
+  alternatives: [google-pubsub, azure-service-bus, amazon-kinesis]
+  replaces: [tibco-ems, ibm-mq]
+  suggested_next: [amazon-sqs, aws-lambda, amazon-cloudwatch]
+  migration_considerations:
+    - Combine with SQS subscriptions for durability; SNS alone does not retain messages for later consumption.
+    - Use subscription filter policies instead of per-consumer topics where possible.
+    - Prefer EventBridge where content-based routing across many AWS services and SaaS sources is required; use SNS for high-throughput fan-out.
+  known_challenges:
+    - No replay or retention for analytics; use Kinesis or Kafka for event streaming needs.
+    - Delivery retries to HTTP endpoints need dead-letter handling.
+  risks: [integration-breakage, data-quality-regression]
+  strategies: [refactor, rearchitect]
+  skills: [AWS messaging]
+  tags: [aws, messaging, pub-sub, serverless]
+  docs:
+    - title: Amazon SNS documentation
+      url: https://docs.aws.amazon.com/sns/
+
+# ---------------------------------------------------------------- BI / semantic layer
+- id: ssrs
+  name: SQL Server Reporting Services (SSRS)
+  aliases: [ssrs, sql server reporting services, reporting services, rdl reports, ssrs reports]
+  vendor: Microsoft
+  category: bi
+  role: bi
+  layer: consumption
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: file-text
+  color: "#CC2927"
+  description: Microsoft's server-based paginated reporting platform where RDL reports, shared datasets and subscriptions are published to a report server; Microsoft has positioned Power BI Report Server as the on-premises reporting successor from SQL Server 2025.
+  typical_legacy_use: Operational and regulatory pixel-perfect reports (statements, invoices, lists) against SQL Server and Oracle, delivered via email/file-share subscriptions.
+  capabilities: [paginated-reports, subscriptions, parameterised-reports, report-server]
+  possible_targets: [power-bi, microsoft-fabric]
+  alternatives: [business-objects, cognos, microstrategy]
+  replaces: []
+  suggested_next: [power-bi, databricks-sql, azure-sql-database]
+  migration_considerations:
+    - Inventory reports, shared data sources, datasets, subscriptions and execution logs to retire unused reports before migrating.
+    - RDL reports can be published as Power BI paginated reports (with Microsoft's migration tooling); rewrite data sources to point at the new platform.
+    - Replace data-driven subscriptions, custom assemblies and embedded VB code with supported equivalents.
+  known_challenges:
+    - Report SQL often embeds business logic and source-specific T-SQL.
+    - Custom code, custom assemblies and some subscription types are not supported in the Power BI service.
+  risks: [report-parity, hidden-business-logic, sql-dialect-conversion]
+  strategies: [retain, replatform, retire]
+  skills: [SSRS, RDL, T-SQL, Power BI paginated reports]
+  tags: [bi, reporting, paginated, legacy, microsoft]
+  docs:
+    - title: SQL Server Reporting Services documentation
+      url: https://learn.microsoft.com/en-us/sql/reporting-services/
+
+- id: ssas
+  name: SQL Server Analysis Services (SSAS)
+  aliases: [ssas, sql server analysis services, analysis services, ssas tabular, ssas multidimensional, azure analysis services, ssas cubes]
+  vendor: Microsoft
+  category: bi
+  role: serving
+  layer: serving
+  environment: on-prem
+  legacy: true
+  clouds: [on-prem, azure]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: box
+  color: "#CC2927"
+  description: Microsoft's analytical engine for OLAP — multidimensional cubes (MDX) and tabular models (DAX/VertiPaq) — also offered as the Azure Analysis Services PaaS for tabular models.
+  typical_legacy_use: Semantic layer over SQL Server data warehouses feeding Excel pivot tables, SSRS and Power BI, with business measures defined in MDX or DAX.
+  capabilities: [olap-cubes, tabular-models, semantic-layer, mdx, dax]
+  possible_targets: [power-bi, microsoft-fabric, cube-dev, databricks-sql]
+  alternatives: [cube-dev]
+  replaces: []
+  suggested_next: [power-bi, microsoft-fabric, databricks-sql]
+  migration_considerations:
+    - Tabular models migrate to Power BI/Fabric semantic models with relatively little change (XMLA endpoint, compatibility level checks).
+    - Multidimensional cubes require redesign as tabular models; MDX calculations, scoped assignments and writeback have no direct equivalent.
+    - Plan partition and refresh strategy (incremental refresh, Direct Lake or DirectQuery) on the target.
+    - Re-point Excel and SSRS consumers that connect to the cube.
+  known_challenges:
+    - Complex MDX scripts and many-to-many dimensions are labour-intensive to re-express in DAX.
+    - Azure Analysis Services users are being steered to Power BI/Fabric, so feature roadmaps favour the target.
+  risks: [report-parity, hidden-business-logic, skills-gap]
+  strategies: [retain, replatform, refactor, retire]
+  skills: [SSAS, DAX, MDX, Power BI semantic models]
+  tags: [olap, semantic-layer, legacy, microsoft]
+  docs:
+    - title: Analysis Services documentation
+      url: https://learn.microsoft.com/en-us/analysis-services/
+
+- id: sisense
+  name: Sisense
+  aliases: [sisense, sisense fusion, elasticube]
+  vendor: Sisense
+  category: bi
+  role: bi
+  layer: consumption
+  environment: any
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: chart-column
+  color: "#1EB9E3"
+  description: BI and embedded-analytics platform with in-chip ElastiCube data models or live connections, used for dashboards and analytics embedded in products.
+  typical_legacy_use: Embedded customer-facing analytics in SaaS products and departmental dashboards built on ElastiCubes.
+  capabilities: [dashboards, embedded-analytics, in-memory-models, live-connections]
+  possible_targets: [power-bi, tableau, looker, sigma-computing, thoughtspot]
+  alternatives: [tableau, power-bi, looker, thoughtspot]
+  replaces: []
+  suggested_next: [snowflake, databricks-sql, bigquery]
+  migration_considerations:
+    - Decide whether ElastiCube logic moves into the warehouse/semantic layer or into the new BI tool's models.
+    - Embedded analytics migrations must preserve multi-tenant row-level security and white-labelling.
+    - Inventory dashboards, ElastiCube build schedules and usage to retire unused content before migration.
+  known_challenges:
+    - Formula and model logic in ElastiCubes requires manual re-creation.
+    - Embedded SDK integrations need application changes.
+  risks: [report-parity, hidden-business-logic]
+  strategies: [retain, repurchase, retire]
+  skills: [Sisense, SQL]
+  tags: [bi, embedded-analytics]
+  docs:
+    - title: Sisense documentation
+      url: https://docs.sisense.com/
+
+- id: thoughtspot
+  name: ThoughtSpot
+  aliases: [thoughtspot, thought spot, thoughtspot cloud, spotter]
+  vendor: ThoughtSpot
+  category: bi
+  role: bi
+  layer: consumption
+  environment: saas
+  legacy: false
+  clouds: [aws, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: search
+  color: "#1D232F"
+  description: Search- and AI-driven analytics platform that queries cloud data platforms live, letting business users ask questions in natural language (Spotter) over modelled worksheets/models.
+  typical_legacy_use: Self-service ad-hoc analytics for business users on top of Snowflake, Databricks, BigQuery or Redshift.
+  capabilities: [search-analytics, natural-language-query, live-query, embedded-analytics]
+  possible_targets: []
+  alternatives: [power-bi, tableau, looker, sigma-computing, databricks-ai-bi]
+  replaces: [business-objects, cognos, microstrategy]
+  suggested_next: [snowflake, databricks-sql, bigquery]
+  migration_considerations:
+    - Model data in the warehouse first; ThoughtSpot quality depends on well-named, well-joined models.
+    - Query costs land on the warehouse; apply warehouse governance and caching strategy.
+    - Recreate row-level security and sharing in ThoughtSpot or rely on warehouse-level policies passed through with user identity.
+  known_challenges:
+    - Complex pixel-perfect reports are not its strength; keep a paginated tool for those.
+    - User adoption depends on curated synonyms and model design.
+  risks: [cost-overrun, report-parity]
+  strategies: [repurchase]
+  skills: [ThoughtSpot modelling, SQL]
+  tags: [bi, search, ai, saas, modern]
+  docs:
+    - title: ThoughtSpot documentation
+      url: https://docs.thoughtspot.com/
+
+- id: apache-superset
+  name: Apache Superset
+  aliases: [superset, apache superset]
+  vendor: Apache Software Foundation
+  category: bi
+  role: bi
+  layer: consumption
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: chart-column
+  color: "#20A7C9"
+  description: Open-source data exploration and dashboarding platform with a SQL IDE (SQL Lab), a semantic layer of datasets/metrics and broad SQL database support.
+  typical_legacy_use: Open-source BI for engineering-led organisations and embedded dashboards on top of Trino, ClickHouse, Druid or cloud warehouses.
+  capabilities: [dashboards, sql-ide, open-source, embedded-dashboards]
+  possible_targets: []
+  alternatives: [tableau, power-bi, looker, sigma-computing]
+  replaces: [ssrs]
+  suggested_next: [trino, clickhouse, databricks-sql]
+  migration_considerations:
+    - Plan hosting, authentication (OAuth/LDAP), caching and async query workers for production use.
+    - Define datasets and metrics centrally to avoid logic sprawl in individual charts.
+    - Consider a managed Superset offering if the team lacks capacity to operate the stack.
+  known_challenges:
+    - Self-hosting requires operational ownership (upgrades, scaling, security patches).
+    - Pixel-perfect and complex formatted reporting is limited.
+  risks: [operational-readiness, report-parity]
+  strategies: [repurchase, refactor]
+  skills: [Superset, SQL, Python]
+  tags: [bi, open-source, dashboards]
+  docs:
+    - title: Apache Superset documentation
+      url: https://superset.apache.org/docs/intro
+
+- id: sigma-computing
+  name: Sigma Computing
+  aliases: [sigma computing, sigma bi, sigma workbooks]
+  vendor: Sigma Computing
+  category: bi
+  role: bi
+  layer: consumption
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: sheet
+  color: "#000000"
+  description: Cloud-native analytics and BI with a spreadsheet-like interface that pushes all queries live to the cloud data warehouse (Snowflake, Databricks, BigQuery, Redshift).
+  typical_legacy_use: Replaces Excel-extract workflows and legacy BI for spreadsheet-literate business users, with write-back input tables on the warehouse.
+  capabilities: [spreadsheet-analytics, live-query, input-tables, embedded-analytics]
+  possible_targets: []
+  alternatives: [tableau, power-bi, thoughtspot, looker]
+  replaces: [business-objects, cognos, alteryx]
+  suggested_next: [snowflake, databricks-sql, bigquery]
+  migration_considerations:
+    - All compute runs on the warehouse; size warehouses and set query governance for spreadsheet-style exploration.
+    - Rebuild Excel models as workbooks with input tables where write-back is needed.
+    - Apply warehouse-native access controls (or Sigma user attributes) so row-level security is consistent with other consumers.
+  known_challenges:
+    - Depends entirely on a supported cloud warehouse; no in-tool data storage for offline use.
+    - Heavy ad-hoc exploration can drive warehouse costs.
+  risks: [cost-overrun, report-parity]
+  strategies: [repurchase]
+  skills: [Sigma, SQL]
+  tags: [bi, spreadsheet, saas, modern]
+  docs:
+    - title: Sigma documentation
+      url: https://help.sigmacomputing.com/
+
+- id: cube-dev
+  name: Cube (cube.dev semantic layer)
+  aliases: [cube.dev, cube dev, cube cloud, cube core, cubejs, cube semantic layer]
+  vendor: Cube Dev
+  category: bi
+  role: serving
+  layer: serving
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: box
+  color: "#7A77FF"
+  description: Universal semantic layer (open-source Cube Core and Cube Cloud) that defines metrics and data models in code and serves them through SQL, REST, GraphQL and MDX/DAX-compatible APIs with caching (pre-aggregations).
+  typical_legacy_use: Consistent metrics across multiple BI tools and embedded applications, replacing OLAP cubes and BI-tool-specific semantic models.
+  capabilities: [semantic-layer, metrics-as-code, pre-aggregations, sql-api, access-control]
+  possible_targets: []
+  alternatives: [ssas, databricks-sql, looker]
+  replaces: [ssas]
+  suggested_next: [databricks-sql, snowflake, bigquery, power-bi, tableau]
+  migration_considerations:
+    - Model measures and dimensions in version control and test them with CI like other code.
+    - Size pre-aggregation storage and refresh to balance latency and warehouse cost.
+    - Validate each BI tool's connectivity path (SQL API, DAX/MDX API) before committing.
+  known_challenges:
+    - Semantic-layer adoption needs governance so BI-tool-level calculations don't re-emerge.
+    - Complex OLAP features (e.g. writeback) may not be supported.
+  risks: [report-parity, skills-gap]
+  strategies: [refactor, rearchitect]
+  skills: [Cube data modelling, SQL, YAML/JavaScript]
+  tags: [semantic-layer, metrics, open-source, modern]
+  docs:
+    - title: Cube documentation
+      url: https://cube.dev/docs
+
+- id: databricks-ai-bi
+  name: Databricks AI/BI (Dashboards & Genie)
+  aliases: [databricks ai/bi, ai/bi dashboards, databricks dashboards, lakeview dashboards, databricks genie, ai/bi genie, genie spaces]
+  vendor: Databricks
+  category: bi
+  role: bi
+  layer: consumption
+  environment: cloud
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: [databricks]
+  operational_model: serverless
+  icon: chart-column
+  color: "#FF3621"
+  description: Databricks-native BI comprising AI/BI Dashboards and Genie natural-language spaces, running on Databricks SQL warehouses and governed by Unity Catalog.
+  typical_legacy_use: Consolidation target for departmental dashboards and ad-hoc analytics on the lakehouse without a separate BI licence or data extracts.
+  capabilities: [dashboards, natural-language-query, unity-catalog-governance, serverless-compute]
+  possible_targets: []
+  alternatives: [power-bi, tableau, looker, thoughtspot, sigma-computing]
+  replaces: [ssrs, business-objects, cognos, qlik]
+  suggested_next: [databricks-sql, unity-catalog, delta-gold]
+  migration_considerations:
+    - Best for lakehouse-resident data; dashboards query Databricks SQL warehouses directly.
+    - Curate Genie spaces with table/column descriptions, sample queries and instructions to get reliable answers.
+    - Keep enterprise semantic models and pixel-perfect reports in a dedicated BI tool where required.
+  known_challenges:
+    - Feature breadth (formatting, complex interactivity, paginated output) is narrower than mature BI suites.
+    - Natural-language answers need curation and evaluation before broad rollout.
+  risks: [report-parity, governance-gap]
+  strategies: [repurchase, rearchitect]
+  skills: [Databricks SQL, dashboard design]
+  tags: [bi, databricks, ai, modern]
+  docs:
+    - title: Databricks AI/BI documentation
+      url: https://docs.databricks.com/aws/en/ai-bi/
+
+# ---------------------------------------------------------------- Serverless / compute
+- id: aws-lambda
+  name: AWS Lambda
+  aliases: [aws lambda, amazon lambda, lambda functions, lambda function]
+  vendor: Amazon Web Services
+  category: applications
+  role: application
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: zap
+  color: "#FF9900"
+  description: Event-driven serverless compute service that runs functions in response to events from S3, SQS, SNS, Kinesis, DynamoDB Streams, API Gateway and EventBridge.
+  typical_legacy_use: Glue code for event-driven pipelines (file-arrival triggers, lightweight transforms, notifications) and serverless APIs.
+  capabilities: [serverless-functions, event-driven, auto-scaling, pay-per-use]
+  possible_targets: []
+  alternatives: [azure-functions, google-cloud-functions, google-cloud-run, amazon-ecs]
+  replaces: [cron]
+  suggested_next: [amazon-sqs, amazon-s3, amazon-api-gateway, amazon-cloudwatch, aws-step-functions]
+  migration_considerations:
+    - Respect execution limits (15-minute timeout, memory/ephemeral storage); long or heavy data processing belongs on Glue, EMR, Databricks or containers.
+    - Design idempotent handlers and dead-letter/on-failure destinations for retries.
+    - Package dependencies as layers or container images and manage concurrency limits.
+  known_challenges:
+    - Cold starts and concurrency throttling affect latency-sensitive paths.
+    - Sprawl of small functions complicates lineage and operations.
+  risks: [lineage-loss, operational-readiness, cost-overrun]
+  strategies: [refactor, rearchitect]
+  skills: [Serverless development, Python/Node.js/Java, AWS]
+  tags: [aws, serverless, compute]
+  docs:
+    - title: AWS Lambda documentation
+      url: https://docs.aws.amazon.com/lambda/
+
+- id: google-cloud-run
+  name: Google Cloud Run
+  aliases: [cloud run, google cloud run, cloud run jobs, cloud run services]
+  vendor: Google Cloud
+  category: containers
+  role: container
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: container
+  color: "#4285F4"
+  description: Serverless platform for running containers as autoscaling services, batch jobs and (since 2024) functions, billed per use with scale to zero.
+  typical_legacy_use: Hosting containerised APIs, microservices and batch jobs without managing clusters, including re-platformed Java/.NET applications.
+  capabilities: [serverless-containers, scale-to-zero, jobs, functions, gpu-support]
+  possible_targets: []
+  alternatives: [aws-lambda, amazon-ecs, azure-functions, gke]
+  replaces: [weblogic, websphere, cron]
+  suggested_next: [google-pubsub, google-cloud-scheduler, google-secret-manager, google-cloud-monitoring]
+  migration_considerations:
+    - Containerise applications and make them stateless; externalise sessions, files and configuration.
+    - Use Cloud Run jobs for batch tasks and Cloud Scheduler/Workflows to trigger them.
+    - Configure VPC egress, ingress controls and IAM-based service-to-service auth.
+  known_challenges:
+    - Request timeouts and stateless execution model require application changes for legacy apps.
+    - Cold starts on scale-from-zero affect latency without minimum instances.
+  risks: [operational-readiness, integration-breakage]
+  strategies: [replatform, refactor]
+  skills: [Containers, GCP]
+  tags: [gcp, serverless, containers]
+  docs:
+    - title: Cloud Run documentation
+      url: https://cloud.google.com/run/docs
+
+- id: google-cloud-functions
+  name: Google Cloud Run functions (Cloud Functions)
+  aliases: [cloud functions, google cloud functions, cloud run functions, gcf]
+  vendor: Google Cloud
+  category: applications
+  role: application
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [gcp]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: zap
+  color: "#4285F4"
+  description: Google's event-driven functions-as-a-service, renamed Cloud Run functions in 2024 (2nd-gen functions run on Cloud Run), triggered by HTTP, Pub/Sub, Cloud Storage and Eventarc events.
+  typical_legacy_use: Lightweight event handlers such as file-arrival triggers on Cloud Storage, Pub/Sub message processing and webhooks.
+  capabilities: [serverless-functions, event-driven, auto-scaling, pay-per-use]
+  possible_targets: [google-cloud-run]
+  alternatives: [aws-lambda, azure-functions, google-cloud-run]
+  replaces: [cron]
+  suggested_next: [google-pubsub, google-cloud-storage, google-cloud-scheduler, google-cloud-monitoring]
+  migration_considerations:
+    - Prefer 2nd-gen (Cloud Run functions) for longer timeouts and concurrency; plan migration of 1st-gen functions.
+    - Keep heavy data processing in Dataflow, Dataproc or BigQuery rather than in functions.
+    - Use Eventarc triggers and Pub/Sub dead-letter topics for reliable event handling and retries.
+  known_challenges:
+    - Execution time and memory limits constrain data workloads.
+    - Many small functions complicate lineage and change management.
+  risks: [lineage-loss, operational-readiness]
+  strategies: [refactor, rearchitect]
+  skills: [Serverless development, GCP]
+  tags: [gcp, serverless, compute]
+  docs:
+    - title: Cloud Run functions documentation
+      url: https://cloud.google.com/functions/docs
+
+- id: azure-functions
+  name: Azure Functions
+  aliases: [azure functions, azure function, function app, function apps, durable functions]
+  vendor: Microsoft
+  category: applications
+  role: application
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: zap
+  color: "#0078D4"
+  description: Azure's event-driven serverless compute service with triggers and bindings for Blob Storage, Event Hubs, Service Bus, Cosmos DB and HTTP, plus Durable Functions for stateful orchestration.
+  typical_legacy_use: Event handlers and integration glue in Azure data platforms (blob-arrival triggers, queue processing, API endpoints).
+  capabilities: [serverless-functions, triggers-and-bindings, durable-orchestration, auto-scaling]
+  possible_targets: []
+  alternatives: [aws-lambda, google-cloud-functions, google-cloud-run]
+  replaces: [cron]
+  suggested_next: [azure-service-bus, azure-event-hubs, adls-gen2, azure-monitor, azure-key-vault]
+  migration_considerations:
+    - Choose the hosting plan (Flex Consumption, Premium, Dedicated) for VNet integration, cold-start and timeout requirements.
+    - Use managed identities and Key Vault references instead of connection strings.
+    - Keep heavy data transformation in ADF, Databricks or Fabric rather than functions.
+  known_challenges:
+    - Consumption-plan timeouts and cold starts limit some workloads.
+    - Function sprawl obscures lineage and ownership.
+  risks: [lineage-loss, operational-readiness, security-gap]
+  strategies: [refactor, rearchitect]
+  skills: [Serverless development, C#/Python, Azure]
+  tags: [azure, serverless, compute]
+  docs:
+    - title: Azure Functions documentation
+      url: https://learn.microsoft.com/en-us/azure/azure-functions/
+
+- id: amazon-ecs
+  name: Amazon ECS
+  aliases: [ecs, amazon ecs, aws ecs, elastic container service, ecs fargate]
+  vendor: Amazon Web Services
+  category: containers
+  role: container
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: container
+  color: "#FF9900"
+  description: AWS-native container orchestration service running tasks and services on AWS Fargate (serverless) or EC2 capacity, integrated with IAM, ALB and CloudWatch.
+  typical_legacy_use: Running containerised microservices, batch workers and re-platformed applications on AWS without operating Kubernetes.
+  capabilities: [container-orchestration, serverless-containers, service-discovery, scheduled-tasks]
+  possible_targets: []
+  alternatives: [amazon-eks, kubernetes, google-cloud-run, aks]
+  replaces: [weblogic, websphere]
+  suggested_next: [aws-iam, amazon-cloudwatch, aws-secrets-manager, amazon-sqs]
+  migration_considerations:
+    - Choose Fargate vs EC2 launch types based on control, GPU and cost needs.
+    - Define task roles with least privilege and pull secrets from Secrets Manager/Parameter Store.
+    - ECS is AWS-specific; weigh portability needs against EKS.
+  known_challenges:
+    - Less portable than Kubernetes; tooling and manifests are AWS-specific.
+    - Stateful workloads need EFS or external stores.
+  risks: [vendor-lock-in, operational-readiness]
+  strategies: [replatform, refactor]
+  skills: [Containers, AWS]
+  tags: [aws, containers]
+  docs:
+    - title: Amazon ECS documentation
+      url: https://docs.aws.amazon.com/ecs/
+
+- id: openshift
+  name: Red Hat OpenShift
+  aliases: [openshift, red hat openshift, ocp, openshift container platform, rosa, aro]
+  vendor: Red Hat
+  category: containers
+  role: container
+  layer: processing
+  environment: hybrid
+  legacy: false
+  clouds: [on-prem, aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: container
+  color: "#EE0000"
+  description: Enterprise Kubernetes platform with integrated developer tooling, security policies and operators, run on-prem or as managed services (ROSA on AWS, ARO on Azure, OpenShift Dedicated).
+  typical_legacy_use: Hybrid-cloud application platform in regulated enterprises, hosting modernised Java/.NET workloads and increasingly data and AI services.
+  capabilities: [kubernetes, hybrid-cloud, operators, integrated-ci-cd, security-policies]
+  possible_targets: [amazon-eks, aks, gke]
+  alternatives: [kubernetes, amazon-eks, aks, gke]
+  replaces: [weblogic, websphere]
+  suggested_next: [kubernetes, prometheus, hashicorp-vault]
+  migration_considerations:
+    - OpenShift's security context constraints are stricter than vanilla Kubernetes; images running as root need changes.
+    - Map Routes, DeploymentConfigs (deprecated) and ImageStreams to standard Kubernetes resources if portability is required.
+    - Plan subscription costs per core across on-prem and managed variants.
+  known_challenges:
+    - Platform upgrades and operator lifecycle need dedicated platform engineering.
+    - OpenShift-specific resources reduce portability to other Kubernetes distributions.
+  risks: [licensing-overlap, operational-readiness, skills-gap]
+  strategies: [retain, rehost, replatform]
+  skills: [OpenShift, Kubernetes, containers]
+  tags: [kubernetes, containers, hybrid]
+  docs:
+    - title: Red Hat OpenShift documentation
+      url: https://docs.redhat.com/en/documentation/openshift_container_platform/
+
+# ---------------------------------------------------------------- Governance / quality / observability
+- id: datahub
+  name: DataHub
+  aliases: [datahub, acryl datahub, acryl data, datahub cloud]
+  vendor: DataHub Project (Acryl Data)
+  category: governance
+  role: governance
+  layer: governance
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: book-open
+  color: "#1890FF"
+  description: Open-source metadata platform (originated at LinkedIn) for data discovery, lineage, ownership and governance, with a managed DataHub Cloud offering.
+  typical_legacy_use: Cross-platform catalog and lineage graph spanning warehouses, lakes, dbt, Airflow, Kafka and BI tools.
+  capabilities: [data-catalog, lineage, metadata-ingestion, ownership, data-contracts]
+  possible_targets: []
+  alternatives: [openmetadata, atlan, collibra, alation, unity-catalog, microsoft-purview]
+  replaces: []
+  suggested_next: [unity-catalog, dbt, apache-airflow, apache-kafka]
+  migration_considerations:
+    - Decide which catalog is authoritative for access control (often the platform catalog) versus enterprise discovery (DataHub).
+    - Schedule metadata ingestion recipes for each source and connect lineage from dbt and orchestrators.
+    - Integrate with existing platform catalogs (Unity Catalog, Glue, Purview) rather than replacing them, and agree which system owns glossary terms.
+  known_challenges:
+    - Self-hosting requires running Kafka, Elasticsearch/OpenSearch and a relational store.
+    - Catalog value depends on sustained ownership curation.
+  risks: [governance-gap, operational-readiness]
+  strategies: [repurchase, rearchitect]
+  skills: [DataHub, metadata management]
+  tags: [catalog, lineage, open-source, governance]
+  docs:
+    - title: DataHub documentation
+      url: https://docs.datahub.com/
+
+- id: openmetadata
+  name: OpenMetadata
+  aliases: [openmetadata, open metadata, collate]
+  vendor: Collate
+  category: governance
+  role: governance
+  layer: governance
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: self-managed
+  icon: book-open
+  color: "#7147E8"
+  description: Open-source unified metadata platform for discovery, lineage, data quality tests, observability and collaboration, with a managed offering from Collate.
+  typical_legacy_use: Single place for catalog, glossary, lineage and data-quality test results across a modern data stack.
+  capabilities: [data-catalog, lineage, data-quality-tests, glossary, collaboration]
+  possible_targets: []
+  alternatives: [datahub, atlan, collibra, alation]
+  replaces: []
+  suggested_next: [dbt, apache-airflow, unity-catalog]
+  migration_considerations:
+    - Configure ingestion connectors per source and align glossary terms with enterprise data owners.
+    - Decide whether built-in quality tests or a dedicated DQ tool is the system of record for data quality.
+    - Model domains, data products and ownership early so lineage and quality results are routed to accountable teams.
+  known_challenges:
+    - Self-managed deployment and upgrades need ownership.
+    - Overlap with platform-native catalogs must be clarified to avoid duplicate governance.
+  risks: [governance-gap, operational-readiness]
+  strategies: [repurchase, rearchitect]
+  skills: [OpenMetadata, metadata management]
+  tags: [catalog, lineage, open-source, governance]
+  docs:
+    - title: OpenMetadata documentation
+      url: https://docs.open-metadata.org/
+
+- id: atlan
+  name: Atlan
+  aliases: [atlan, atlan data catalog]
+  vendor: Atlan
+  category: governance
+  role: governance
+  layer: governance
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: book-open
+  color: "#2026D2"
+  description: SaaS active-metadata platform for cataloguing, column-level lineage, glossary and governance workflows across the modern data stack.
+  typical_legacy_use: Enterprise data catalog and collaboration layer over Snowflake, Databricks, dbt and BI tools.
+  capabilities: [data-catalog, column-level-lineage, glossary, governance-workflows, active-metadata]
+  possible_targets: []
+  alternatives: [collibra, alation, datahub, openmetadata]
+  replaces: []
+  suggested_next: [unity-catalog, snowflake-horizon, dbt]
+  migration_considerations:
+    - Define personas, domains and glossary ownership before broad rollout.
+    - Integrate with platform-native policy engines rather than duplicating enforcement.
+    - Plan connector deployment (SaaS or secure agent) for sources behind the firewall.
+  known_challenges:
+    - Value depends on connector coverage for legacy sources.
+    - SaaS metadata processing must pass security review for regulated data.
+  risks: [governance-gap, security-gap]
+  strategies: [repurchase]
+  skills: [Data governance, metadata management]
+  tags: [catalog, governance, saas]
+  docs:
+    - title: Atlan documentation
+      url: https://docs.atlan.com/
+
+- id: immuta
+  name: Immuta
+  aliases: [immuta, immuta data security platform]
+  vendor: Immuta
+  category: governance
+  role: governance
+  layer: governance
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: shield-check
+  color: "#6E2CF3"
+  description: Data security platform that defines attribute-based access policies once and enforces them natively in Snowflake, Databricks, BigQuery, Redshift and others, with data-access request workflows and audit.
+  typical_legacy_use: Centralised, policy-as-code access control and masking for sensitive data across multiple cloud data platforms in regulated industries.
+  capabilities: [attribute-based-access-control, dynamic-masking, row-level-security, access-requests, audit]
+  possible_targets: []
+  alternatives: [unity-catalog, microsoft-purview, aws-lake-formation, snowflake-horizon]
+  replaces: []
+  suggested_next: [unity-catalog, snowflake, databricks, microsoft-entra-id]
+  migration_considerations:
+    - Map legacy role-based grants and Ranger/Sentry policies to attribute-based policies driven by tags and user attributes.
+    - Align sensitive-data classification with the catalog so policies apply automatically.
+    - Clarify the boundary between Immuta policies and platform-native controls to avoid conflicts.
+  known_challenges:
+    - Policy enforcement depends on each platform's native capabilities and integration mode.
+    - Attribute sources (HR systems, IdP groups) must be reliable.
+  risks: [security-gap, governance-gap, regulatory-compliance]
+  strategies: [repurchase]
+  skills: [Data security, ABAC policy design]
+  tags: [access-control, security, governance, saas]
+  docs:
+    - title: Immuta documentation
+      url: https://documentation.immuta.com/
+
+- id: monte-carlo-data
+  name: Monte Carlo (data observability)
+  aliases: [monte carlo data, monte carlo data observability, montecarlo data observability]
+  vendor: Monte Carlo
+  category: data-quality
+  role: data-quality
+  layer: governance
+  environment: saas
+  legacy: false
+  clouds: [aws, azure, gcp]
+  stage: null
+  platforms: []
+  operational_model: saas
+  icon: radar
+  color: "#3A2BFF"
+  description: SaaS data observability platform that monitors freshness, volume, schema and distribution anomalies across warehouses, lakes, pipelines and BI, with lineage-based impact analysis.
+  typical_legacy_use: Detecting data incidents in cloud data platforms before business users do, with alerting into incident tooling.
+  capabilities: [data-observability, anomaly-detection, lineage, incident-management]
+  possible_targets: []
+  alternatives: [soda, great-expectations, lakehouse-monitoring]
+  replaces: []
+  suggested_next: [snowflake, databricks, dbt]
+  migration_considerations:
+    - Enable monitors on critical gold/curated tables first, then expand; blanket monitoring creates alert fatigue.
+    - Use during parallel run to detect drift between legacy and target outputs.
+    - Connect lineage from dbt, orchestrators and BI so incidents show downstream impact.
+  known_challenges:
+    - Anomaly models need a learning period and tuning.
+    - Metadata/query-log access must pass security review.
+  risks: [data-quality-regression, cost-overrun]
+  strategies: [repurchase]
+  skills: [Data observability, SQL]
+  tags: [data-quality, observability, saas]
+  docs:
+    - title: Monte Carlo documentation
+      url: https://docs.getmontecarlo.com/
+
+- id: soda
+  name: Soda
+  aliases: [soda, soda core, soda cloud, sodacl]
+  vendor: Soda
+  category: data-quality
+  role: data-quality
+  layer: governance
+  environment: any
+  legacy: false
+  clouds: [any]
+  stage: null
+  platforms: []
+  operational_model: managed
+  icon: check-check
+  color: "#00C08B"
+  description: Data quality testing and monitoring tool with open-source Soda Core, checks written in SodaCL/data contracts, and Soda Cloud for anomaly detection, alerting and collaboration.
+  typical_legacy_use: Embedding data-quality checks in pipelines and data contracts on Snowflake, Databricks, BigQuery, Postgres and others.
+  capabilities: [data-quality-checks, data-contracts, anomaly-detection, pipeline-integration]
+  possible_targets: []
+  alternatives: [great-expectations, monte-carlo-data, lakehouse-monitoring, google-dvt]
+  replaces: []
+  suggested_next: [dbt, apache-airflow, dagster, reconciliation-framework]
+  migration_considerations:
+    - Codify legacy reconciliation and DQ rules as checks in version control and run them in orchestration.
+    - Decide where check results are stored and surfaced (Soda Cloud, catalog, observability tools).
+    - Run checks as quality gates in orchestration so failing data is quarantined before publication.
+  known_challenges:
+    - Rule coverage depends on business input; technical checks alone miss semantic errors.
+    - Running checks on very large tables adds compute cost.
+  risks: [data-quality-regression]
+  strategies: [repurchase, refactor]
+  skills: [SodaCL, SQL, data quality engineering]
+  tags: [data-quality, open-source, testing]
+  docs:
+    - title: Soda documentation
+      url: https://docs.soda.io/
+
+# ---------------------------------------------------------------- Cloud GenAI services
+- id: amazon-bedrock
+  name: Amazon Bedrock
+  aliases: [bedrock, amazon bedrock, aws bedrock, bedrock agents]
+  vendor: Amazon Web Services
+  category: ai-ml
+  role: ml
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [aws]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: brain
+  color: "#01A88D"
+  description: Fully managed AWS service providing API access to foundation models from Amazon and third parties, with knowledge bases (RAG), agents, guardrails and model customisation.
+  typical_legacy_use: Building generative-AI applications on AWS, such as document understanding, assistants and agents over enterprise data.
+  capabilities: [foundation-model-api, rag, agents, guardrails, model-customisation]
+  possible_targets: []
+  alternatives: [azure-openai, vertex-ai, databricks-model-serving, amazon-sagemaker]
+  replaces: []
+  suggested_next: [amazon-s3, amazon-opensearch, aws-lambda, aws-iam, amazon-cloudwatch]
+  migration_considerations:
+    - Confirm model availability by region and data-residency needs; use cross-region inference profiles deliberately.
+    - Apply guardrails, IAM scoping and private connectivity (VPC endpoints) for enterprise data.
+    - Establish evaluation and cost monitoring per use case.
+  known_challenges:
+    - Model choice and quotas vary by region.
+    - Token costs scale quickly without caching and prompt discipline.
+  risks: [cost-overrun, security-gap, regulatory-compliance]
+  strategies: [repurchase, rearchitect]
+  skills: [Generative AI engineering, AWS]
+  tags: [aws, genai, llm, ai]
+  docs:
+    - title: Amazon Bedrock documentation
+      url: https://docs.aws.amazon.com/bedrock/
+
+- id: azure-openai
+  name: Azure OpenAI (Microsoft Foundry)
+  aliases: [azure openai, azure openai service, aoai, azure ai foundry, microsoft foundry, foundry models]
+  vendor: Microsoft
+  category: ai-ml
+  role: ml
+  layer: processing
+  environment: cloud
+  legacy: false
+  clouds: [azure]
+  stage: null
+  platforms: []
+  operational_model: serverless
+  icon: brain
+  color: "#0078D4"
+  description: Microsoft's enterprise service for OpenAI models on Azure, now delivered through Microsoft Foundry (formerly Azure AI Foundry), with regional or global deployments, content filtering and Azure networking/identity integration.
+  typical_legacy_use: Generative-AI assistants, document processing and RAG applications for Microsoft-centric enterprises, often with Azure AI Search.
+  capabilities: [foundation-model-api, content-filtering, private-networking, provisioned-throughput, fine-tuning]
+  possible_targets: []
+  alternatives: [amazon-bedrock, vertex-ai, databricks-model-serving, azure-machine-learning]
+  replaces: []
+  suggested_next: [azure-functions, azure-key-vault, microsoft-entra-id, private-connectivity, azure-monitor]
+  migration_considerations:
+    - Choose deployment types (standard, global, data-zone, provisioned) against residency, latency and cost.
+    - Use managed identities and private endpoints; disable key-based access where possible.
+    - Plan quota/TPM capacity and evaluation for each use case.
+  known_challenges:
+    - Model version retirements require periodic upgrades and regression testing.
+    - Quota limits per region can constrain scale-out.
+  risks: [cost-overrun, security-gap, regulatory-compliance]
+  strategies: [repurchase, rearchitect]
+  skills: [Generative AI engineering, Azure]
+  tags: [azure, genai, llm, ai]
+  docs:
+    - title: Microsoft Foundry (Azure OpenAI) documentation
+      url: https://learn.microsoft.com/en-us/azure/foundry/
